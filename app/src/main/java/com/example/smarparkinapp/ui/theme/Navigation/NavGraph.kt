@@ -13,12 +13,14 @@ fun AppNavGraph(navController: NavHostController) {
         navController = navController,
         startDestination = NavRoutes.Splash.route
     ) {
+        // Splash
         composable(NavRoutes.Splash.route) {
             SplashScreen(
                 onTimeout = { navController.navigate(NavRoutes.Login.route) }
             )
         }
 
+        // Login
         composable(NavRoutes.Login.route) {
             LoginScreen(
                 onLoginSuccess = { navController.navigate(NavRoutes.Home.route) },
@@ -26,18 +28,36 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
+        // Register
         composable(NavRoutes.Register.route) {
             RegisterScreen(
-                onRegisterSuccess = { navController.navigate(NavRoutes.Home.route) },
+                onRegisterSuccess = { userId ->
+                    navController.navigate(NavRoutes.CompleteProfile.createRoute(userId)) {
+                        popUpTo(NavRoutes.Register.route) { inclusive = true }
+                    }
+                },
                 onLoginClick = { navController.navigate(NavRoutes.Login.route) }
             )
         }
 
-        //  HOME
+        // Complete Profile
+        composable(NavRoutes.CompleteProfile.route) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            CompleteProfileScreen(
+                userId = userId,
+                onProfileCompleted = {
+                    navController.navigate(NavRoutes.Home.route) {
+                        popUpTo(NavRoutes.Register.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Home
         composable(NavRoutes.Home.route) {
             HomeScreen(
                 navController = navController,
-                onParkingClick = { /* Por ahora vacío */ },
+                onParkingClick = { /* acción */ },
                 onReservationClick = { parkingName, plate, duration, total ->
                     navController.navigate(
                         NavRoutes.Reservation.createRoute(parkingName, plate, duration, total)
@@ -46,7 +66,8 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        //  PERFIL
+
+        // Perfil
         composable(NavRoutes.Perfil.route) {
             PerfilScreen(
                 onCerrarSesion = {
@@ -57,12 +78,12 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        //  HISTORIAL
+        // Historial
         composable(NavRoutes.Historial.route) {
             HistoryScreen()
         }
 
-        //  RESERVATION
+        // Reservation
         composable(NavRoutes.Reservation.route) { backStackEntry ->
             val parkingName = backStackEntry.arguments?.getString("parkingName") ?: "Estacionamiento"
             val plate = backStackEntry.arguments?.getString("plate") ?: ""
@@ -70,9 +91,12 @@ fun AppNavGraph(navController: NavHostController) {
             val total = backStackEntry.arguments?.getString("total")?.toDouble() ?: 0.0
 
             ReservationScreen(
+                navController = navController,
                 parkingName = parkingName,
                 pricePerHour = total / duration
             )
         }
+
     }
+
 }

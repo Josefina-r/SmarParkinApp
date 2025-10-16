@@ -3,10 +3,14 @@ package com.example.smarparkinapp.ui.theme.data.api
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpotResponse
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
+import com.example.smarparkinapp.ui.theme.data.model.CarRequest
+import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.Response
+import retrofit2.http.Path
+
 
 interface ApiService {
 
@@ -26,6 +30,11 @@ interface ApiService {
 
     @GET("parkingSpot/")
     suspend fun getParkingLots(): List<ParkingSpot>
+
+    @POST("api/users/{id}/cars/")
+    suspend fun addCar(@Path("id") userId: Int, @Body car: CarRequest): Response<CarResponse>
+
+
 }
 
 // Modelos de request/response

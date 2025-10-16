@@ -4,15 +4,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.CarRental
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.smarparkinapp.ui.theme.theme.* // ← Importa tus colores personalizados
+import androidx.compose.ui.unit.dp
+import com.example.smarparkinapp.ui.theme.theme.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 // Modelo simple para una reserva
 data class Reserva(
@@ -24,56 +26,89 @@ data class Reserva(
     val estado: String
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreen(
     reservas: List<Reserva>,
-    onReservaClick: (Reserva) -> Unit = {}
+    onReservaClick: (Reserva) -> Unit = {},
+    onBackClick: () -> Unit = {}
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Encabezado
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.CarRental,
-                contentDescription = "Reservas",
-                tint = AzulPrincipal,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Mis Reservas",
-                style = MaterialTheme.typography.headlineSmall,
-                color = AzulPrincipal
+    val fechaActual = remember {
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Mis Reservas",
+                        color = Blanco
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { onBackClick() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = Blanco
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* TODO: mostrar menú o acciones */ }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Menú",
+                            tint = Blanco
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = AzulPrincipal
+                )
             )
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        if (reservas.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(16.dp)
+                .fillMaxSize()
+        ) {
+            // Fecha actual alineada a la derecha
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = "No tienes reservas registradas.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = GrisClaro
+                    text = fechaActual,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AzulSecundario
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(reservas) { reserva ->
-                    ReservaCard(reserva, onClick = { onReservaClick(reserva) })
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (reservas.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No tienes reservas registradas.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = GrisClaro
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(reservas) { reserva ->
+                        ReservaCard(reserva, onClick = { onReservaClick(reserva) })
+                    }
                 }
             }
         }
@@ -82,7 +117,6 @@ fun ListScreen(
 
 @Composable
 fun ReservaCard(reserva: Reserva, onClick: () -> Unit) {
-    // Color del estado
     val estadoColor = when (reserva.estado) {
         "Activa" -> VerdePrincipal
         "Completada" -> VerdeSecundario
@@ -98,7 +132,6 @@ fun ReservaCard(reserva: Reserva, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = Blanco)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Nombre + Estado
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
@@ -117,7 +150,6 @@ fun ReservaCard(reserva: Reserva, onClick: () -> Unit) {
                     )
                 }
 
-                // Chip de estado
                 AssistChip(
                     onClick = {},
                     label = { Text(reserva.estado) },
@@ -130,7 +162,6 @@ fun ReservaCard(reserva: Reserva, onClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Horarios
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()

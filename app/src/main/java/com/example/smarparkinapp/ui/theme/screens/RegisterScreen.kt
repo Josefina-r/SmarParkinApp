@@ -29,10 +29,9 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import com.example.smarparkinapp.ui.theme.viewmodel.RegisterViewModel
 
-
 @Composable
 fun RegisterScreen(
-    onRegisterSuccess: () -> Unit,
+    onRegisterSuccess: (Int) -> Unit,
     onLoginClick: () -> Unit,
     viewModel: RegisterViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
@@ -43,12 +42,13 @@ fun RegisterScreen(
 
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    val registerSuccess by viewModel.registerSuccess.collectAsState()
+    val registeredUserId by viewModel.registeredUserId.collectAsState() // ✅ lo traemos del viewmodel
 
-    LaunchedEffect(registerSuccess) {
-        if (registerSuccess) {
-            onRegisterSuccess()
-            viewModel.clearRegisterSuccess()
+    // ✅ Cuando el registro es exitoso, navega al CompleteProfileScreen
+    LaunchedEffect(registeredUserId) {
+        registeredUserId?.let { id ->
+            onRegisterSuccess(id)
+            viewModel.clearRegisteredUserId()
         }
     }
 
@@ -179,30 +179,24 @@ fun RegisterScreen(
                     Spacer(Modifier.height(28.dp))
 
                     // Botón Registrarse
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(VerdeSecundario, VerdePrincipal)
+                    Button(
+                        onClick = {
+                            if (password == confirmPassword &&
+                                name.isNotEmpty() &&
+                                email.isNotEmpty()
+                            ) {
+                                val request = RegisterRequest(
+                                    username = name,
+                                    email = email,
+                                    password = password
                                 )
-                            )
-                            .clickable(enabled = !isLoading) {
-                                if (password == confirmPassword &&
-                                    name.isNotEmpty() &&
-                                    email.isNotEmpty()
-                                ) {
-                                    val request = RegisterRequest(
-                                        username = name,
-                                        email = email,
-                                        password = password
-                                    )
-                                    viewModel.register(request)
-                                }
-                            },
-                        contentAlignment = Alignment.Center
+                                viewModel.register(request)
+                            }
+                        },
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AzulPrincipal),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(color = Blanco)

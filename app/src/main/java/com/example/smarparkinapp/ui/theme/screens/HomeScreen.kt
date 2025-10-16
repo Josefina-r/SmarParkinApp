@@ -23,14 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
+import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
 import com.example.smarparkinapp.ui.theme.theme.*
-import com.example.smarparkinapp.ui.theme.data.model.*
-import com.google.maps.android.compose.*
+import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
+import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,19 +44,25 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    val parkingSpots by viewModel.parkingSpots.collectAsState()
+    val parkingSpots by viewModel.filteredParkingSpots.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    LaunchedEffect(Unit) { viewModel.fetchParkingSpots() }
+    LaunchedEffect(searchQuery) {
+        viewModel.searchParking(searchQuery)
+    }
+
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchParkingSpots()
+
+        viewModel.updateUserLocation(-8.111667, -79.028889)
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(
-                modifier = Modifier.background(VerdeSecundario)
-            ) {
-                // Título del menú
+            ModalDrawerSheet(modifier = Modifier.background(VerdeSecundario)) {
                 Text(
                     "Menú",
                     modifier = Modifier.padding(16.dp),
@@ -67,6 +72,19 @@ fun HomeScreen(
                     )
                 )
 
+                Divider(color = AzulSecundario.copy(alpha = 0.3f))
+
+                //  Home
+                NavigationDrawerItem(
+                    label = { Text("Home", color = AzulSecundario) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate(NavRoutes.Home.route)
+                    }
+                )
+
+                //  Perfil
                 NavigationDrawerItem(
                     label = { Text("Perfil", color = AzulSecundario) },
                     selected = false,
@@ -76,8 +94,9 @@ fun HomeScreen(
                     }
                 )
 
+                //  Historial
                 NavigationDrawerItem(
-                    label = { Text("Historial") },
+                    label = { Text("Historial", color = AzulSecundario) },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
@@ -85,6 +104,7 @@ fun HomeScreen(
                     }
                 )
 
+                //  Reservar
                 NavigationDrawerItem(
                     label = { Text("Reservar", color = AzulSecundario) },
                     selected = false,
@@ -94,19 +114,23 @@ fun HomeScreen(
                     }
                 )
 
+                //  Notificaciones
+                NavigationDrawerItem(
+                    label = { Text("Notificaciones", color = AzulSecundario) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate(NavRoutes.Notificaciones.route)
+                    }
+                )
             }
-        }
+}
     ) {
         BottomSheetScaffold(
             scaffoldState = sheetState,
             sheetPeekHeight = 250.dp,
             sheetContent = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    // Barra de búsqueda
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
@@ -118,7 +142,6 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Filtros rápidos
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -144,7 +167,7 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(parkingSpots.filter { it.name.contains(searchQuery, ignoreCase = true) }) { parking ->
+                        items(parkingSpots) { parking ->
                             ParkingSpotCard(
                                 parkingSpot = parking,
                                 onReserveClick = {
@@ -156,12 +179,10 @@ fun HomeScreen(
                                             parking.price.toDoubleOrNull() ?: 0.0
                                         )
                                     )
-                                }
-                                ,
+                                },
                                 onDetailClick = { onParkingClick(parking.id) }
                             )
                         }
-
                     }
 
                     if (isLoading) {
@@ -175,7 +196,6 @@ fun HomeScreen(
             }
         ) { padding ->
             Box(modifier = Modifier.fillMaxSize()) {
-                // Mapa de Google
                 val cameraPositionState = rememberCameraPositionState {
                     position = CameraPosition.fromLatLngZoom(
                         LatLng(-8.111667, -79.028889),
@@ -191,14 +211,13 @@ fun HomeScreen(
                 ) {
                     parkingSpots.forEach { spot ->
                         Marker(
-                            state = MarkerState(position = LatLng(spot.latitude, spot.longitude)),
+                            state = MarkerState(LatLng(spot.latitude, spot.longitude)),
                             title = spot.name,
                             snippet = "${spot.price} - ${spot.availableSpots} lugares"
                         )
                     }
                 }
 
-                // Botón menú
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -206,15 +225,9 @@ fun HomeScreen(
                 ) {
                     IconButton(
                         onClick = { scope.launch { drawerState.open() } },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(VerdeSecundario, CircleShape)
+                        modifier = Modifier.size(56.dp).background(VerdeSecundario, CircleShape)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menú",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Menu, contentDescription = "Menú", tint = Color.White)
                     }
                 }
             }
@@ -225,9 +238,7 @@ fun HomeScreen(
 @Composable
 fun FilterChip(text: String, color: Color) {
     Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { },
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { },
         color = color.copy(alpha = 0.1f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
     ) {
@@ -248,10 +259,7 @@ fun ParkingSpotCard(
     onDetailClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, shape = RoundedCornerShape(16.dp))
-            .clickable { onDetailClick() },
+        modifier = Modifier.fillMaxWidth().shadow(2.dp, shape = RoundedCornerShape(16.dp)).clickable { onDetailClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Blanco)
     ) {
@@ -260,10 +268,7 @@ fun ParkingSpotCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(parkingSpot.address, fontSize = 12.sp, color = GrisClaro)
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(parkingSpot.price, fontWeight = FontWeight.Bold, color = VerdePrincipal)
                 Text("${parkingSpot.availableSpots} disponibles", color = VerdeSecundario)
             }

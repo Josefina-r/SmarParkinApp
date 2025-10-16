@@ -5,27 +5,59 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.theme.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
-    onCerrarSesion: () -> Unit
+    navController: NavHostController? = null,
+    onCerrarSesion: () -> Unit = {}
 ) {
+    // Fecha actual
+    val fechaActual = remember {
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        sdf.format(Date())
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mi Perfil", color = Blanco) },
+                title = {
+                    Column {
+                        Text("Mi Perfil", color = Blanco, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Fecha: $fechaActual",
+                            color = Blanco.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController?.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = Blanco
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AzulPrincipal
                 )
@@ -57,7 +89,7 @@ fun PerfilScreen(
                 )
             }
 
-            // Información Personal
+            // Información personal
             InfoCard(
                 titulo = "Información Personal",
                 contenido = listOf(
@@ -142,6 +174,6 @@ fun InfoCard(
 @Composable
 fun PerfilScreenPreview() {
     SmarParkinAppTheme {
-        PerfilScreen { }
+        PerfilScreen()
     }
 }

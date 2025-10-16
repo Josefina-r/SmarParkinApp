@@ -4,6 +4,11 @@ sealed class NavRoutes(val route: String) {
     object Splash : NavRoutes("splash")
     object Login : NavRoutes("login")
     object Register : NavRoutes("register")
+    object Notificaciones : NavRoutes("notificaciones")
+    object Reservar : NavRoutes("reservar")
+    object CompleteProfile : NavRoutes("complete_profile/{userId}") {
+        fun createRoute(userId: Int) = "complete_profile/$userId"
+    }
     object Home : NavRoutes("home")
     object Main : NavRoutes("main")
     object Perfil : NavRoutes("perfil")

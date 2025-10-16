@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,11 +16,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationScreen(
+    navController: NavHostController,
     parkingName: String = "Estacionamiento Central",
     pricePerHour: Double = 5.0
 ) {
@@ -27,12 +31,21 @@ fun ReservationScreen(
     var selectedPayment by remember { mutableStateOf("Yape") }
 
     val totalPrice = selectedDuration * pricePerHour
-    val context = LocalContext.current // ✅ Contexto válido dentro de Composable
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Reservar", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Blanco
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AzulPrincipal,
                     titleContentColor = Blanco

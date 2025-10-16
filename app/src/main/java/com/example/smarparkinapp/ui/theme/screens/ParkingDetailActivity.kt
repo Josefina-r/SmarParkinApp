@@ -24,7 +24,12 @@ class ParkingDetailActivity : ComponentActivity() {
                         direccion = parkingAddress,
                         precioHora = parkingPrice,
                         horario = "24 horas",
-                        amenidades = listOf("Seguridad 24/7", "Cámaras", "Techado", "Acceso rápido"),
+                        amenidades = listOf(
+                            "Seguridad 24/7",
+                            "Cámaras",
+                            "Techado",
+                            "Acceso rápido"
+                        ),
                         telefono = parkingPhone
                     )
                 )
