@@ -17,7 +17,7 @@ class RegisterViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // Nuevo: id del usuario registrado (null hasta que el registro sea exitoso)
+
     private val _registeredUserId = MutableStateFlow<Int?>(null)
     val registeredUserId: StateFlow<Int?> = _registeredUserId
 

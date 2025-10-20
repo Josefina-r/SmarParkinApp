@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,10 +53,8 @@ fun HomeScreen(
         viewModel.searchParking(searchQuery)
     }
 
-
     LaunchedEffect(Unit) {
         viewModel.fetchParkingSpots()
-
         viewModel.updateUserLocation(-8.111667, -79.028889)
     }
 
@@ -124,7 +123,7 @@ fun HomeScreen(
                     }
                 )
             }
-}
+        }
     ) {
         BottomSheetScaffold(
             scaffoldState = sheetState,
@@ -142,14 +141,20 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FilterChip("Precio", VerdeSecundario)
-                        FilterChip("Distancia", VerdePrincipal)
-                        FilterChip("Seguridad", VerdePrincipal)
-                        FilterChip("Disponible", Color(0xFF4CAF50))
+                        FilterChip("Precio", VerdeSecundario) {
+                            viewModel.fetchMasEconomicos()
+                        }
+                        FilterChip("Mejor Rating", VerdePrincipal) {
+                            viewModel.fetchMejoresCalificados()
+                        }
+                        FilterChip("Alta Seguridad", VerdePrincipal) {
+                            viewModel.filterBySecurity(4)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -210,10 +215,11 @@ fun HomeScreen(
                     cameraPositionState = cameraPositionState
                 ) {
                     parkingSpots.forEach { spot ->
+
                         Marker(
                             state = MarkerState(LatLng(spot.latitude, spot.longitude)),
                             title = spot.name,
-                            snippet = "${spot.price} - ${spot.availableSpots} lugares"
+                            snippet = buildMarkerSnippet(spot) // Nueva función mejorada
                         )
                     }
                 }
@@ -235,10 +241,39 @@ fun HomeScreen(
     }
 }
 
+private fun buildMarkerSnippet(spot: ParkingSpot): String {
+    val baseInfo = "${spot.price} - ${spot.availableSpots} lugares"
+
+
+    val extraInfo = buildString {
+        if (spot.ratingPromedio > 0) {
+            append(" ★${spot.ratingPromedio.format(1)}")
+        }
+        if (spot.nivelSeguridad >= 4) {
+            append(" 🔒")
+        }
+        if (!spot.estaAbierto) {
+            append(" 🔴 Cerrado")
+        }
+    }
+
+    return if (extraInfo.isNotEmpty()) {
+        "$baseInfo • $extraInfo"
+    } else {
+        baseInfo
+    }
+}
+
+
+private fun Double.format(decimals: Int): String {
+    return "%.${decimals}f".format(this)
+}
+
+
 @Composable
-fun FilterChip(text: String, color: Color) {
+fun FilterChip(text: String, color: Color, onClick: () -> Unit = {}) {
     Surface(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { },
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { onClick() },
         color = color.copy(alpha = 0.1f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
     ) {
@@ -252,6 +287,7 @@ fun FilterChip(text: String, color: Color) {
     }
 }
 
+// ✅ PARKING SPOT CARD MEJORADO (sin romper diseño existente)
 @Composable
 fun ParkingSpotCard(
     parkingSpot: ParkingSpot,
@@ -259,23 +295,130 @@ fun ParkingSpotCard(
     onDetailClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().shadow(2.dp, shape = RoundedCornerShape(16.dp)).clickable { onDetailClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(2.dp, shape = RoundedCornerShape(16.dp))
+            .clickable { onDetailClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Blanco)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(parkingSpot.name, fontWeight = FontWeight.Bold, color = AzulPrincipal)
+            // ✅ TÍTULO ORIGINAL (igual)
+            Text(
+                parkingSpot.name,
+                fontWeight = FontWeight.Bold,
+                color = AzulPrincipal
+            )
+
             Spacer(modifier = Modifier.height(4.dp))
-            Text(parkingSpot.address, fontSize = 12.sp, color = GrisClaro)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(parkingSpot.price, fontWeight = FontWeight.Bold, color = VerdePrincipal)
-                Text("${parkingSpot.availableSpots} disponibles", color = VerdeSecundario)
+
+            // ✅ NUEVA INFORMACIÓN (se agrega sin afectar lo existente)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Rating con estrellas (si tiene rating)
+                if (parkingSpot.ratingPromedio > 0) {
+                    StarRating(rating = parkingSpot.ratingPromedio)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        "(${parkingSpot.totalResenas})",
+                        color = GrisClaro,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                // Indicador de seguridad alta
+                if (parkingSpot.nivelSeguridad >= 4) {
+                    Text("🔒", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+
+                // Indicador de cámaras
+                if (parkingSpot.tieneCamaras) {
+                    Text("📹", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+
+                // Indicador de vigilancia 24h
+                if (parkingSpot.tieneVigilancia24h) {
+                    Text("🛡️", fontSize = 12.sp)
+                }
+
+                // Espacio flexible para empujar el estado a la derecha
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Indicador de estado abierto/cerrado
+                if (!parkingSpot.estaAbierto) {
+                    Text(
+                        "🔴 Cerrado",
+                        color = Color.Red,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ✅ DIRECCIÓN ORIGINAL (igual)
+            Text(
+                parkingSpot.address,
+                fontSize = 12.sp,
+                color = GrisClaro
+            )
+
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onReserveClick, enabled = parkingSpot.availableSpots > 0) {
-                Text(if (parkingSpot.availableSpots > 0) "Reservar" else "Lleno")
+
+            // ✅ PRECIO Y DISPONIBILIDAD ORIGINAL (igual)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    parkingSpot.price,
+                    fontWeight = FontWeight.Bold,
+                    color = VerdePrincipal
+                )
+                Text(
+                    "${parkingSpot.availableSpots} disponibles",
+                    color = VerdeSecundario
+                )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ✅ BOTÓN ORIGINAL (igual)
+            Button(
+                onClick = onReserveClick,
+                enabled = parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto
+            ) {
+                Text(
+                    if (parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto) {
+                        "Reservar"
+                    } else if (!parkingSpot.estaAbierto) {
+                        "Cerrado"
+                    } else {
+                        "Lleno"
+                    }
+                )
+            }
+        }
+    }
+}
+
+// ✅ COMPOSABLE NUEVO para mostrar rating con estrellas
+@Composable
+fun StarRating(rating: Double) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        repeat(5) { index ->
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = if (index < rating) Color(0xFFFFD700) else Color(0xFFCCCCCC),
+                modifier = Modifier.size(14.dp)
+            )
         }
     }
 }

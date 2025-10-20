@@ -24,5 +24,4 @@ sealed class NavRoutes(val route: String) {
 
 
 
-
 }

@@ -47,7 +47,7 @@ fun EstacionamientoDetalleScreen(
             .padding(16.dp)
     ) {
 
-        // Imagen destacada con overlay y degradado
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()

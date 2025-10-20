@@ -7,6 +7,8 @@ import androidx.navigation.compose.composable
 import com.example.smarparkinapp.ui.screens.ReservationScreen
 import com.example.smarparkinapp.ui.theme.screens.*
 
+import androidx.navigation.NavType
+
 @Composable
 fun AppNavGraph(navController: NavHostController) {
     NavHost(
@@ -80,7 +82,7 @@ fun AppNavGraph(navController: NavHostController) {
 
         // Historial
         composable(NavRoutes.Historial.route) {
-            HistoryScreen()
+            HistoryScreen(navController = navController)
         }
 
         // Reservation
@@ -96,7 +98,11 @@ fun AppNavGraph(navController: NavHostController) {
                 pricePerHour = total / duration
             )
         }
-
+        composable(
+            route = NavRoutes.ParkingDetail.route
+        ) { backStackEntry ->
+            EstacionamientoDetalleScreen()
+        }
     }
 
 }

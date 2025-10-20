@@ -16,7 +16,7 @@ import com.example.smarparkinapp.ui.theme.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Modelo simple para una reserva
+
 data class Reserva(
     val id: Int,
     val nombre: String,

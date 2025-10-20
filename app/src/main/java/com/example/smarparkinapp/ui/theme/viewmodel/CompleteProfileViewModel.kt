@@ -38,7 +38,7 @@ class CompleteProfileViewModel : ViewModel() {
             try {
                 _uiState.value = ProfileUiState(isLoading = true)
 
-                // Envío de datos del vehículo al backend
+
                 val response = apiService.addCar(
                     userId,
                     CarRequest(

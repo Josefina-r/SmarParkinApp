@@ -18,7 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
 import com.example.smarparkinapp.ui.theme.theme.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 data class ReservaHistorial(
     val id: String,
@@ -38,45 +40,43 @@ fun HistoryScreen(
         ReservaHistorial("3", "Parking Express", "05/09/2025", 10.00, "Completada")
     )
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
+
+    val navigateToParkingDetail = { reserva: ReservaHistorial ->
+        navController?.navigate(NavRoutes.ParkingDetail.createRoute(reserva.id.toInt())) {
+            launchSingleTop = true
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Historial de Reservas", color = Blanco) },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController?.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController?.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Regresar", tint = Blanco)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showMenu = true }) {
+                    IconButton(onClick = { showOptionsMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menú", tint = Blanco)
                     }
 
                     DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
+                        expanded = showOptionsMenu,
+                        onDismissRequest = { showOptionsMenu = false }
                     ) {
                         DropdownMenuItem(
                             text = { Text("Actualizar") },
-                            onClick = {
-                                // Aquí podrías recargar datos
-                                showMenu = false
-                            }
+                            onClick = { showOptionsMenu = false }
                         )
                         DropdownMenuItem(
                             text = { Text("Eliminar todo") },
-                            onClick = {
-                                // Acción para limpiar historial
-                                showMenu = false
-                            }
+                            onClick = { showOptionsMenu = false }
                         )
                         DropdownMenuItem(
                             text = { Text("Cerrar") },
-                            onClick = { showMenu = false }
+                            onClick = { showOptionsMenu = false }
                         )
                     }
                 },
@@ -86,8 +86,9 @@ fun HistoryScreen(
             )
         },
         containerColor = Blanco
-    ) { innerPadding ->
-        Column(
+    )
+    { innerPadding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -101,7 +102,10 @@ fun HistoryScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { /* puedes abrir detalle */ },
+                            .clickable {
+
+                                navigateToParkingDetail(reserva)
+                            },
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -109,8 +113,9 @@ fun HistoryScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp)
+                                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { }
                         ) {
-                            // Título (Estacionamiento y Precio)
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
