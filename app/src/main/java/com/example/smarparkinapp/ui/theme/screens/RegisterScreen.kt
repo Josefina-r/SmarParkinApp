@@ -6,12 +6,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -21,12 +26,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smarparkinapp.R
-import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
+import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.RegisterViewModel
 
 @Composable
@@ -40,9 +41,15 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    // Estados para manejar errores de validación
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    val registeredUserId by viewModel.registeredUserId.collectAsState() // ✅ lo traemos del viewmodel
+    val registeredUserId by viewModel.registeredUserId.collectAsState()
 
     // ✅ Cuando el registro es exitoso, navega al CompleteProfileScreen
     LaunchedEffect(registeredUserId) {
@@ -128,52 +135,116 @@ fun RegisterScreen(
                     Text(
                         text = "Regístrate para empezar a usar ParkeaYa",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = androidx.compose.ui.graphics.Color.DarkGray.copy(alpha = 0.7f),
+                        color = Color.DarkGray.copy(alpha = 0.7f),
                         modifier = Modifier.padding(bottom = 32.dp),
                         textAlign = TextAlign.Center
                     )
 
-                    // Campos
+                    // Campo Nombre
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = {
+                            name = it
+                            nameError = null
+                        },
                         label = { Text("Nombre completo", color = AzulPrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Nombre", tint = AzulPrincipal) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Nombre",
+                                tint = if (nameError != null) Color.Red else AzulPrincipal
+                            )
+                        },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = nameError != null,
+                        supportingText = {
+                            nameError?.let { error ->
+                                Text(text = error, color = Color.Red)
+                            }
+                        }
                     )
 
                     Spacer(Modifier.height(16.dp))
 
+                    // Campo Email
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = {
+                            email = it
+                            emailError = null
+                        },
                         label = { Text("Correo electrónico", color = AzulPrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email", tint = AzulPrincipal) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = "Email",
+                                tint = if (emailError != null) Color.Red else AzulPrincipal
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = emailError != null,
+                        supportingText = {
+                            emailError?.let { error ->
+                                Text(text = error, color = Color.Red)
+                            }
+                        }
                     )
 
                     Spacer(Modifier.height(16.dp))
 
+                    // Campo Contraseña
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = {
+                            password = it
+                            passwordError = null
+                            confirmPasswordError = null
+                        },
                         label = { Text("Contraseña", color = VerdePrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña", tint = VerdePrincipal) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = "Contraseña",
+                                tint = if (passwordError != null) Color.Red else VerdePrincipal
+                            )
+                        },
                         visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = passwordError != null,
+                        supportingText = {
+                            passwordError?.let { error ->
+                                Text(text = error, color = Color.Red)
+                            }
+                        }
                     )
 
                     Spacer(Modifier.height(16.dp))
 
+                    // Campo Confirmar Contraseña
                     OutlinedTextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        onValueChange = {
+                            confirmPassword = it
+                            confirmPasswordError = null
+                        },
                         label = { Text("Confirmar contraseña", color = VerdePrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirmar contraseña", tint = VerdePrincipal) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = "Confirmar contraseña",
+                                tint = if (confirmPasswordError != null) Color.Red else VerdePrincipal
+                            )
+                        },
                         visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = confirmPasswordError != null,
+                        supportingText = {
+                            confirmPasswordError?.let { error ->
+                                Text(text = error, color = Color.Red)
+                            }
+                        }
                     )
 
                     Spacer(Modifier.height(28.dp))
@@ -181,14 +252,52 @@ fun RegisterScreen(
                     // Botón Registrarse
                     Button(
                         onClick = {
-                            if (password == confirmPassword &&
-                                name.isNotEmpty() &&
-                                email.isNotEmpty()
-                            ) {
+                            // Limpiar errores anteriores
+                            nameError = null
+                            emailError = null
+                            passwordError = null
+                            confirmPasswordError = null
+
+                            // Validaciones
+                            var isValid = true
+
+                            if (name.isEmpty()) {
+                                nameError = "El nombre es requerido"
+                                isValid = false
+                            }
+
+                            if (email.isEmpty()) {
+                                emailError = "El email es requerido"
+                                isValid = false
+                            } else if (!email.contains("@") || !email.contains(".")) {
+                                emailError = "Email inválido"
+                                isValid = false
+                            }
+
+                            if (password.isEmpty()) {
+                                passwordError = "La contraseña es requerida"
+                                isValid = false
+                            } else if (password.length < 6) {
+                                passwordError = "Mínimo 6 caracteres"
+                                isValid = false
+                            }
+
+                            if (confirmPassword.isEmpty()) {
+                                confirmPasswordError = "Confirma tu contraseña"
+                                isValid = false
+                            } else if (password != confirmPassword) {
+                                confirmPasswordError = "Las contraseñas no coinciden"
+                                isValid = false
+                            }
+
+                            if (isValid) {
                                 val request = RegisterRequest(
                                     username = name,
                                     email = email,
-                                    password = password
+                                    password = password,
+                                    password2 = confirmPassword, // ✅ CONFIRMACIÓN REQUERIDA
+                                    first_name = name,
+                                    last_name = "" // Puedes dividir el nombre si es necesario
                                 )
                                 viewModel.register(request)
                             }
@@ -201,16 +310,24 @@ fun RegisterScreen(
                         if (isLoading) {
                             CircularProgressIndicator(color = Blanco)
                         } else {
-                            Text("Registrarse", fontSize = 17.sp, color = Blanco, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Registrarse",
+                                fontSize = 17.sp,
+                                color = Blanco,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
-                    // Mostrar error si existe
+                    // Mostrar error del servidor si existe
                     errorMessage?.let {
                         Text(
                             text = it,
-                            color = androidx.compose.ui.graphics.Color.Red,
-                            modifier = Modifier.padding(top = 8.dp)
+                            color = Color.Red,
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
                     }
 
@@ -221,7 +338,7 @@ fun RegisterScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Text("¿Ya tienes cuenta? ", color = androidx.compose.ui.graphics.Color.DarkGray)
+                        Text("¿Ya tienes cuenta? ", color = Color.DarkGray)
                         Text(
                             "Inicia sesión",
                             color = AzulPrincipal,

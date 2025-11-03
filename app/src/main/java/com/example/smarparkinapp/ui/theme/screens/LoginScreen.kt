@@ -1,5 +1,6 @@
 package com.example.smarparkinapp.ui.theme.screens
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -27,6 +29,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smarparkinapp.R
 import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.LoginViewModel
@@ -36,9 +39,17 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onRegisterClick: () -> Unit,
     onForgotPasswordClick: () -> Unit = {},
-    viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var email by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val viewModel: LoginViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return LoginViewModel(context) as T
+            }
+        }
+    )
+
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -46,11 +57,14 @@ fun LoginScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val loginSuccess by viewModel.loginSuccess.collectAsState()
 
-    // Navegar si login fue exitoso
+    // ✅ LOGS DETALLADOS DE NAVEGACIÓN
     LaunchedEffect(loginSuccess) {
+        println("🔄 [SCREEN] LoginScreen - loginSuccess: $loginSuccess")
         if (loginSuccess) {
+            println("🚀 [SCREEN] Navegando al Home...")
             onLoginSuccess()
             viewModel.clearLoginSuccess()
+            println("🧹 [SCREEN] Estado limpiado")
         }
     }
 
@@ -138,19 +152,18 @@ fun LoginScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // Campo de correo
+                    // Campo de usuario
                     OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Correo electrónico o Usuario", color = AzulPrincipal.copy(alpha = 0.8f)) },
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Usuario", color = AzulPrincipal.copy(alpha = 0.8f)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Email,
-                                contentDescription = "Email",
+                                contentDescription = "Usuario",
                                 tint = AzulPrincipal
                             )
                         },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -188,7 +201,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .align(Alignment.End)
                             .clickable {
-                                viewModel.resetPassword(email)
+                                viewModel.resetPassword(username)
                             }
                             .padding(top = 12.dp, bottom = 28.dp),
                         fontWeight = FontWeight.Medium
@@ -202,7 +215,6 @@ fun LoginScreen(
                         )
                     }
 
-
                     // Botón Login
                     Box(
                         modifier = Modifier
@@ -215,7 +227,8 @@ fun LoginScreen(
                                 )
                             )
                             .clickable(enabled = !isLoading) {
-                                viewModel.login(email, password)
+                                println("🖱️ [SCREEN] Botón login presionado - Usuario: $username")
+                                viewModel.login(username, password)
                             },
                         contentAlignment = Alignment.Center
                     ) {

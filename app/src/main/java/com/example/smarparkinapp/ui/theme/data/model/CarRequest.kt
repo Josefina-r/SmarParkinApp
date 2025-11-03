@@ -4,5 +4,7 @@ data class CarRequest(
     val placa: String,
     val modelo: String,
     val tipo: String,
-    val color: String
+    val color: String,
+    val brand: String,
+    val paymentMethod: String
 )

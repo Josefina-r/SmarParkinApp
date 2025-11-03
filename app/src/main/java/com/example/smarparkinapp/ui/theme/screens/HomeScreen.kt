@@ -1,5 +1,6 @@
 package com.example.smarparkinapp.ui.theme.screens
 
+import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,9 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
@@ -32,14 +37,25 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
 
+class HomeViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
+            return HomeViewModel(context) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
     onParkingClick: (Int) -> Unit,
-    onReservationClick: (parkingName: String, plate: String, duration: Int, total: Double) -> Unit,
-    viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    onReservationClick: (parkingName: String, plate: String, duration: Int, total: Double) -> Unit
 ) {
+    val context = LocalContext.current
+    val viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(context.applicationContext))
     var searchQuery by remember { mutableStateOf("") }
     val sheetState = rememberBottomSheetScaffoldState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -73,7 +89,7 @@ fun HomeScreen(
 
                 Divider(color = AzulSecundario.copy(alpha = 0.3f))
 
-                //  Home
+                // Home
                 NavigationDrawerItem(
                     label = { Text("Home", color = AzulSecundario) },
                     selected = false,
@@ -83,7 +99,7 @@ fun HomeScreen(
                     }
                 )
 
-                //  Perfil
+                // Perfil
                 NavigationDrawerItem(
                     label = { Text("Perfil", color = AzulSecundario) },
                     selected = false,
@@ -93,7 +109,7 @@ fun HomeScreen(
                     }
                 )
 
-                //  Historial
+                // Historial
                 NavigationDrawerItem(
                     label = { Text("Historial", color = AzulSecundario) },
                     selected = false,
@@ -103,7 +119,7 @@ fun HomeScreen(
                     }
                 )
 
-                //  Reservar
+                // Reservar
                 NavigationDrawerItem(
                     label = { Text("Reservar", color = AzulSecundario) },
                     selected = false,
@@ -113,7 +129,7 @@ fun HomeScreen(
                     }
                 )
 
-                //  Notificaciones
+                // Notificaciones
                 NavigationDrawerItem(
                     label = { Text("Notificaciones", color = AzulSecundario) },
                     selected = false,
@@ -141,7 +157,6 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -153,7 +168,7 @@ fun HomeScreen(
                             viewModel.fetchMejoresCalificados()
                         }
                         FilterChip("Alta Seguridad", VerdePrincipal) {
-                            viewModel.filterBySecurity(4)
+                            viewModel.filterBySecurity(3)
                         }
                     }
 
@@ -215,11 +230,10 @@ fun HomeScreen(
                     cameraPositionState = cameraPositionState
                 ) {
                     parkingSpots.forEach { spot ->
-
                         Marker(
                             state = MarkerState(LatLng(spot.latitude, spot.longitude)),
                             title = spot.name,
-                            snippet = buildMarkerSnippet(spot) // Nueva función mejorada
+                            snippet = buildMarkerSnippet(spot)
                         )
                     }
                 }
@@ -241,9 +255,9 @@ fun HomeScreen(
     }
 }
 
+// ✅ CORREGIDO: Esta función NO necesita @Composable porque solo trabaja con strings
 private fun buildMarkerSnippet(spot: ParkingSpot): String {
     val baseInfo = "${spot.price} - ${spot.availableSpots} lugares"
-
 
     val extraInfo = buildString {
         if (spot.ratingPromedio > 0) {
@@ -264,12 +278,12 @@ private fun buildMarkerSnippet(spot: ParkingSpot): String {
     }
 }
 
-
+// ✅ CORREGIDO: Esta función NO necesita @Composable porque solo trabaja con números
 private fun Double.format(decimals: Int): String {
     return "%.${decimals}f".format(this)
 }
 
-
+// ✅ CORREGIDO: Esta función SÍ necesita @Composable porque usa elementos de UI
 @Composable
 fun FilterChip(text: String, color: Color, onClick: () -> Unit = {}) {
     Surface(
@@ -287,7 +301,7 @@ fun FilterChip(text: String, color: Color, onClick: () -> Unit = {}) {
     }
 }
 
-// ✅ PARKING SPOT CARD MEJORADO (sin romper diseño existente)
+// ✅ CORREGIDO: Esta función SÍ necesita @Composable porque usa elementos de UI
 @Composable
 fun ParkingSpotCard(
     parkingSpot: ParkingSpot,
@@ -303,7 +317,6 @@ fun ParkingSpotCard(
         colors = CardDefaults.cardColors(containerColor = Blanco)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // ✅ TÍTULO ORIGINAL (igual)
             Text(
                 parkingSpot.name,
                 fontWeight = FontWeight.Bold,
@@ -312,12 +325,10 @@ fun ParkingSpotCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // ✅ NUEVA INFORMACIÓN (se agrega sin afectar lo existente)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Rating con estrellas (si tiene rating)
                 if (parkingSpot.ratingPromedio > 0) {
                     StarRating(rating = parkingSpot.ratingPromedio)
                     Spacer(modifier = Modifier.width(4.dp))
@@ -329,27 +340,22 @@ fun ParkingSpotCard(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
 
-                // Indicador de seguridad alta
                 if (parkingSpot.nivelSeguridad >= 4) {
                     Text("🔒", fontSize = 12.sp)
                     Spacer(modifier = Modifier.width(4.dp))
                 }
 
-                // Indicador de cámaras
                 if (parkingSpot.tieneCamaras) {
                     Text("📹", fontSize = 12.sp)
                     Spacer(modifier = Modifier.width(4.dp))
                 }
 
-                // Indicador de vigilancia 24h
                 if (parkingSpot.tieneVigilancia24h) {
                     Text("🛡️", fontSize = 12.sp)
                 }
 
-                // Espacio flexible para empujar el estado a la derecha
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Indicador de estado abierto/cerrado
                 if (!parkingSpot.estaAbierto) {
                     Text(
                         "🔴 Cerrado",
@@ -362,7 +368,6 @@ fun ParkingSpotCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // ✅ DIRECCIÓN ORIGINAL (igual)
             Text(
                 parkingSpot.address,
                 fontSize = 12.sp,
@@ -371,7 +376,6 @@ fun ParkingSpotCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ✅ PRECIO Y DISPONIBILIDAD ORIGINAL (igual)
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
@@ -389,7 +393,6 @@ fun ParkingSpotCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ✅ BOTÓN ORIGINAL (igual)
             Button(
                 onClick = onReserveClick,
                 enabled = parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto
@@ -408,7 +411,7 @@ fun ParkingSpotCard(
     }
 }
 
-// ✅ COMPOSABLE NUEVO para mostrar rating con estrellas
+// ✅ CORREGIDO: Esta función SÍ necesita @Composable porque usa elementos de UI
 @Composable
 fun StarRating(rating: Double) {
     Row(verticalAlignment = Alignment.CenterVertically) {

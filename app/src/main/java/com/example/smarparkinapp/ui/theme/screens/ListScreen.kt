@@ -6,108 +6,129 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.smarparkinapp.ui.theme.theme.*
-import java.text.SimpleDateFormat
-import java.util.*
-
-
-data class Reserva(
-    val id: Int,
-    val nombre: String,
-    val placa: String,
-    val horaEntrada: String,
-    val horaSalida: String,
-    val estado: String
-)
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.ParkingViewModel
+import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreen(
-    reservas: List<Reserva>,
-    onReservaClick: (Reserva) -> Unit = {},
+    onParkingClick: (ParkingLot) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
-    val fechaActual = remember {
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+    val viewModel: ParkingViewModel = viewModel()
+    val parkingLots by viewModel.parkingLots.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+
+    // 🔥 CARGA DATOS REALES AL INICIAR
+    LaunchedEffect(Unit) {
+        viewModel.loadAllParkingLots() // Esto llama a tu API real de Django
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Mis Reservas",
-                        color = Blanco
-                    )
-                },
+                title = { Text("Estacionamientos Aprobados") },
                 navigationIcon = {
-                    IconButton(onClick = { onBackClick() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = Blanco
-                        )
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: mostrar menú o acciones */ }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Menú",
-                            tint = Blanco
-                        )
+                    IconButton(onClick = {
+                        viewModel.loadAllParkingLots() // 🔄 Actualizar datos reales
+                    }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AzulPrincipal
-                )
+                }
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(16.dp)
                 .fillMaxSize()
         ) {
-            // Fecha actual alineada a la derecha
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Text(
-                    text = fechaActual,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AzulSecundario
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            if (reservas.isEmpty()) {
+            // ESTADO DE CARGA
+            if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No tienes reservas registradas.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = GrisClaro
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Cargando estacionamientos...")
+                    }
                 }
-            } else {
+            }
+            // ERROR
+            else if (error != null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = "Error",
+                            modifier = Modifier.size(64.dp),
+                            tint = Color.Red
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Error de conexión", fontWeight = FontWeight.Bold)
+                        Text(error!!)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadAllParkingLots() }) {
+                            Text("Reintentar conexión")
+                        }
+                    }
+                }
+            }
+            // DATOS REALES
+            else if (parkingLots.isNotEmpty()) {
+                Text(
+                    text = "${parkingLots.size} estacionamientos disponibles",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(reservas) { reserva ->
-                        ReservaCard(reserva, onClick = { onReservaClick(reserva) })
+                    items(parkingLots) { parking ->
+                        RealParkingItem(
+                            parking = parking,
+                            onClick = { onParkingClick(parking) }
+                        )
+                    }
+                }
+            }
+            // SIN DATOS
+            else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.LocalParking,
+                            contentDescription = "Sin estacionamientos",
+                            modifier = Modifier.size(64.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("No hay estacionamientos aprobados")
+                        Text("Todos los estacionamientos deben ser aprobados en el panel general")
                     }
                 }
             }
@@ -116,78 +137,92 @@ fun ListScreen(
 }
 
 @Composable
-fun ReservaCard(reserva: Reserva, onClick: () -> Unit) {
-    val estadoColor = when (reserva.estado) {
-        "Activa" -> VerdePrincipal
-        "Completada" -> VerdeSecundario
-        "Cancelada" -> AzulPrincipal
-        else -> GrisClaro
-    }
-
+fun RealParkingItem(parking: ParkingLot, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Blanco)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = reserva.nombre,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AzulPrincipal
-                    )
-                    Text(
-                        text = "Placa: ${reserva.placa}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AzulSecundario
-                    )
-                }
+            // NOMBRE Y DIRECCIÓN
+            Text(
+                text = parking.nombre,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = parking.direccion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
 
-                AssistChip(
-                    onClick = {},
-                    label = { Text(reserva.estado) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = estadoColor,
-                        labelColor = Blanco
-                    )
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            // INFORMACIÓN PRINCIPAL
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                // PRECIO
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = VerdePrincipal)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Entrada: ${reserva.horaEntrada}", style = MaterialTheme.typography.bodyMedium)
+                    Icon(
+                        Icons.Default.AttachMoney,
+                        contentDescription = "Precio",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("${parking.tarifa_hora}/h")
                 }
+
+                // DISPONIBILIDAD
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = AzulPrincipal)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Salida: ${reserva.horaSalida}", style = MaterialTheme.typography.bodyMedium)
+                    Icon(
+                        Icons.Default.LocalParking,
+                        contentDescription = "Espacios",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("${parking.plazas_disponibles}/${parking.total_plazas}")
+                }
+            }
+
+            // RATING Y SEGURIDAD (si existen)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                parking.rating_promedio?.let { rating ->
+                    if (rating > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = "Rating",
+                                modifier = Modifier.size(16.dp),
+                                tint = Color(0xFFFFA000)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("%.1f".format(rating))
+                        }
+                    }
+                }
+
+                parking.nivel_seguridad?.let { seguridad ->
+                    if (seguridad.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Security,
+                                contentDescription = "Seguridad",
+                                modifier = Modifier.size(16.dp),
+                                tint = Color.Green
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(seguridad)
+                        }
+                    }
                 }
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ReservationsScreenPreview() {
-    val demoReservas = listOf(
-        Reserva(1, "Ana López", "ABC-123", "10:00 AM", "12:00 PM", "Activa"),
-        Reserva(2, "Carlos Ruiz", "XYZ-789", "11:00 AM", "01:30 PM", "Completada"),
-        Reserva(3, "Luis Torres", "LMN-456", "09:30 AM", "11:00 AM", "Cancelada")
-    )
-    ListScreen(reservas = demoReservas)
 }

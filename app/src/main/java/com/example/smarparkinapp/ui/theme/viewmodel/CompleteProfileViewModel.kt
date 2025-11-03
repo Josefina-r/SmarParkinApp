@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smarparkinapp.ui.theme.data.api.ApiClient
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
+import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
 import com.example.smarparkinapp.ui.theme.data.model.CarRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +22,7 @@ class CompleteProfileViewModel : ViewModel() {
     // Campos observables (Compose)
     var placa by mutableStateOf("")
     var modelo by mutableStateOf("")
+    var marca by mutableStateOf("")
     var color by mutableStateOf("")
     var metodoPago by mutableStateOf("")
     var isSuccess by mutableStateOf(false)
@@ -30,36 +31,37 @@ class CompleteProfileViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState = _uiState.asStateFlow()
 
-    // Cliente API
-    private val apiService = ApiClient.retrofit.create(ApiService::class.java)
+    // ✅ CORREGIDO - Usa apiService directamente
+    private val apiService = RetrofitInstance.apiService
 
     fun saveProfile(userId: Int) {
         viewModelScope.launch {
             try {
                 _uiState.value = ProfileUiState(isLoading = true)
 
-
                 val response = apiService.addCar(
                     userId,
                     CarRequest(
                         placa = placa,
                         modelo = modelo,
-                        tipo = "auto",
-                        color = color
+                        color = color,
+                        brand = marca,
+                        tipo = "auto", // ✅ Asigna un valor real
+                        paymentMethod = metodoPago // ✅ Usa el valor del campo
                     )
                 )
-
 
                 if (response.isSuccessful) {
                     isSuccess = true
                     _uiState.value = ProfileUiState()
                 } else {
-                    _uiState.value = ProfileUiState(errorMessage = "Error al guardar el perfil")
+                    _uiState.value = ProfileUiState(errorMessage = "Error al guardar el perfil: ${response.code()}")
                 }
 
             } catch (e: Exception) {
-                _uiState.value = ProfileUiState(errorMessage = e.message)
+                _uiState.value = ProfileUiState(errorMessage = "Error de conexión: ${e.message}")
             }
         }
     }
 }
+// ✅ ELIMINA esta función extra que está al final - no es necesaria

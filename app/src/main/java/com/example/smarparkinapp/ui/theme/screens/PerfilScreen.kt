@@ -584,6 +584,6 @@ data class ProfileItem(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PerfilScreenPreview() {
+fun Perfkatherin123ilScreenPreview() {
     PerfilScreen()
 }

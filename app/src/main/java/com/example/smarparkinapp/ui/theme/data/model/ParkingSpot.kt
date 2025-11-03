@@ -1,6 +1,5 @@
 package com.example.smarparkinapp.ui.theme.data.model
 
-
 data class ParkingSpot(
     val id: Int,
     val name: String,
@@ -9,7 +8,6 @@ data class ParkingSpot(
     val availableSpots: Int,
     val latitude: Double,
     val longitude: Double,
-
     val nivelSeguridad: Int = 1,
     val ratingPromedio: Double = 0.0,
     val totalResenas: Int = 0,
@@ -18,4 +16,3 @@ data class ParkingSpot(
     val tieneVigilancia24h: Boolean = false,
     val distanciaKm: Double? = null
 )
-

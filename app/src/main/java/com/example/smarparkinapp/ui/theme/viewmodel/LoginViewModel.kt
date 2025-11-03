@@ -1,9 +1,11 @@
 package com.example.smarparkinapp.ui.theme.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smarparkinapp.ui.theme.data.api.ApiClient
+import com.example.smarparkinapp.ui.theme.data.AuthManager
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
+import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
 import com.example.smarparkinapp.ui.theme.data.api.LoginRequest
 import com.example.smarparkinapp.ui.theme.data.api.ResetPasswordRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,8 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
-
-class LoginViewModel : ViewModel() {
+class LoginViewModel(private val context: Context) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -26,57 +27,88 @@ class LoginViewModel : ViewModel() {
     private val _loginSuccess = MutableStateFlow(false)
     val loginSuccess: StateFlow<Boolean> = _loginSuccess
 
-    val apiService = ApiClient.retrofit.create(ApiService::class.java)
+    private val apiService = RetrofitInstance.apiService
+    private val authManager = AuthManager(context)
 
     var resetMessage by mutableStateOf<String?>(null)
 
-    fun login(email: String, password: String) {
+    fun login(username: String, password: String) {
         _isLoading.value = true
         _errorMessage.value = null
 
         viewModelScope.launch {
             try {
-                val apiService = ApiClient.retrofit.create(ApiService::class.java)
-                val response = apiService.login(LoginRequest(email, password)) // ahora suspend
+                println("🔐 [LOGIN] Intentando login con usuario: $username")
+                val response = apiService.login(LoginRequest(username, password))
+                println("📡 [LOGIN] Respuesta del servidor - Código: ${response.code()}, Éxito: ${response.isSuccessful}")
 
-                if (response.access.isNotEmpty()) {
-                    _loginSuccess.value = true
+                if (response.isSuccessful) {
+                    val loginResponse = response.body()
+                    println("✅ [LOGIN] Login exitoso - Access Token: ${loginResponse?.access?.take(10)}..., Refresh Token: ${loginResponse?.refresh?.take(10)}..., User: ${loginResponse?.user}")
+
+                    // ✅ CORREGIDO: Usa "access" en lugar de "token"
+                    if (loginResponse?.access?.isNotEmpty() == true) {
+                        // ✅ GUARDAR TOKEN Y INFO DEL USUARIO
+                        authManager.saveAuthToken(loginResponse.access)
+                        loginResponse.user?.let { user ->
+                            authManager.saveUserInfo(user.id, user.username)
+                            println("💾 [LOGIN] Usuario guardado - ID: ${user.id}, Username: ${user.username}")
+                        }
+                        _loginSuccess.value = true
+                        println("🎯 [LOGIN] _loginSuccess cambiado a: true")
+                    } else {
+                        println("❌ [LOGIN] Access token vacío o nulo en la respuesta")
+                        _errorMessage.value = "Credenciales incorrectas"
+                    }
                 } else {
-                    _errorMessage.value = "Credenciales incorrectas"
+                    println("❌ [LOGIN] Error HTTP: ${response.code()}")
+                    try {
+                        val errorBody = response.errorBody()?.string()
+                        println("❌ [LOGIN] Error Body: $errorBody")
+                    } catch (e: Exception) {
+                        println("❌ [LOGIN] No se pudo leer el error body")
+                    }
+                    _errorMessage.value = "Error: ${response.code()}"
                 }
             } catch (e: IOException) {
+                println("💥 [LOGIN] Error de red: ${e.localizedMessage}")
                 _errorMessage.value = "Error de red: ${e.localizedMessage}"
             } catch (e: HttpException) {
-                _errorMessage.value = "Error del servidor"
+                println("💥 [LOGIN] Error del servidor: ${e.code()}")
+                _errorMessage.value = "Error del servidor: ${e.code()}"
+            } catch (e: Exception) {
+                println("💥 [LOGIN] Error general: ${e.message}")
+                _errorMessage.value = "Error: ${e.message}"
             } finally {
                 _isLoading.value = false
+                println("⏹️ [LOGIN] Loading terminado")
             }
         }
     }
 
     fun clearLoginSuccess() {
         _loginSuccess.value = false
+        println("🧹 [LOGIN] Estado de loginSuccess limpiado")
     }
 
     fun resetPassword(email: String) {
         viewModelScope.launch {
             try {
-                val apiService = ApiClient.retrofit.create(ApiService::class.java)
                 val response = apiService.resetPassword(ResetPasswordRequest(email))
 
                 if (response.isSuccessful) {
-                    resetMessage = "Revisa tu correo para cambiar la contraseña."
+                    val resetResponse = response.body()
+                    resetMessage = resetResponse?.detail ?: resetResponse?.message ?: "Revisa tu correo para cambiar la contraseña."
                 } else {
-                    resetMessage = "Error: correo no registrado."
+                    resetMessage = "Error: correo no registrado o error del servidor."
                 }
             } catch (e: IOException) {
                 resetMessage = "Error de red: ${e.localizedMessage}"
             } catch (e: HttpException) {
-                resetMessage = "Error del servidor"
+                resetMessage = "Error del servidor: ${e.code()}"
             } catch (e: Exception) {
                 resetMessage = "Error de conexión: ${e.message}"
             }
         }
     }
-
 }
