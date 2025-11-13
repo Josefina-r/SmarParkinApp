@@ -7,4 +7,5 @@ data class CarRequest(
     val color: String,
     val brand: String,
     val paymentMethod: String
+
 )

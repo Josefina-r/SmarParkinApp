@@ -13,7 +13,6 @@ class TicketActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Recibir los datos del Intent
         val parkingName = intent.getStringExtra("parkingName") ?: "Estacionamiento"
         val plate = intent.getStringExtra("plate") ?: ""
         val duration = intent.getIntExtra("duration", 1)

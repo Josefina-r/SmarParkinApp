@@ -34,7 +34,7 @@ fun TicketScreen(
 ) {
     val context = LocalContext.current
 
-    // Se usa un ID único
+
     val ticketModifier = remember { Modifier.fillMaxWidth() }
 
     Scaffold(

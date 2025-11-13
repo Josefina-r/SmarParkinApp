@@ -1,9 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    // ❌ ELIMINAR: alias(libs.plugins.kotlin.compose)
+    id("kotlin-kapt")  // Aplicado directamente sin alias
     alias(libs.plugins.dagger.hilt.android)
-    // ❌ ELIMINAR: kotlin("kapt")
 }
 
 android {
@@ -32,19 +31,24 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
     }
+
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11" // Versión compatible con Kotlin 1.9.23
+        kotlinCompilerExtensionVersion = "1.5.11"
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -67,9 +71,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    // Dagger Hilt - usar annotationProcessor
+    // Dagger Hilt
     implementation(libs.hilt.android)
-    annotationProcessor(libs.hilt.compiler)
+    kapt(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
     // Navigation
@@ -84,6 +88,9 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
 
+    // Google Places
+    implementation("com.google.android.libraries.places:places:3.3.0")
+
     // UI Extras
     implementation(libs.material.icons.extended)
     implementation(libs.coil.compose)
@@ -95,13 +102,12 @@ dependencies {
 
     // Coroutines
     implementation(libs.coroutines.android)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
-    // Foundation (ya existentes)
+    // Foundation
     implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.ui.text)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.volley)
     implementation(libs.androidx.foundation)
+    implementation(libs.volley)
 
     // Testing
     testImplementation(libs.junit)
@@ -111,4 +117,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+kapt {
+    correctErrorTypes = true
 }

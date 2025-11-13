@@ -1,36 +1,35 @@
 package com.example.smarparkinapp.ui.theme.data.api
 
+import com.example.smarparkinapp.ui.theme.data.model.CarRequest
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLotResponse
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
-import com.example.smarparkinapp.ui.theme.data.model.CarRequest
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpotResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
-
     // 🔐 AUTENTICACIÓN
-    @POST("api/register/")
-    suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
-
-    @POST("api/simple-login/")
+    @POST("auth/login/")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
-    // ✅ AGREGADO: Recuperación de contraseña
+    @POST("auth/register/client/")
+    suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
+
     @POST("api/password/reset/")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
+    // 🅿️ ESTACIONAMIENTOS - CORREGIDO
+    @GET("api/parkings/")
+    suspend fun getApprovedParkingLots(): Response<ParkingLotResponse>
 
-    // 🅿️ ESTACIONAMIENTOS
     @GET("api/parking/")
-    suspend fun getApprovedParkingLots(
-        @Query("search") search: String? = null,
-    ): Response<ParkingLotResponse>
+    suspend fun searchParkingLots(@Query("search") query: String): Response<ParkingLotResponse> // ✅ Método separado para búsqueda
 
     @GET("api/parking/cerca/")
     suspend fun getNearbyParkingLots(
@@ -41,20 +40,31 @@ interface ApiService {
     @GET("api/parking/mejores_calificados/")
     suspend fun getTopRatedParkingLots(): Response<List<ParkingLot>>
 
-    // 🚗 VEHÍCULOS
-    @POST("api/users/{id}/cars/")
-    suspend fun addCar(@Path("id") userId: Int, @Body car: CarRequest): Response<CarResponse>
+    @GET("api/parking/mas_economicos/")
+    suspend fun getMasEconomicos(): Response<List<ParkingLot>>
 
-    // 📅 RESERVAS
+    // 🚗 VEHÍCULOS
+    @POST("cars/")
+    suspend fun addCar(@Body car: CarRequest): Response<CarResponse> // ✅ Solo CarRequest
+    // 📅 RESERVAS - VERIFICAR si estas rutas existen
     @POST("api/reservations/")
-    suspend fun createReservation(@Body reservation: ReservationRequest): Response<ReservationResponse>
+    suspend fun createReservation(
+        @Body reservation: ReservationRequest,
+        @Header("Authorization") token: String
+    ): Response<ReservationResponse>
 
     @GET("api/reservations/user/{userId}/")
-    suspend fun getUserReservations(@Path("userId") userId: Int): Response<List<ReservationResponse>>
+    suspend fun getUserReservations(
+        @Path("userId") userId: Int,
+        @Header("Authorization") token: String
+    ): Response<List<ReservationResponse>>
 
-    // 💳 PAGOS
+    // 💳 PAGOS - VERIFICAR si estas rutas existen
     @POST("api/payments/")
-    suspend fun processPayment(@Body payment: PaymentRequest): Response<PaymentResponse>
+    suspend fun processPayment(
+        @Body payment: PaymentRequest,
+        @Header("Authorization") token: String
+    ): Response<PaymentResponse>
 
     @GET("api/parking/spots/")
     suspend fun getParkingSpots(): Response<List<ParkingSpotResponse>>
@@ -62,23 +72,38 @@ interface ApiService {
     @GET("api/parking/mapa/")
     suspend fun getParkingMapa(): Response<ParkingLotResponse>
 
-    @GET("api/parking/mas_economicos/")
-    suspend fun getMasEconomicos(): Response<List<ParkingLot>>
+    // fun resetPassword(resetPasswordRequest: ResetPasswordRequest) // Esto no puede estar aquí, debe ser suspend y tener anotación HTTP
 }
 
-// 📋 MODELOS que SOLO existen para la API (no en models/)
+// MODELOS DE AUTENTICACIÓN
 data class LoginRequest(val username: String, val password: String)
 
-// ✅ CORREGIDO: Formato que coincide con Django JWT
 data class LoginResponse(
-    val access: String? = null,      // Django JWT usa "access"
-    val refresh: String? = null,     // Token de refresh
-    val user: UserResponse? = null   // Información del usuario
+    val access: String,      // Token de acceso JWT
+    val refresh: String,     // Token de refresh
+    val user: UserResponse? = null
 )
 
-data class RegisterResponse(val id: Int, val username: String, val email: String)
+data class RefreshTokenRequest(val refresh: String)
+data class RefreshTokenResponse(val access: String)
 
-// ✅ CORREGIDO: Modelo que coincide con Django User
+data class RegisterRequest(
+    val username: String,
+    val email: String,
+    val password: String,
+    val first_name: String? = null,
+    val last_name: String? = null
+)
+
+data class RegisterResponse(
+    val id: Int,
+    val username: String,
+    val email: String,
+    val first_name: String? = null,
+    val last_name: String? = null
+)
+
+// MODELOS DE USUARIO
 data class UserResponse(
     val id: Int,
     val username: String,
@@ -89,17 +114,45 @@ data class UserResponse(
     val is_superuser: Boolean? = false
 )
 
-// ✅ AGREGADO: Modelos para recuperación de contraseña
-data class ResetPasswordRequest(
-    val email: String
+data class UserProfileResponse(
+    val id: Int,
+    val username: String,
+    val email: String,
+    val first_name: String?,
+    val last_name: String?,
+    val role: String,  // 'client', 'owner', 'admin'
+    val phone: String? = null,
+    val address: String? = null
 )
 
-data class ResetPasswordResponse(
-    val detail: String? = null,
-    val message: String? = null,
-    val status: String? = null
+// MODELOS DE DASHBOARD
+data class DashboardStatsResponse(
+    val total_reservations: Int,
+    val active_reservations: Int,
+    val favorite_parkings: Int,
+    val total_spent: Double
 )
 
+// MODELOS DE VEHÍCULOS
+data class CarRequest(
+    val brand: String,
+    val model: String,
+    val year: Int,
+    val color: String,
+    val license_plate: String
+)
+
+data class CarResponse(
+    val id: Int,
+    val brand: String,
+    val model: String,
+    val year: Int,
+    val color: String,
+    val license_plate: String,
+    val user: Int
+)
+
+// MODELOS DE RESERVAS
 data class ReservationRequest(
     val estacionamiento: Long,
     val usuario: Int,
@@ -113,9 +166,11 @@ data class ReservationResponse(
     val estacionamiento: ParkingShort,
     val estado: String,
     val hora_entrada: String,
-    val hora_salida: String
+    val hora_salida: String,
+    val total: Double? = null
 )
 
+// MODELOS DE PAGOS
 data class PaymentRequest(
     val reserva: Long,
     val monto: Double,
@@ -125,10 +180,22 @@ data class PaymentRequest(
 data class PaymentResponse(
     val id: Long,
     val estado: String,
-    val transaction_id: String?
+    val transaction_id: String?,
+    val fecha_pago: String? = null
 )
 
 data class ParkingShort(
     val id: Long,
-    val nombre: String
+    val nombre: String,
+    val direccion: String? = null
+)
+
+// MODELOS PARA RECUPERACIÓN DE CONTRASEÑA (si existen en tu Django)
+data class ResetPasswordRequest(
+    val email: String
+)
+
+data class ResetPasswordResponse(
+    val detail: String,
+    val message: String? = null
 )

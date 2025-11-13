@@ -25,27 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
 import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModelFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
-
-class HomeViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
-            return HomeViewModel(context) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +45,10 @@ fun HomeScreen(
     onReservationClick: (parkingName: String, plate: String, duration: Int, total: Double) -> Unit
 ) {
     val context = LocalContext.current
-    val viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(context.applicationContext))
+    val viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(context.applicationContext)
+    )
+
     var searchQuery by remember { mutableStateOf("") }
     val sheetState = rememberBottomSheetScaffoldState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -161,15 +154,22 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FilterChip("Precio", VerdeSecundario) {
-                            viewModel.fetchMasEconomicos()
-                        }
-                        FilterChip("Mejor Rating", VerdePrincipal) {
-                            viewModel.fetchMejoresCalificados()
-                        }
-                        FilterChip("Alta Seguridad", VerdePrincipal) {
-                            viewModel.filterBySecurity(3)
-                        }
+                        // ✅ CORREGIDO: FilterChip con parámetros correctos
+                        CustomFilterChip(
+                            text = "Precio",
+                            color = VerdeSecundario,
+                            onClick = { viewModel.fetchMasEconomicos() }
+                        )
+                        CustomFilterChip(
+                            text = "Mejor Rating",
+                            color = VerdePrincipal,
+                            onClick = { viewModel.fetchMejoresCalificados() }
+                        )
+                        CustomFilterChip(
+                            text = "Alta Seguridad",
+                            color = VerdePrincipal,
+                            onClick = { viewModel.filterBySecurity(3) }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -188,7 +188,8 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(parkingSpots) { parking ->
-                            ParkingSpotCard(
+                            // ✅ CORREGIDO: ParkingSpotCard
+                            CustomParkingSpotCard(
                                 parkingSpot = parking,
                                 onReserveClick = {
                                     navController.navigate(
@@ -233,7 +234,7 @@ fun HomeScreen(
                         Marker(
                             state = MarkerState(LatLng(spot.latitude, spot.longitude)),
                             title = spot.name,
-                            snippet = buildMarkerSnippet(spot)
+                            snippet = buildMarkerSnippet(spot) // ✅ Esta función está abajo
                         )
                     }
                 }
@@ -255,44 +256,22 @@ fun HomeScreen(
     }
 }
 
-// ✅ CORREGIDO: Esta función NO necesita @Composable porque solo trabaja con strings
-private fun buildMarkerSnippet(spot: ParkingSpot): String {
-    val baseInfo = "${spot.price} - ${spot.availableSpots} lugares"
-
-    val extraInfo = buildString {
-        if (spot.ratingPromedio > 0) {
-            append(" ★${spot.ratingPromedio.format(1)}")
-        }
-        if (spot.nivelSeguridad >= 4) {
-            append(" 🔒")
-        }
-        if (!spot.estaAbierto) {
-            append(" 🔴 Cerrado")
-        }
-    }
-
-    return if (extraInfo.isNotEmpty()) {
-        "$baseInfo • $extraInfo"
-    } else {
-        baseInfo
-    }
-}
-
-// ✅ CORREGIDO: Esta función NO necesita @Composable porque solo trabaja con números
-private fun Double.format(decimals: Int): String {
-    return "%.${decimals}f".format(this)
-}
-
-// ✅ CORREGIDO: Esta función SÍ necesita @Composable porque usa elementos de UI
+// ✅ CORREGIDO: FilterChip personalizado
 @Composable
-fun FilterChip(text: String, color: Color, onClick: () -> Unit = {}) {
+fun CustomFilterChip(
+    text: String,
+    color: Color,
+    onClick: () -> Unit
+) {
     Surface(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { onClick() },
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() },
         color = color.copy(alpha = 0.1f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
     ) {
         Text(
-            text,
+            text = text,
             color = color,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
@@ -301,9 +280,9 @@ fun FilterChip(text: String, color: Color, onClick: () -> Unit = {}) {
     }
 }
 
-// ✅ CORREGIDO: Esta función SÍ necesita @Composable porque usa elementos de UI
+// ✅ CORREGIDO: ParkingSpotCard personalizado
 @Composable
-fun ParkingSpotCard(
+fun CustomParkingSpotCard(
     parkingSpot: ParkingSpot,
     onReserveClick: () -> Unit,
     onDetailClick: () -> Unit
@@ -318,7 +297,7 @@ fun ParkingSpotCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                parkingSpot.name,
+                text = parkingSpot.name,
                 fontWeight = FontWeight.Bold,
                 color = AzulPrincipal
             )
@@ -333,7 +312,7 @@ fun ParkingSpotCard(
                     StarRating(rating = parkingSpot.ratingPromedio)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "(${parkingSpot.totalResenas})",
+                        text = "(${parkingSpot.totalResenas})",
                         color = GrisClaro,
                         fontSize = 12.sp
                     )
@@ -358,7 +337,7 @@ fun ParkingSpotCard(
 
                 if (!parkingSpot.estaAbierto) {
                     Text(
-                        "🔴 Cerrado",
+                        text = "🔴 Cerrado",
                         color = Color.Red,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium
@@ -369,7 +348,7 @@ fun ParkingSpotCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                parkingSpot.address,
+                text = parkingSpot.address,
                 fontSize = 12.sp,
                 color = GrisClaro
             )
@@ -381,12 +360,12 @@ fun ParkingSpotCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    parkingSpot.price,
+                    text = parkingSpot.price,
                     fontWeight = FontWeight.Bold,
                     color = VerdePrincipal
                 )
                 Text(
-                    "${parkingSpot.availableSpots} disponibles",
+                    text = "${parkingSpot.availableSpots} disponibles",
                     color = VerdeSecundario
                 )
             }
@@ -398,7 +377,7 @@ fun ParkingSpotCard(
                 enabled = parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto
             ) {
                 Text(
-                    if (parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto) {
+                    text = if (parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto) {
                         "Reservar"
                     } else if (!parkingSpot.estaAbierto) {
                         "Cerrado"
@@ -411,7 +390,29 @@ fun ParkingSpotCard(
     }
 }
 
-// ✅ CORREGIDO: Esta función SÍ necesita @Composable porque usa elementos de UI
+// ✅ FUNCIONES AUXILIARES
+private fun buildMarkerSnippet(spot: ParkingSpot): String {
+    val baseInfo = "${spot.price} - ${spot.availableSpots} lugares"
+
+    val extraInfo = buildString {
+        if (spot.ratingPromedio > 0) {
+            append(" ★${"%.1f".format(spot.ratingPromedio)}")
+        }
+        if (spot.nivelSeguridad >= 4) {
+            append(" 🔒")
+        }
+        if (!spot.estaAbierto) {
+            append(" 🔴 Cerrado")
+        }
+    }
+
+    return if (extraInfo.isNotEmpty()) {
+        "$baseInfo • $extraInfo"
+    } else {
+        baseInfo
+    }
+}
+
 @Composable
 fun StarRating(rating: Double) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -424,4 +425,14 @@ fun StarRating(rating: Double) {
             )
         }
     }
+}
+
+@Preview
+@Composable
+fun HomeScreenPreview() {
+    HomeScreen(
+        navController = androidx.navigation.compose.rememberNavController(),
+        onParkingClick = { },
+        onReservationClick = { _, _, _, _ -> }
+    )
 }

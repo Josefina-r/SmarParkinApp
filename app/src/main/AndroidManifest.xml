@@ -19,9 +19,6 @@
         android:theme="@style/Theme.SmarParkinApp"
         tools:targetApi="31">
 
-        <activity android:name=".ui.theme.screens.ParkingDetailActivity" />
-        <activity android:name=".ui.screens.TicketActivity" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

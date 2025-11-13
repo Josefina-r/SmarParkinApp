@@ -4,10 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import  com.example.smarparkinapp.ui.theme.data.model.EstacionamientoDetalleScreen
 import com.example.smarparkinapp.ui.screens.ReservationScreen
 import com.example.smarparkinapp.ui.theme.screens.*
-
-import androidx.navigation.NavType
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
@@ -101,7 +100,9 @@ fun AppNavGraph(navController: NavHostController) {
         composable(
             route = NavRoutes.ParkingDetail.route
         ) { backStackEntry ->
-            EstacionamientoDetalleScreen()
+            val parkingId = backStackEntry.arguments?.getString("parkingId")
+            requireNotNull(parkingId) { "parkingId parameter wasn't found. Please make sure it's set!" }
+            EstacionamientoDetalleScreen(navController = navController, parkingId = parkingId)
         }
     }
 

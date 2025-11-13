@@ -94,18 +94,16 @@ class LoginViewModel(private val context: Context) : ViewModel() {
     fun resetPassword(email: String) {
         viewModelScope.launch {
             try {
-                val response = apiService.resetPassword(ResetPasswordRequest(email))
-
-                if (response.isSuccessful) {
-                    val resetResponse = response.body()
-                    resetMessage = resetResponse?.detail ?: resetResponse?.message ?: "Revisa tu correo para cambiar la contraseña."
-                } else {
-                    resetMessage = "Error: correo no registrado o error del servidor."
-                }
+                // La llamada a la API en sí misma puede arrojar una excepción si no es exitosa (código 4xx o 5xx)
+                // Por lo tanto, envolvemos la llamada en el bloque try.
+                // Si llega a la siguiente línea, la solicitud fue exitosa (código 2xx).
+                apiService.resetPassword(ResetPasswordRequest(email))
+                resetMessage = "Revisa tu correo para cambiar la contraseña."
             } catch (e: IOException) {
                 resetMessage = "Error de red: ${e.localizedMessage}"
             } catch (e: HttpException) {
-                resetMessage = "Error del servidor: ${e.code()}"
+                // Si la API devuelve un error (ej. 400, 404, 500), se captura aquí.
+                resetMessage = "Error: correo no registrado o error del servidor (${e.code()})."
             } catch (e: Exception) {
                 resetMessage = "Error de conexión: ${e.message}"
             }

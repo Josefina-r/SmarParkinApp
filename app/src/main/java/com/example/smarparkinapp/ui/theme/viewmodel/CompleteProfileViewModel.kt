@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smarparkinapp.ui.theme.data.api.ApiService
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
 import com.example.smarparkinapp.ui.theme.data.model.CarRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +30,6 @@ class CompleteProfileViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState = _uiState.asStateFlow()
 
-    // ✅ CORREGIDO - Usa apiService directamente
     private val apiService = RetrofitInstance.apiService
 
     fun saveProfile(userId: Int) {
@@ -39,29 +37,33 @@ class CompleteProfileViewModel : ViewModel() {
             try {
                 _uiState.value = ProfileUiState(isLoading = true)
 
+                // ✅ CORREGIDO: Solo envía CarRequest
                 val response = apiService.addCar(
-                    userId,
                     CarRequest(
                         placa = placa,
                         modelo = modelo,
                         color = color,
                         brand = marca,
-                        tipo = "auto", // ✅ Asigna un valor real
-                        paymentMethod = metodoPago // ✅ Usa el valor del campo
+                        tipo = "auto",
+                        paymentMethod = metodoPago,
                     )
                 )
 
                 if (response.isSuccessful) {
                     isSuccess = true
                     _uiState.value = ProfileUiState()
+                    println("✅ [PROFILE] Perfil guardado exitosamente")
                 } else {
-                    _uiState.value = ProfileUiState(errorMessage = "Error al guardar el perfil: ${response.code()}")
+                    val errorMsg = "Error ${response.code()}: ${response.message()}"
+                    _uiState.value = ProfileUiState(errorMessage = errorMsg)
+                    println("❌ [PROFILE] $errorMsg")
                 }
 
             } catch (e: Exception) {
-                _uiState.value = ProfileUiState(errorMessage = "Error de conexión: ${e.message}")
+                val errorMsg = "Error de conexión: ${e.message}"
+                _uiState.value = ProfileUiState(errorMessage = errorMsg)
+                println("💥 [PROFILE] $errorMsg")
             }
         }
     }
 }
-// ✅ ELIMINA esta función extra que está al final - no es necesaria
