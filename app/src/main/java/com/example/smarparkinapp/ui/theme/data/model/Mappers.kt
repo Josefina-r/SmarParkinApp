@@ -9,7 +9,7 @@ fun ParkingSpotResponse.toParkingSpot(): ParkingSpot {
         longitude = this.longitude,
         price = this.hourlyRate,
         availableSpots = this.availableSpots,
-        ratingPromedio = this.averageRating ?: 0.0,  // ← Valor por defecto
+        ratingPromedio = this.averageRating ?: 0.0,
         totalResenas = this.reviewCount,
         nivelSeguridad = mapSecurityLevel(this.securityLevel),  // ← Ahora maneja null
         tieneCamaras = this.amenidades?.contains("cámaras", ignoreCase = true) ?: false,  // ← Safe call
@@ -21,21 +21,19 @@ fun ParkingSpotResponse.toParkingSpot(): ParkingSpot {
     )
 }
 
-// ✅ FUNCIONES CORREGIDAS - Ahora manejan null
-private fun mapSecurityLevel(level: String?): Int {  // ← Ahora acepta String?
-    return when (level?.toLowerCase()) {  // ← Safe call con ?.
+
+private fun mapSecurityLevel(level: String?): Int {
+    return when (level?.toLowerCase()) {
         "alta" -> 5
         "media" -> 3
         "baja" -> 1
-        else -> 3 // Por defecto si es null o desconocido
+        else -> 3
     }
 }
 
 private fun isCurrentlyOpen(openingTime: String?, closingTime: String?): Boolean {
-    // Si no tiene horario, asumimos que está abierto 24h
+
     if (openingTime == null || closingTime == null) return true
 
-    // Por ahora retornamos true para simplificar
-    // En implementación real, compararías con hora actual
     return true
 }
