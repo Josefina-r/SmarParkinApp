@@ -1,3 +1,4 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -65,7 +66,11 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.ui:ui:1.5.0")
 
-
+    //  Ubicación de Google Play Services
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    // Permisos (si no los tienes)
+    implementation("com.google.accompanist:accompanist-permissions:0.31.0-alpha")
+    implementation("com.google.accompanist:accompanist-permissions:0.36.0")
     // Location
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
@@ -74,11 +79,22 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     implementation("io.coil-kt:coil-compose:2.4.0")
+
+    // Lifecycle
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+// DateTime
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.volley)
     implementation(libs.androidx.foundation)
+    implementation(libs.foundation)
+    implementation(libs.androidx.contentpager)
+    implementation(libs.androidx.ui.text)
+    implementation(libs.filament.android)
 
 
 

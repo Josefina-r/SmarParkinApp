@@ -18,48 +18,63 @@ data class ProfileUiState(
 )
 
 class CompleteProfileViewModel : ViewModel() {
-
-    // Campos observables (Compose)
     var placa by mutableStateOf("")
     var modelo by mutableStateOf("")
     var color by mutableStateOf("")
-    var metodoPago by mutableStateOf("")
+    var tipoVehiculo by mutableStateOf("auto")
     var isSuccess by mutableStateOf(false)
 
-    // Estado general de la UI (Flow)
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState = _uiState.asStateFlow()
 
-    // Cliente API
     private val apiService = ApiClient.retrofit.create(ApiService::class.java)
 
-    fun saveProfile(userId: Int) {
+    fun saveProfile() {
         viewModelScope.launch {
             try {
                 _uiState.value = ProfileUiState(isLoading = true)
 
-
+                // Verificar que tenemos token antes de hacer la petición
                 val response = apiService.addCar(
-                    userId,
                     CarRequest(
                         placa = placa,
                         modelo = modelo,
-                        tipo = "auto",
+                        tipo = tipoVehiculo,
                         color = color
                     )
                 )
-
 
                 if (response.isSuccessful) {
                     isSuccess = true
                     _uiState.value = ProfileUiState()
                 } else {
-                    _uiState.value = ProfileUiState(errorMessage = "Error al guardar el perfil")
+                    when (response.code()) {
+                        401 -> _uiState.value = ProfileUiState(
+                            errorMessage = "Sesión expirada. Por favor inicia sesión nuevamente."
+                        )
+                        else -> {
+                            val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                            _uiState.value = ProfileUiState(errorMessage = "Error: $errorBody")
+                        }
+                    }
                 }
-
             } catch (e: Exception) {
-                _uiState.value = ProfileUiState(errorMessage = e.message)
+                _uiState.value = ProfileUiState(errorMessage = "Error de conexión: ${e.message}")
             }
         }
+    }
+
+    fun clearError() {
+        _uiState.value = ProfileUiState(errorMessage = null)
+    }
+
+    // Método para resetear el formulario
+    fun resetForm() {
+        placa = ""
+        modelo = ""
+        color = ""
+        tipoVehiculo = "auto"
+        isSuccess = false
+        _uiState.value = ProfileUiState()
     }
 }

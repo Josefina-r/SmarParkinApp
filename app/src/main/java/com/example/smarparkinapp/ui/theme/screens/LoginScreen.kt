@@ -35,10 +35,9 @@ import com.example.smarparkinapp.ui.theme.viewmodel.LoginViewModel
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onRegisterClick: () -> Unit,
-    onForgotPasswordClick: () -> Unit = {},
     viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -138,19 +137,24 @@ fun LoginScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // Campo de correo
+                    // ✅ CAMPO CORREGIDO: Usuario o Email (no solo email)
                     OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Correo electrónico o Usuario", color = AzulPrincipal.copy(alpha = 0.8f)) },
+                        value = username,
+                        onValueChange = { username = it },
+                        label = {
+                            Text(
+                                "Usuario o Correo electrónico",
+                                color = AzulPrincipal.copy(alpha = 0.8f)
+                            )
+                        },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Email,
-                                contentDescription = "Email",
+                                contentDescription = "Usuario/Email",
                                 tint = AzulPrincipal
                             )
                         },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -181,27 +185,8 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Olvidé contraseña
-                    Text(
-                        text = "¿Olvidaste tu contraseña?",
-                        color = AzulSecundario,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .clickable {
-                                viewModel.resetPassword(email)
-                            }
-                            .padding(top = 12.dp, bottom = 28.dp),
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    viewModel.resetMessage?.let {
-                        Text(
-                            text = it,
-                            color = Color.Red,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-
+                    // ✅ ELIMINAR "Olvidé contraseña" ya que no existe el endpoint
+                    // Text("¿Olvidaste tu contraseña?", ...)
 
                     // Botón Login
                     Box(
@@ -214,8 +199,8 @@ fun LoginScreen(
                                     colors = listOf(VerdeSecundario, VerdePrincipal)
                                 )
                             )
-                            .clickable(enabled = !isLoading) {
-                                viewModel.login(email, password)
+                            .clickable(enabled = !isLoading && username.isNotEmpty() && password.isNotEmpty()) {
+                                viewModel.login(username, password)
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -236,7 +221,7 @@ fun LoginScreen(
                         Text(
                             text = it,
                             color = Color.Red,
-                            modifier = Modifier.padding(top = 8.dp)
+                            modifier = Modifier.padding(top = 16.dp)
                         )
                     }
 

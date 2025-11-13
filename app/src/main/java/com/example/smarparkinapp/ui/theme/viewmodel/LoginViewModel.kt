@@ -5,16 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.smarparkinapp.ui.theme.data.api.ApiClient
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
 import com.example.smarparkinapp.ui.theme.data.api.LoginRequest
-import com.example.smarparkinapp.ui.theme.data.api.ResetPasswordRequest
+import com.example.smarparkinapp.ui.theme.data.api.LoginResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-
 
 class LoginViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
@@ -26,28 +22,39 @@ class LoginViewModel : ViewModel() {
     private val _loginSuccess = MutableStateFlow(false)
     val loginSuccess: StateFlow<Boolean> = _loginSuccess
 
-    val apiService = ApiClient.retrofit.create(ApiService::class.java)
+    // ✅ ELIMINAR resetMessage ya que no existe ese endpoint
+    // var resetMessage by mutableStateOf<String?>(null)
 
-    var resetMessage by mutableStateOf<String?>(null)
+    fun login(username: String, password: String) {
+        // ✅ Validación básica
+        if (username.isEmpty() || password.isEmpty()) {
+            _errorMessage.value = "Por favor completa todos los campos"
+            return
+        }
 
-    fun login(email: String, password: String) {
         _isLoading.value = true
         _errorMessage.value = null
 
         viewModelScope.launch {
             try {
                 val apiService = ApiClient.retrofit.create(ApiService::class.java)
-                val response = apiService.login(LoginRequest(email, password)) // ahora suspend
+                val response = apiService.login(LoginRequest(username, password))
 
-                if (response.access.isNotEmpty()) {
-                    _loginSuccess.value = true
-                } else {
-                    _errorMessage.value = "Credenciales incorrectas"
-                }
+                // ✅ Guardar tokens
+                ApiClient.setToken(response.access)
+
+                _loginSuccess.value = true
+
             } catch (e: IOException) {
-                _errorMessage.value = "Error de red: ${e.localizedMessage}"
+                _errorMessage.value = "Error de conexión: Verifica tu internet"
             } catch (e: HttpException) {
-                _errorMessage.value = "Error del servidor"
+                when (e.code()) {
+                    401 -> _errorMessage.value = "Usuario o contraseña incorrectos"
+                    400 -> _errorMessage.value = "Datos inválidos"
+                    else -> _errorMessage.value = "Error del servidor: ${e.code()}"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error inesperado: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -56,27 +63,6 @@ class LoginViewModel : ViewModel() {
 
     fun clearLoginSuccess() {
         _loginSuccess.value = false
-    }
-
-    fun resetPassword(email: String) {
-        viewModelScope.launch {
-            try {
-                val apiService = ApiClient.retrofit.create(ApiService::class.java)
-                val response = apiService.resetPassword(ResetPasswordRequest(email))
-
-                if (response.isSuccessful) {
-                    resetMessage = "Revisa tu correo para cambiar la contraseña."
-                } else {
-                    resetMessage = "Error: correo no registrado."
-                }
-            } catch (e: IOException) {
-                resetMessage = "Error de red: ${e.localizedMessage}"
-            } catch (e: HttpException) {
-                resetMessage = "Error del servidor"
-            } catch (e: Exception) {
-                resetMessage = "Error de conexión: ${e.message}"
-            }
-        }
     }
 
 }

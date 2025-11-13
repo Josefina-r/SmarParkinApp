@@ -1,148 +1,126 @@
 package com.example.smarparkinapp.ui.screens
 
-import android.content.Intent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+/* screens/ReservationScreen.kt
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import com.example.smarparkinapp.ui.theme.theme.*
+import androidx.hilt.navigation.compose.hiltViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationScreen(
-    navController: NavHostController,
-    parkingName: String = "Estacionamiento Central",
-    pricePerHour: Double = 5.0
+    viewModel: ReservationViewModel = hiltViewModel(),
+    onNavigateToCreateReservation: () -> Unit,
+    onNavigateToReservationDetail: (Int) -> Unit
 ) {
-    var selectedDuration by remember { mutableStateOf(1) }
-    var plate by remember { mutableStateOf("") }
-    var selectedPayment by remember { mutableStateOf("Yape") }
+    val reservations by viewModel.reservations.collectAsState()
+    val activeReservations by viewModel.activeReservations.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    val totalPrice = selectedDuration * pricePerHour
-    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.loadReservations()
+        viewModel.loadActiveReservations()
+        viewModel.loadReservationTypes()
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reservar", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Blanco
-                        )
+                title = { Text("Mis Reservas") },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.loadReservations()
+                        viewModel.loadActiveReservations()
+                    }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AzulPrincipal,
-                    titleContentColor = Blanco
-                )
+                }
             )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // Nombre del estacionamiento
-            Text(
-                text = parkingName,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = AzulPrincipal
-                )
-            )
-
-            // Selección de duración
-            DurationSelector(
-                selected = selectedDuration,
-                onSelected = { selectedDuration = it }
-            )
-
-            // Placa del vehículo
-            VehicleInfoCard(
-                plate = plate,
-                onPlateChange = { plate = it }
-            )
-
-            // Método de pago
-            PaymentMethodSelector(
-                selected = selectedPayment,
-                onSelected = { selectedPayment = it }
-            )
-
-            // Resumen
-            SummaryCard(
-                duration = selectedDuration,
-                pricePerHour = pricePerHour,
-                total = totalPrice
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Botón confirmar → abre TicketActivity con Intent explícito
-            Button(
-                onClick = {
-                    val intent = Intent(context, TicketActivity::class.java).apply {
-                        putExtra("parkingName", parkingName)
-                        putExtra("plate", plate)
-                        putExtra("duration", selectedDuration)
-                        putExtra("totalPrice", totalPrice)
-                    }
-                    context.startActivity(intent)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VerdePrincipal)
-            ) {
-                Text("Confirmar Reserva", fontWeight = FontWeight.Bold, color = Blanco)
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onNavigateToCreateReservation) {
+                Icon(Icons.Default.Add, contentDescription = "Nueva Reserva")
             }
         }
-    }
-}
-
-// COMPONENTES
-
-@Composable
-fun DurationSelector(selected: Int, onSelected: (Int) -> Unit) {
-    Column {
-        Text("Duración (horas)", fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(8.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf(1, 2, 3, 4).forEach { d ->
+    ) { padding ->
+        when (uiState) {
+            is ReservationUiState.Loading -> {
                 Box(
                     modifier = Modifier
-                        .background(
-                            if (selected == d) AzulPrincipal else GrisClaro,
-                            RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onSelected(d) }
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .fillMaxSize()
+                        .padding(padding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "$d h",
-                        color = if (selected == d) Blanco else Color.Black,
-                        fontWeight = if (selected == d) FontWeight.Bold else FontWeight.Normal
-                    )
+                    CircularProgressIndicator()
+                }
+            }
+            is ReservationUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Error: ${(uiState as ReservationUiState.Error).message}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = {
+                            viewModel.loadReservations()
+                            viewModel.loadActiveReservations()
+                        }) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    // Reservas Activas
+                    if (activeReservations.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Reservas Activas",
+                                style = MaterialTheme.typography.headlineSmall,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                        items(activeReservations) { reservation ->
+                            ReservationCard(
+                                reservation = reservation,
+                                onClick = { onNavigateToReservationDetail(reservation.id) }
+                            )
+                        }
+                    }
+
+                    // Todas las Reservas
+                    item {
+                        Text(
+                            text = "Historial de Reservas",
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                    items(reservations) { reservation ->
+                        ReservationCard(
+                            reservation = reservation,
+                            onClick = { onNavigateToReservationDetail(reservation.id) }
+                        )
+                    }
                 }
             }
         }
@@ -150,58 +128,46 @@ fun DurationSelector(selected: Int, onSelected: (Int) -> Unit) {
 }
 
 @Composable
-fun VehicleInfoCard(plate: String, onPlateChange: (String) -> Unit) {
+fun ReservationCard(reservation: Reservation, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp)
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text("Vehículo", fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextField(
-                value = plate,
-                onValueChange = { onPlateChange(it.uppercase()) },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                label = { Text("Placa del carro") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Ejemplo: ABC-123",
+                text = reservation.estacionamiento.nombre,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "Vehículo: ${reservation.vehiculo.marca} ${reservation.vehiculo.modelo}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Entrada: ${reservation.horaEntrada.formatForDisplay()}",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = "Estado: ${reservation.estado.name}",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(top = 6.dp)
+                color = when (reservation.estado) {
+                    ReservationState.ACTIVA -> MaterialTheme.colorScheme.primary
+                    ReservationState.FINALIZADA -> MaterialTheme.colorScheme.onSurface
+                    ReservationState.CANCELADA -> MaterialTheme.colorScheme.error
+                }
             )
-        }
-    }
-}
+            Text(
+                text = "Tipo: ${reservation.tipoReserva.name} - $${reservation.costoEstimado}",
+                style = MaterialTheme.typography.bodySmall
+            )
 
-@Composable
-fun PaymentMethodSelector(selected: String, onSelected: (String) -> Unit) {
-    Column {
-        Text("Método de pago", fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(8.dp))
-
-        val methods = listOf("Yape", "Plin", "Tarjeta")
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            methods.forEach { method ->
-                Box(
-                    modifier = Modifier
-                        .background(
-                            if (selected == method) VerdeSecundario else GrisClaro,
-                            RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onSelected(method) }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+            reservation.tiempoRestante?.let { tiempoRestante ->
+                if (tiempoRestante > 0) {
                     Text(
-                        method,
-                        color = if (selected == method) Blanco else Color.Black,
-                        fontWeight = if (selected == method) FontWeight.Bold else FontWeight.Normal
+                        text = "Tiempo restante: ${tiempoRestante}min",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -209,29 +175,8 @@ fun PaymentMethodSelector(selected: String, onSelected: (String) -> Unit) {
     }
 }
 
-@Composable
-fun SummaryCard(duration: Int, pricePerHour: Double, total: Double) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("Resumen", fontWeight = FontWeight.SemiBold)
-            Text("Duración: $duration h")
-            Text("Precio por hora: S/ $pricePerHour")
-            Text(
-                "Total: S/ $total",
-                fontWeight = FontWeight.Bold,
-                color = VerdePrincipal,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
+// Extension para formatear fecha
+fun LocalDateTime.formatForDisplay(): String {
+    // Implementar formateo de fecha según necesidades
+    return toString()
+}*/

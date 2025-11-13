@@ -22,11 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smarparkinapp.R
 import com.example.smarparkinapp.ui.theme.theme.*
-import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import com.example.smarparkinapp.ui.theme.viewmodel.RegisterViewModel
 
 @Composable
@@ -35,16 +35,17 @@ fun RegisterScreen(
     onLoginClick: () -> Unit,
     viewModel: RegisterViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var name by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
 
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    val registeredUserId by viewModel.registeredUserId.collectAsState() // ✅ lo traemos del viewmodel
+    val registeredUserId by viewModel.registeredUserId.collectAsState()
 
-    // ✅ Cuando el registro es exitoso, navega al CompleteProfileScreen
+    // ✅ Cuando el registro es exitoso, navega
     LaunchedEffect(registeredUserId) {
         registeredUserId?.let { id ->
             onRegisterSuccess(id)
@@ -133,46 +134,91 @@ fun RegisterScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // Campos
+                    // ✅ CAMPO USERNAME (requerido según tu endpoint)
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Nombre completo", color = AzulPrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Nombre", tint = AzulPrincipal) },
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Usuario", color = AzulPrincipal.copy(alpha = 0.8f)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Usuario",
+                                tint = AzulPrincipal
+                            )
+                        },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(Modifier.height(16.dp))
 
+                    // Campo Email
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text("Correo electrónico", color = AzulPrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email", tint = AzulPrincipal) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = "Email",
+                                tint = AzulPrincipal
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(Modifier.height(16.dp))
 
+                    // Campo Contraseña
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text("Contraseña", color = VerdePrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña", tint = VerdePrincipal) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = "Contraseña",
+                                tint = VerdePrincipal
+                            )
+                        },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(Modifier.height(16.dp))
 
+                    // Campo Confirmar Contraseña
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
                         label = { Text("Confirmar contraseña", color = VerdePrincipal.copy(alpha = 0.8f)) },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirmar contraseña", tint = VerdePrincipal) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = "Confirmar contraseña",
+                                tint = VerdePrincipal
+                            )
+                        },
                         visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // ✅ CAMPO TELÉFONO (opcional según tu endpoint)
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("Teléfono (opcional)", color = AzulPrincipal.copy(alpha = 0.8f)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Phone,
+                                contentDescription = "Teléfono",
+                                tint = AzulPrincipal
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -181,19 +227,28 @@ fun RegisterScreen(
                     // Botón Registrarse
                     Button(
                         onClick = {
-                            if (password == confirmPassword &&
-                                name.isNotEmpty() &&
-                                email.isNotEmpty()
-                            ) {
-                                val request = RegisterRequest(
-                                    username = name,
+                            // ✅ Validación completa según los requisitos del endpoint
+                            if (username.isEmpty()) {
+                                // El ViewModel mostrará el error
+                                viewModel.register(username, email, password, confirmPassword, phone)
+                            } else if (password != confirmPassword) {
+                                // El ViewModel manejará este error
+                                viewModel.register(username, email, password, confirmPassword, phone)
+                            } else {
+                                viewModel.register(
+                                    username = username,
                                     email = email,
-                                    password = password
+                                    password = password,
+                                    passwordConfirm = confirmPassword,
+                                    phone = if (phone.isNotEmpty()) phone else null
                                 )
-                                viewModel.register(request)
                             }
                         },
-                        enabled = !isLoading,
+                        enabled = !isLoading &&
+                                username.isNotEmpty() &&
+                                email.isNotEmpty() &&
+                                password.isNotEmpty() &&
+                                confirmPassword.isNotEmpty(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AzulPrincipal),
                         modifier = Modifier.fillMaxWidth()
@@ -201,7 +256,12 @@ fun RegisterScreen(
                         if (isLoading) {
                             CircularProgressIndicator(color = Blanco)
                         } else {
-                            Text("Registrarse", fontSize = 17.sp, color = Blanco, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Registrarse",
+                                fontSize = 17.sp,
+                                color = Blanco,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
@@ -210,7 +270,8 @@ fun RegisterScreen(
                         Text(
                             text = it,
                             color = androidx.compose.ui.graphics.Color.Red,
-                            modifier = Modifier.padding(top = 8.dp)
+                            modifier = Modifier.padding(top = 16.dp),
+                            textAlign = TextAlign.Center
                         )
                     }
 

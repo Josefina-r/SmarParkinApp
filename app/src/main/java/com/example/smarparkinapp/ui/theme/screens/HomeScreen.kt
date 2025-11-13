@@ -1,61 +1,96 @@
-package com.example.smarparkinapp.ui.theme.screens
+package com.example.smarparkinapp.ui.screens
 
-import androidx.compose.foundation.BorderStroke
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
-import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
-import com.example.smarparkinapp.ui.theme.theme.*
+import com.example.smarparkinapp.ui.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModelFactory
+import com.example.smarparkinapp.ui.theme.viewmodel.LocationViewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.LocationViewModelFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
+import com.example.smarparkinapp.ui.theme.theme.*
+import com.google.android.gms.maps.CameraUpdateFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
     onParkingClick: (Int) -> Unit,
-    onReservationClick: (parkingName: String, plate: String, duration: Int, total: Double) -> Unit,
-    viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    onReservationClick: (parkingName: String, plate: String, duration: Int, total: Double) -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    val sheetState = rememberBottomSheetScaffoldState()
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val context = LocalContext.current
+    val locationViewModel: LocationViewModel = viewModel(factory = LocationViewModelFactory(context))
+    val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(locationViewModel))
     val scope = rememberCoroutineScope()
 
-    val parkingSpots by viewModel.filteredParkingSpots.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val parkingSpots by homeViewModel.filteredParkingSpots.collectAsState()
+    val userLocation by homeViewModel.userLocation.collectAsState()
+    val errorMessage by homeViewModel.errorMessage.collectAsState()
 
-    LaunchedEffect(searchQuery) {
-        viewModel.searchParking(searchQuery)
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            homeViewModel.startLocationUpdates()
+            homeViewModel.fetchParkingSpots()
+        } else {
+            homeViewModel.fetchParkingSpots()
+        }
     }
 
+    // ✅ Verificar permisos al iniciar
     LaunchedEffect(Unit) {
-        viewModel.fetchParkingSpots()
-        viewModel.updateUserLocation(-8.111667, -79.028889)
+        val fineGranted = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        if (!fineGranted && !coarseGranted) {
+            locationPermissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        } else {
+            homeViewModel.startLocationUpdates()
+            homeViewModel.fetchParkingSpots()
+        }
+    }
+
+    // ✅ Configuración de cámara inicial
+    val defaultLocation = LatLng(-8.111667, -79.028889)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(defaultLocation, 14f)
+    }
+
+    // ✅ Centrar cámara automáticamente cuando cambia la ubicación del usuario
+    LaunchedEffect(userLocation) {
+        userLocation?.let {
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newLatLngZoom(it, 15f),
+                durationMs = 1000
+            )
+        }
     }
 
     ModalNavigationDrawer(
@@ -65,360 +100,83 @@ fun HomeScreen(
                 Text(
                     "Menú",
                     modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = AzulSecundario
-                    )
+                    style = MaterialTheme.typography.titleLarge.copy(color = AzulSecundario)
                 )
-
-                Divider(color = AzulSecundario.copy(alpha = 0.3f))
-
-                //  Home
                 NavigationDrawerItem(
                     label = { Text("Home", color = AzulSecundario) },
                     selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate(NavRoutes.Home.route)
-                    }
+                    onClick = { scope.launch { drawerState.close() } }
                 )
-
-                //  Perfil
                 NavigationDrawerItem(
                     label = { Text("Perfil", color = AzulSecundario) },
                     selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate(NavRoutes.Perfil.route)
-                    }
+                    onClick = { scope.launch { drawerState.close() } }
                 )
-
-                //  Historial
                 NavigationDrawerItem(
                     label = { Text("Historial", color = AzulSecundario) },
                     selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate(NavRoutes.Historial.route)
-                    }
-                )
-
-                //  Reservar
-                NavigationDrawerItem(
-                    label = { Text("Reservar", color = AzulSecundario) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onReservationClick("Estacionamiento Central", "ABC-123", 1, 5.0)
-                    }
-                )
-
-                //  Notificaciones
-                NavigationDrawerItem(
-                    label = { Text("Notificaciones", color = AzulSecundario) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate(NavRoutes.Notificaciones.route)
-                    }
+                    onClick = { scope.launch { drawerState.close() } }
                 )
             }
         }
     ) {
-        BottomSheetScaffold(
-            scaffoldState = sheetState,
-            sheetPeekHeight = 250.dp,
-            sheetContent = {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Buscar estacionamiento...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
-                    )
+        Scaffold { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip("Precio", VerdeSecundario) {
-                            viewModel.fetchMasEconomicos()
-                        }
-                        FilterChip("Mejor Rating", VerdePrincipal) {
-                            viewModel.fetchMejoresCalificados()
-                        }
-                        FilterChip("Alta Seguridad", VerdePrincipal) {
-                            viewModel.filterBySecurity(4)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        "Estacionamientos cercanos",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = AzulPrincipal
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    LazyColumn(
-                        modifier = Modifier.fillMaxHeight(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(parkingSpots) { parking ->
-                            ParkingSpotCard(
-                                parkingSpot = parking,
-                                onReserveClick = {
-                                    navController.navigate(
-                                        NavRoutes.Reservation.createRoute(
-                                            parking.name,
-                                            "ABC-123",
-                                            1,
-                                            parking.price.toDoubleOrNull() ?: 0.0
-                                        )
-                                    )
-                                },
-                                onDetailClick = { onParkingClick(parking.id) }
-                            )
-                        }
-                    }
-
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                    }
-
-                    errorMessage?.let {
-                        Text(it, color = Color.Red, modifier = Modifier.align(Alignment.CenterHorizontally))
-                    }
-                }
-            }
-        ) { padding ->
-            Box(modifier = Modifier.fillMaxSize()) {
-                val cameraPositionState = rememberCameraPositionState {
-                    position = CameraPosition.fromLatLngZoom(
-                        LatLng(-8.111667, -79.028889),
-                        14f
-                    )
-                }
-
+                // ✅ Google Maps Compose con tu API Key
                 GoogleMap(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    cameraPositionState = cameraPositionState
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState,
+                    properties = MapProperties(
+                        isMyLocationEnabled = userLocation != null
+                    ),
+                    uiSettings = MapUiSettings(
+                        zoomControlsEnabled = true,
+                        compassEnabled = true,
+                        myLocationButtonEnabled = false // ❌ se quitó el botón azul
+                    )
                 ) {
+                    // Marcadores de estacionamientos
                     parkingSpots.forEach { spot ->
-
                         Marker(
                             state = MarkerState(LatLng(spot.latitude, spot.longitude)),
                             title = spot.name,
-                            snippet = buildMarkerSnippet(spot) // Nueva función mejorada
+                            snippet = "Precio: ${spot.price} - ${spot.availableSpots} disponibles",
+                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                        )
+                    }
+
+                    // Marcador del usuario
+                    userLocation?.let {
+                        Marker(
+                            state = MarkerState(it),
+                            title = "Tu ubicación",
+                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)
                         )
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                ) {
+                // ✅ Botón para abrir menú lateral
+                Box(modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
                     IconButton(
                         onClick = { scope.launch { drawerState.open() } },
-                        modifier = Modifier.size(56.dp).background(VerdeSecundario, CircleShape)
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(VerdeSecundario, MaterialTheme.shapes.large)
                     ) {
                         Icon(Icons.Default.Menu, contentDescription = "Menú", tint = Color.White)
                     }
                 }
-            }
-        }
-    }
-}
 
-private fun buildMarkerSnippet(spot: ParkingSpot): String {
-    val baseInfo = "${spot.price} - ${spot.availableSpots} lugares"
-
-
-    val extraInfo = buildString {
-        if (spot.ratingPromedio > 0) {
-            append(" ★${spot.ratingPromedio.format(1)}")
-        }
-        if (spot.nivelSeguridad >= 4) {
-            append(" 🔒")
-        }
-        if (!spot.estaAbierto) {
-            append(" 🔴 Cerrado")
-        }
-    }
-
-    return if (extraInfo.isNotEmpty()) {
-        "$baseInfo • $extraInfo"
-    } else {
-        baseInfo
-    }
-}
-
-
-private fun Double.format(decimals: Int): String {
-    return "%.${decimals}f".format(this)
-}
-
-
-@Composable
-fun FilterChip(text: String, color: Color, onClick: () -> Unit = {}) {
-    Surface(
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { onClick() },
-        color = color.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
-    ) {
-        Text(
-            text,
-            color = color,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        )
-    }
-}
-
-// ✅ PARKING SPOT CARD MEJORADO (sin romper diseño existente)
-@Composable
-fun ParkingSpotCard(
-    parkingSpot: ParkingSpot,
-    onReserveClick: () -> Unit,
-    onDetailClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, shape = RoundedCornerShape(16.dp))
-            .clickable { onDetailClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Blanco)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // ✅ TÍTULO ORIGINAL (igual)
-            Text(
-                parkingSpot.name,
-                fontWeight = FontWeight.Bold,
-                color = AzulPrincipal
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // ✅ NUEVA INFORMACIÓN (se agrega sin afectar lo existente)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Rating con estrellas (si tiene rating)
-                if (parkingSpot.ratingPromedio > 0) {
-                    StarRating(rating = parkingSpot.ratingPromedio)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        "(${parkingSpot.totalResenas})",
-                        color = GrisClaro,
-                        fontSize = 12.sp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-
-                // Indicador de seguridad alta
-                if (parkingSpot.nivelSeguridad >= 4) {
-                    Text("🔒", fontSize = 12.sp)
-                    Spacer(modifier = Modifier.width(4.dp))
-                }
-
-                // Indicador de cámaras
-                if (parkingSpot.tieneCamaras) {
-                    Text("📹", fontSize = 12.sp)
-                    Spacer(modifier = Modifier.width(4.dp))
-                }
-
-                // Indicador de vigilancia 24h
-                if (parkingSpot.tieneVigilancia24h) {
-                    Text("🛡️", fontSize = 12.sp)
-                }
-
-                // Espacio flexible para empujar el estado a la derecha
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Indicador de estado abierto/cerrado
-                if (!parkingSpot.estaAbierto) {
-                    Text(
-                        "🔴 Cerrado",
-                        color = Color.Red,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // ✅ DIRECCIÓN ORIGINAL (igual)
-            Text(
-                parkingSpot.address,
-                fontSize = 12.sp,
-                color = GrisClaro
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ✅ PRECIO Y DISPONIBILIDAD ORIGINAL (igual)
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    parkingSpot.price,
-                    fontWeight = FontWeight.Bold,
-                    color = VerdePrincipal
-                )
-                Text(
-                    "${parkingSpot.availableSpots} disponibles",
-                    color = VerdeSecundario
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ✅ BOTÓN ORIGINAL (igual)
-            Button(
-                onClick = onReserveClick,
-                enabled = parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto
-            ) {
-                Text(
-                    if (parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto) {
-                        "Reservar"
-                    } else if (!parkingSpot.estaAbierto) {
-                        "Cerrado"
-                    } else {
-                        "Lleno"
+                // ✅ Mensaje de error si algo falla
+                errorMessage?.let {
+                    Snackbar(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
+                    ) {
+                        Text(it)
                     }
-                )
+                }
             }
-        }
-    }
-}
-
-// ✅ COMPOSABLE NUEVO para mostrar rating con estrellas
-@Composable
-fun StarRating(rating: Double) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        repeat(5) { index ->
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = if (index < rating) Color(0xFFFFD700) else Color(0xFFCCCCCC),
-                modifier = Modifier.size(14.dp)
-            )
         }
     }
 }
