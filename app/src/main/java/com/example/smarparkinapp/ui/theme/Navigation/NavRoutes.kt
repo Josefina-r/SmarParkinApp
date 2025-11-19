@@ -18,8 +18,8 @@ sealed class NavRoutes(val route: String) {
             "reservation/$parkingName/$plate/$duration/$total"
     }
 
-    object ParkingDetail : NavRoutes("parking_detail/{id}") {
-        fun createRoute(id: Int) = "parking_detail/$id"
+    object ParkingDetail : NavRoutes("parking_detail/{parkingId}") {
+        fun createRoute(parkingId: Int) = "parking_detail/$parkingId"
     }
 
 

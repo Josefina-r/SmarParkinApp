@@ -394,14 +394,17 @@ fun HomeScreen(
                                     val distance = calculateDistance(userLatLng.value, LatLng(spot.latitude, spot.longitude))
                                     distance <= selectedDistance
                                 }) { parking ->
+                                    // En HomeScreen.kt dentro del LazyColumn
                                     ModernParkingCard(
                                         parkingSpot = parking,
                                         distance = calculateDistance(userLatLng.value, LatLng(parking.latitude, parking.longitude)),
+                                        // ALERTA: Aquí usamos onParkingClick para ir al detalle pasando el ID
                                         onReserveClick = {
-                                            // Lógica de reserva original
-                                            navController.navigate(NavRoutes.Reservation.createRoute(parking.name, "ABC-123", 1, parking.price.toDoubleOrNull() ?: 0.0))
+                                            onParkingClick(parking.id)
                                         },
-                                        onDetailClick = { onParkingClick(parking.id) }
+                                        onDetailClick = {
+                                            onParkingClick(parking.id)
+                                        }
                                     )
                                 }
                             }

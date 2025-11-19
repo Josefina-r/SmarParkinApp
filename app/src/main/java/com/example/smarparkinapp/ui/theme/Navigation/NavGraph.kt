@@ -2,8 +2,10 @@ package com.example.smarparkinapp.ui.theme.Navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import  com.example.smarparkinapp.ui.theme.data.model.EstacionamientoDetalleScreen
 import com.example.smarparkinapp.ui.theme.screens.ReservationScreen
 import com.example.smarparkinapp.ui.theme.screens.*
@@ -54,15 +56,20 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // Home
+        //  HOME: Ahora conecta con el Detalle
         composable(NavRoutes.Home.route) {
             HomeScreen(
                 navController = navController,
-                onParkingClick = { /* acción */ },
-                onReservationClick = { parkingName, plate, duration, total ->
-                    navController.navigate(
-                        NavRoutes.Reservation.createRoute(parkingName, plate, duration, total)
-                    )
+                // Acción 1: Clic simple en el mapa o lista -> Va al detalle
+                onParkingClick = { parkingId ->
+                    navController.navigate(NavRoutes.ParkingDetail.createRoute(parkingId))
+                },
+                // Acción 2: Clic en "Reservar" -> Va al detalle (o directo a reserva si prefieres)
+                // En este caso, lo enviamos al detalle para que vea la info completa antes.
+                onReservationClick = { _, _, _, _ ->
+                    // Nota: Si tienes el ID disponible en este callback en HomeScreen, úsalo.
+                    // Si no, asegúrate de actualizar HomeScreen para pasar el ID aquí también.
+                    // Por ahora, asumiremos que onParkingClick maneja la navegación principal.
                 }
             )
         }
@@ -108,6 +115,19 @@ fun AppNavGraph(navController: NavHostController) {
             val parkingId = backStackEntry.arguments?.getString("parkingId")
             requireNotNull(parkingId) { "parkingId parameter wasn't found. Please make sure it's set!" }
             EstacionamientoDetalleScreen(navController = navController, parkingId = parkingId)
+        }
+        // ✅ NUEVA PANTALLA: Detalle del Estacionamiento
+        composable(
+            route = NavRoutes.ParkingDetail.route,
+            arguments = listOf(navArgument("parkingId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val parkingId = backStackEntry.arguments?.getInt("parkingId") ?: 0
+
+            // Llamamos a la pantalla que creamos anteriormente
+            ParkingDetailScreen(
+                navController = navController,
+                parkingId = parkingId
+            )
         }
     }
 
