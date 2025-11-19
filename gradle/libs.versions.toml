@@ -8,13 +8,8 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.9.3"
 activityCompose = "1.11.0"
 composeBom = "2024.09.00"
-foundation = "1.9.2"
-uiText = "1.9.2"
-uiGraphics = "1.9.3"
-volley = "1.2.1"
-foundationVersion = "1.9.3"
 
-# NUEVAS VERSIONES AGREGADAS
+# NUEVAS VERSIONES UNIFICADAS
 hilt = "2.48"
 navigation = "2.8.0"
 lifecycle = "2.6.2"
@@ -25,46 +20,56 @@ playServicesMaps = "18.2.0"
 playServicesLocation = "21.0.1"
 mapsCompose = "2.11.4"
 coil = "2.4.0"
-material3 = "1.2.0"
-composeUi = "1.5.0"
-materialIcons = "1.7.0"
-androidxFoundation = "1.9.4"
-uiTextVersion = "1.9.4"
+
+# ELIMINAR estas versiones duplicadas:
+# foundation = "1.9.2" ❌
+# uiText = "1.9.2" ❌
+# uiGraphics = "1.9.3" ❌
+# volley = "1.2.1" ❌
+# foundationVersion = "1.9.3" ❌
+# material3 = "1.2.0" ❌
+# composeUi = "1.5.0" ❌
+# materialIcons = "1.7.0" ❌
+# androidxFoundation = "1.9.4" ❌
+# uiTextVersion = "1.9.4" ❌
 
 [libraries]
-# EXISTENTES
+# Core Android
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-androidx-ui = { group = "androidx.compose.ui", name = "ui" }
-androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
-androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
-androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
-androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
-volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
-androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundationVersion" }
 
-# NUEVAS LIBRERÍAS AGREGADAS
+# Compose BOM (maneja las versiones automáticamente)
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+# ELIMINAR estas líneas duplicadas:
+# androidx-ui = { group = "androidx.compose.ui", name = "ui" } ❌ DUPLICADO
+# androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" } ❌ DUPLICADO
+# androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" } ❌ DUPLICADO
+# androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" } ❌ DUPLICADO
+# androidx-material3 = { group = "androidx.compose.material3", name = "material3" } ❌ DUPLICADO
+# androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" } ❌ DUPLICADO
+# androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" } ❌ DUPLICADO
+# androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundationVersion" } ❌ DUPLICADO
+# volley = { group = "com.android.volley", name = "volley", version.ref = "volley" } ❌ (eliminar si no usas)
+
 # Dagger Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.0.0" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.0.0" }
 
 # Navigation
-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 
 # Lifecycle
-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 
 # Retrofit & Networking
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
@@ -72,7 +77,7 @@ retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 
 # Coroutines
-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
 # Maps & Location
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
@@ -81,15 +86,15 @@ maps-compose = { group = "com.google.maps.android", name = "maps-compose", versi
 
 # UI
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composeUi" }
-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "androidxFoundation" }
-androidx-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiTextVersion" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 dagger-hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

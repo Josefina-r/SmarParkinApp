@@ -8,7 +8,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +32,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.theme.*
+import coil.compose.rememberAsyncImagePainter
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.graphics.vector.ImageVector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -201,7 +205,6 @@ fun PerfilScreen(
                     )
                 )
 
-
                 // Botones de acción
                 ActionButtons(
                     onCerrarSesion = { showLogoutDialog = true },
@@ -217,14 +220,13 @@ fun PerfilScreen(
             onDismiss = { selectedVehicleIndex = -1 },
             onEditar = {
                 selectedVehicleIndex = -1
-
+                // Navegar a edición de vehículo
             },
             onEliminar = {
                 selectedVehicleIndex = -1
-
+                // Eliminar vehículo
             }
         )
-
 
         if (showLogoutDialog) {
             LogoutConfirmationDialog(
@@ -270,7 +272,7 @@ fun ProfileHeader(
             ) {
                 if (profileImageUri != null) {
                     Image(
-                        painter = painterResource(id = android.R.drawable.ic_menu_gallery),
+                        painter = rememberAsyncImagePainter(profileImageUri),
                         contentDescription = "Foto de perfil",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -280,15 +282,14 @@ fun ProfileHeader(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Foto de perfil",
                         tint = Blanco,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.padding(16.dp)
                     )
                 }
             }
 
-            // Badge para cambiar foto - SIN SOMBRA
+            // Badge para cambiar foto
             Surface(
-                modifier = Modifier
-                    .size(24.dp),
+                modifier = Modifier.size(24.dp),
                 shape = CircleShape,
                 color = VerdePrincipal,
                 onClick = onProfileImageClick
@@ -319,7 +320,7 @@ fun ProfileHeader(
 @Composable
 fun ProfileSection(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     items: List<ProfileItem>,
     onVehicleLongPress: (Int) -> Unit = { _ -> }
 ) {
@@ -355,7 +356,6 @@ fun ProfileSection(
                 )
             }
 
-
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items.forEachIndexed { index, item ->
                     ProfileItemRow(
@@ -373,6 +373,7 @@ fun ProfileSection(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProfileItemRow(
     item: ProfileItem,
@@ -405,7 +406,6 @@ fun ProfileItemRow(
             .padding(vertical = 4.dp, horizontal = 2.dp)
     ) {
         if (item.isAddButton) {
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
@@ -471,7 +471,6 @@ fun ActionButtons(
             Spacer(modifier = Modifier.width(4.dp))
             Text("Editar Perfil", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
         }
-
 
         Button(
             onClick = onCerrarSesion,
@@ -582,8 +581,10 @@ data class ProfileItem(
     val isAddButton: Boolean = false
 )
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true)
 @Composable
-fun Perfkatherin123ilScreenPreview() {
-    PerfilScreen()
+fun PerfilScreenPreview() {
+    SmarParkinAppTheme {
+        PerfilScreen()
+    }
 }

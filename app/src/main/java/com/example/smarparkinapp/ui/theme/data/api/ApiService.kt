@@ -7,7 +7,7 @@ import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.GenericResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpotResponse
-import com.example.smarparkinapp.ui.theme.data.model.Reservation
+import com.example.smarparkinapp.data.model.Reservation
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -47,14 +47,17 @@ interface ApiService {
 
     // 🚗 VEHÍCULOS
     @POST("cars/")
-    suspend fun addCar(@Body car: CarRequest): Response<CarResponse> // ✅ Solo CarRequest
+    suspend fun addCar(@Body car: CarRequest): Response<CarResponse>
     // RESERVAS - VERIFICAR si estas rutas existen
     // ========== RESERVAS ==========
+    @POST("reservations/")
+    suspend fun createReservation(@Body body: Map<String, Any>): Response<ReservationResponse>
+
     @GET("reservations/client/mis-reservas/")
-    suspend fun getMyReservations(): Response<List<Reservation>>
+    suspend fun getMyReservations(): Response<List<ReservationResponse>>
 
     @GET("reservations/client/active/")
-    suspend fun getActiveReservations(): Response<List<Reservation>>
+    suspend fun getActiveReservations(): Response<List<ReservationResponse>>
 
     @POST("reservations/{codigo}/cancel/")
     suspend fun cancelReservation(@Path("codigo") codigo: String): Response<GenericResponse>
@@ -71,10 +74,8 @@ interface ApiService {
     @POST("reservations/{codigo}/checkout/")
     suspend fun checkOut(@Path("codigo") codigo: String): Response<GenericResponse>
 
-    @POST("reservations/reservations/")
-    suspend fun createReservation(
-        @Body body: Map<String, Any>
-    ): Response<Reservation>
+    @GET("reservations/tipos/")
+    suspend fun getReservationTypes(): Response<List<String>>
 
     // PAGOS - VERIFICAR si estas rutas existen
     @POST("api/payments/")

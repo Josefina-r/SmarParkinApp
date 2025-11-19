@@ -26,7 +26,7 @@ import java.util.*
 @Composable
 fun ReservationScreen(
     parkingId: Int,
-    reservationViewModel: ReservationViewModel = viewModel(factory = ReservationViewModelFactory(LocalContext.current)),
+    reservationViewModel: ReservationViewModel = viewModel(),
     onSuccessNavigate: () -> Unit
 ) {
     val context = LocalContext.current

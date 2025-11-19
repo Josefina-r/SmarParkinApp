@@ -7,7 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.smarparkinapp.ui.theme.Navigation.AppNavGraph
 import com.example.smarparkinapp.ui.theme.theme.SmarParkinAppTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity() {  // ✅ QUITA @AndroidEntryPoint
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

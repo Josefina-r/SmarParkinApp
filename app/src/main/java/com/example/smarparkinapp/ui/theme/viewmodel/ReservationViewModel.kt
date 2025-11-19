@@ -1,188 +1,217 @@
 package com.example.smarparkinapp.ui.theme.viewmodel
 
-import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smarparkinapp.ui.theme.data.AuthManager
-import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
-import com.example.smarparkinapp.ui.theme.data.model.Reservation
-import com.example.smarparkinapp.ui.theme.data.model.GenericResponse
+import com.example.smarparkinapp.data.model.Car
+import com.example.smarparkinapp.data.model.Reservation  // ✅ Debe apuntar a data.model
+import com.example.smarparkinapp.data.model.VehicleType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class ReservationViewModel(private val context: Context) : ViewModel() {
+class ReservationViewModel : ViewModel() {
 
-    private val _reservations = MutableStateFlow<List<Reservation>>(emptyList())
-    val reservations: StateFlow<List<Reservation>> = _reservations
+    // ========== ESTADOS PARA VEHÍCULOS ==========
+    var vehicles by mutableStateOf<List<Car>>(emptyList())
+        private set
 
-    private val _activeReservations = MutableStateFlow<List<Reservation>>(emptyList())
-    val activeReservations: StateFlow<List<Reservation>> = _activeReservations
+    var showAddVehicleDialog by mutableStateOf(false)
+        private set
 
-    private val _createdReservation = MutableStateFlow<Reservation?>(null)
-    val createdReservation: StateFlow<Reservation?> = _createdReservation
+    var vehicleType by mutableStateOf(VehicleType.AUTOMOVIL)
+        private set
 
+    var vehicleBrand by mutableStateOf("")
+        private set
+
+    var vehicleModel by mutableStateOf("")
+        private set
+
+    var vehicleColor by mutableStateOf("")
+        private set
+
+    var vehiclePlate by mutableStateOf("")
+        private set
+
+    // ========== ESTADOS PARA RESERVAS (USANDO STATE FLOW) ==========
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val apiService = RetrofitInstance.getAuthenticatedApiService(context)
-    private val authManager = AuthManager(context)
+    private val _createdReservation = MutableStateFlow<Reservation?>(null)
+    val createdReservation: StateFlow<Reservation?> = _createdReservation.asStateFlow()
 
-
-    // ============================================================
-    // 1. OBTENER TODAS MIS RESERVAS
-    // ============================================================
-    fun loadMyReservations() {
-        _isLoading.value = true
-        _error.value = null
-
-        viewModelScope.launch {
-            try {
-                val response = apiService.getMyReservations()
-                if (response.isSuccessful) {
-                    _reservations.value = response.body() ?: emptyList()
-                } else {
-                    _error.value = "Código de error: ${response.code()}"
-                }
-            } catch (e: Exception) {
-                _error.value = "Error: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    // ========== FUNCIONES PARA VEHÍCULOS ==========
+    fun showAddVehicleForm() {
+        showAddVehicleDialog = true
     }
 
-    fun loadActiveReservations() {
-        _isLoading.value = true
-        _error.value = null
-
-        viewModelScope.launch {
-            try {
-                val response = apiService.getActiveReservations()
-                if (response.isSuccessful) {
-                    _activeReservations.value = response.body() ?: emptyList()
-                } else {
-                    _error.value = "Código: ${response.code()}"
-                }
-            } catch (e: Exception) {
-                _error.value = "Error: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun hideAddVehicleForm() {
+        showAddVehicleDialog = false
+        clearForm()
     }
 
+    fun updateVehicleType(type: VehicleType) {
+        vehicleType = type
+    }
 
+    fun updateVehicleBrand(brand: String) {
+        vehicleBrand = brand
+    }
+
+    fun updateVehicleModel(model: String) {
+        vehicleModel = model
+    }
+
+    fun updateVehicleColor(color: String) {
+        vehicleColor = color
+    }
+
+    fun updateVehiclePlate(plate: String) {
+        vehiclePlate = plate
+    }
+
+    fun saveNewVehicle() {
+        if (vehicleBrand.isEmpty() || vehicleModel.isEmpty() || vehicleColor.isEmpty() || vehiclePlate.isEmpty()) {
+            _error.value = "Todos los campos son obligatorios"
+            return
+        }
+
+        val newCar = Car(
+            id = generateVehicleId(),
+            plate = vehiclePlate,
+            model = vehicleModel,
+            brand = vehicleBrand,
+            color = vehicleColor,
+            type = vehicleType
+        )
+
+        vehicles = vehicles + newCar
+        hideAddVehicleForm()
+        _error.value = null
+    }
+
+    private fun generateVehicleId(): Int {
+        return (vehicles.maxOfOrNull { it.id } ?: 0) + 1
+    }
+
+    fun deleteVehicle(vehicleId: Int) {
+        vehicles = vehicles.filter { it.id != vehicleId }
+    }
+
+    fun getVehicleById(vehicleId: Int): Car? {
+        return vehicles.find { it.id == vehicleId }
+    }
+
+    private fun clearForm() {
+        vehicleType = VehicleType.AUTOMOVIL
+        vehicleBrand = ""
+        vehicleModel = ""
+        vehicleColor = ""
+        vehiclePlate = ""
+    }
+
+    // ========== FUNCIONES PARA RESERVAS ==========
     fun createReservation(
         parkingId: Int,
         carId: Int,
         horaInicio: String,
         horaFin: String,
-        tipoReserva: String,
+        tipoReserva: String = "normal",
         estado: String = "pendiente",
-        montoTotal: Double? = null,
-        onSuccess: (Reservation) -> Unit = {}
+        montoTotal: Double? = null
     ) {
-        _isLoading.value = true
-        _error.value = null
-
         viewModelScope.launch {
-            val body = mutableMapOf(
-                "parking_lot" to parkingId,
-                "car" to carId,
-                "hora_inicio" to horaInicio,
-                "hora_fin" to horaFin,
-                "tipo_reserva" to tipoReserva,
-                "estado" to estado
-            )
-
-            // Agregar monto_total solo si no es null
-            montoTotal?.let {
-                body["monto_total"] = it
-            }
+            _isLoading.value = true
+            _error.value = null
 
             try {
-                val response = apiService.createReservation(body)
-
-                if (response.isSuccessful) {
-                    val reservation = response.body()
-                    _createdReservation.value = reservation
-                    reservation?.let { onSuccess(it) }
-                } else {
-                    _error.value = "Error creando reserva: ${response.code()}"
+                // Validaciones básicas
+                if (carId <= 0) {
+                    _error.value = "ID de vehículo inválido"
+                    _isLoading.value = false
+                    return@launch
                 }
 
+                if (horaInicio.isEmpty() || horaFin.isEmpty()) {
+                    _error.value = "Las horas de inicio y fin son obligatorias"
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                // Buscar el vehículo seleccionado
+                val selectedVehicle = vehicles.find { it.id == carId }
+                if (selectedVehicle == null) {
+                    _error.value = "Vehículo no encontrado"
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                // TODO: Aquí va la llamada REAL a tu API Django
+                // Por ahora simulamos una reserva exitosa
+                val nuevaReserva = Reservation(
+                    id = (1..1000).random(),
+                    codigo = "RES${System.currentTimeMillis()}",
+                    car = selectedVehicle,
+                    horaInicio = horaInicio,
+                    horaFin = horaFin,
+                    tipo = tipoReserva,
+                    estado = estado,
+                    precio = montoTotal ?: calcularPrecio(tipoReserva)
+                )
+
+                _createdReservation.value = nuevaReserva
+
             } catch (e: Exception) {
-                _error.value = "Error: ${e.message}"
+                _error.value = "Error al crear reserva: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun cancelReservation(codigo: String, onSuccess: () -> Unit = {}) {
-        _isLoading.value = true
-
-        viewModelScope.launch {
-            try {
-                val response = apiService.cancelReservation(codigo)
-                if (response.isSuccessful) onSuccess()
-                else _error.value = "Error: ${response.code()}"
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
+    private fun calcularPrecio(tipo: String): Double {
+        return when (tipo) {
+            "premium" -> 15.0
+            "vip" -> 25.0
+            else -> 8.0 // normal
         }
     }
 
-    fun extendReservation(codigo: String, minutes: Int, onSuccess: () -> Unit = {}) {
-        _isLoading.value = true
-
-        viewModelScope.launch {
-            try {
-                val response = apiService.extendReservation(codigo, mapOf("minutes" to minutes))
-                if (response.isSuccessful) onSuccess()
-                else _error.value = "Error: ${response.code()}"
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    // ========== FUNCIONES UTILITARIAS ==========
+    fun clearError() {
+        _error.value = null
     }
 
-
-    fun checkIn(codigo: String, onSuccess: () -> Unit = {}) {
-        _isLoading.value = true
-        viewModelScope.launch {
-            try {
-                val response = apiService.checkIn(codigo)
-                if (response.isSuccessful) onSuccess()
-                else _error.value = "Código: ${response.code()}"
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun clearCreatedReservation() {
+        _createdReservation.value = null
     }
 
-    fun checkOut(codigo: String, onSuccess: () -> Unit = {}) {
-        _isLoading.value = true
-        viewModelScope.launch {
-            try {
-                val response = apiService.checkOut(codigo)
-                if (response.isSuccessful) onSuccess()
-                else _error.value = "Código: ${response.code()}"
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun resetForm() {
+        clearForm()
+        clearError()
+        clearCreatedReservation()
+    }
+
+    // ========== INICIALIZACIÓN VACÍA ==========
+    init {
+        // Listas vacías - se llenarán con datos reales de tu API
+        vehicles = emptyList()
+        // Añadimos un vehículo de ejemplo para demostración
+        vehicles = listOf(
+            Car(
+                id = 1,
+                plate = "ABC-123",
+                model = "Corolla",
+                brand = "Toyota",
+                color = "Plata",
+                type = VehicleType.AUTOMOVIL)
+        )
     }
 }
