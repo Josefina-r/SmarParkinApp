@@ -2,6 +2,7 @@ package com.example.smarparkinapp.ui.theme.data.model
 
 // Función para convertir ParkingSpotResponse a ParkingSpot
 fun ParkingSpotResponse.toParkingSpot(): ParkingSpot {
+
     return ParkingSpot(
         id = this.id,
         name = this.nombre,
@@ -25,6 +26,8 @@ fun ParkingLot.toParkingSpot(): ParkingSpot {
     // Parsear coordenadas (formato: "latitud,longitud")
     val (latitude, longitude) = parseCoordenadas(this.coordenadas)
 
+    // USAR imagen_principal DIRECTAMENTE - SIN lógica compleja
+    val imagenUrl = buildImageUrl(this.imagen_principal)
     return ParkingSpot(
         id = this.id.toInt(),
         name = this.nombre,
@@ -39,10 +42,25 @@ fun ParkingLot.toParkingSpot(): ParkingSpot {
         estaAbierto = this.esta_abierto ?: true,
         tieneCamaras = hasCamaras(this.nivel_seguridad),
         tieneVigilancia24h = hasVigilancia24h(this.nivel_seguridad),
-        distanciaKm = null
+        distanciaKm = null,
+        imagenUrl = imagenUrl
+
     )
 }
+// Función auxiliar para construir URL completa si es necesario
+private fun buildImageUrl(imagenPath: String?): String {
+    return when {
+        imagenPath.isNullOrEmpty() -> getDefaultParkingImage()
+        imagenPath.startsWith("http") -> imagenPath // URL completa
+        imagenPath.startsWith("/") -> "https://tu-dominio.com$imagenPath" // Ruta relativa
+        else -> "https://tu-dominio.com/media/$imagenPath" // Ruta de media
+    }
+}
 
+// Función para imagen por defecto (solo si no hay imagen del backend)
+private fun getDefaultParkingImage(): String {
+    return "https://via.placeholder.com/80/666666/FFFFFF?text=🚗"
+}
 // Función auxiliar para parsear coordenadas
 private fun parseCoordenadas(coordenadas: String?): Pair<Double, Double> {
     return if (coordenadas != null && coordenadas.contains(",")) {

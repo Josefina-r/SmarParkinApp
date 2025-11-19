@@ -1,6 +1,7 @@
 package com.example.smarparkinapp.ui.theme.data.model
 
 data class ParkingSpot(
+
     val id: Int,
     val name: String,
     val address: String,
@@ -14,5 +15,6 @@ data class ParkingSpot(
     val estaAbierto: Boolean = true,
     val tieneCamaras: Boolean = false,
     val tieneVigilancia24h: Boolean = false,
-    val distanciaKm: Double? = null
+    val distanciaKm: Double? = null,
+    val imagenUrl: String = "https://via.placeholder.com/80/666666/FFFFFF?text=🚗"
 )

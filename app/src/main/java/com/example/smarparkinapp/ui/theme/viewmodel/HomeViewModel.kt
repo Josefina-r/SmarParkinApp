@@ -38,23 +38,23 @@ class HomeViewModel(private val context: Context) : ViewModel() {
         fetchParkingSpots()
     }
 
-    // ✅ MÉTODOS PARA LOS FILTROS DEL HOME SCREEN
+    //  MÉTODOS PARA LOS FILTROS DEL HOME SCREEN
     fun fetchMasEconomicos() {
-        println("💰 [VIEWMODEL] Filtrando por precio (más económicos)")
+        println(" [VIEWMODEL] Filtrando por precio (más económicos)")
         _filteredParkingSpots.value = _parkingSpots.value.sortedBy { spot ->
             parsePrice(spot.price)
         }
     }
 
     fun fetchMejoresCalificados() {
-        println("⭐ [VIEWMODEL] Filtrando por mejor rating")
+        println(" [VIEWMODEL] Filtrando por mejor rating")
         _filteredParkingSpots.value = _parkingSpots.value
             .filter { it.ratingPromedio >= 4.0 }
             .sortedByDescending { it.ratingPromedio }
     }
 
     fun filterBySecurity(minSecurity: Int) {
-        println("🛡️ [VIEWMODEL] Filtrando por seguridad mínima: $minSecurity")
+        println("🛡 [VIEWMODEL] Filtrando por seguridad mínima: $minSecurity")
         _filteredParkingSpots.value = _parkingSpots.value
             .filter { it.nivelSeguridad >= minSecurity }
             .sortedBy { distanceToUser(it.latitude, it.longitude) }
@@ -78,36 +78,36 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
         viewModelScope.launch {
             try {
-                println("🎯 [FETCH] === INICIANDO CARGA DESDE DJANGO ===")
+                println(" [FETCH] === INICIANDO CARGA DESDE DJANGO ===")
 
                 val response = apiService.getApprovedParkingLots()
-                println("🎯 [FETCH] Código de respuesta: ${response.code()}")
-                println("🎯 [FETCH] ¿Éxito?: ${response.isSuccessful}")
+                println(" [FETCH] Código de respuesta: ${response.code()}")
+                println(" [FETCH] ¿Éxito?: ${response.isSuccessful}")
 
                 if (response.isSuccessful) {
                     val parkingLotResponse = response.body()
 
                     if (parkingLotResponse == null) {
                         _errorMessage.value = "Respuesta vacía del servidor"
-                        println("❌ [FETCH] Respuesta body es null")
+                        println(" [FETCH] Respuesta body es null")
                         return@launch
                     }
 
-                    println("🎯 [FETCH] Total de estacionamientos: ${parkingLotResponse.count}")
-                    println("🎯 [FETCH] Resultados: ${parkingLotResponse.results?.size ?: 0}")
+                    println(" [FETCH] Total de estacionamientos: ${parkingLotResponse.count}")
+                    println("[FETCH] Resultados: ${parkingLotResponse.results?.size ?: 0}")
 
                     // Verificar si hay resultados
                     if (parkingLotResponse.results.isNullOrEmpty()) {
                         _errorMessage.value = "No hay estacionamientos disponibles en el sistema"
                         _parkingSpots.value = emptyList()
                         _filteredParkingSpots.value = emptyList()
-                        println("⚠️ [FETCH] Lista de estacionamientos vacía")
+                        println("️ [FETCH] Lista de estacionamientos vacía")
                     } else {
                         // Convertir cada ParkingLot a ParkingSpot
                         val spots = mutableListOf<ParkingSpot>()
 
                         parkingLotResponse.results.forEachIndexed { index, parkingLot ->
-                            println("\n🎯 [PARKING_$index] ==========================")
+                            println("\n [PARKING_$index] ==========================")
                             println("   ID: ${parkingLot.id}")
                             println("   Nombre: ${parkingLot.nombre}")
                             println("   Dirección: ${parkingLot.direccion}")
@@ -135,17 +135,17 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                     // Error HTTP
                     val errorBody = response.errorBody()?.string() ?: "Error desconocido"
                     _errorMessage.value = "Error del servidor: ${response.code()} - $errorBody"
-                    println("❌ [FETCH] Error HTTP ${response.code()}: $errorBody")
+                    println(" [FETCH] Error HTTP ${response.code()}: $errorBody")
                 }
 
             } catch (e: Exception) {
                 // Error de conexión
                 _errorMessage.value = "Error de conexión: ${e.message}"
-                println("💥 [FETCH] Excepción: ${e.message}")
+                println("[FETCH] Excepción: ${e.message}")
                 e.printStackTrace()
             } finally {
                 _isLoading.value = false
-                println("🎯 [FETCH] Carga finalizada - Loading: false")
+                println("[FETCH] Carga finalizada - Loading: false")
             }
         }
     }
@@ -168,7 +168,7 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
             // Plazas disponibles
             val availableSpots = this.plazas_disponibles ?: 0
-
+            val imagenUrl = buildImageUrl(this.imagen_principal)
             ParkingSpot(
                 id = this.id.toInt(),
                 name = this.nombre ?: "Estacionamiento ${this.id}",
@@ -182,7 +182,8 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 totalResenas = this.total_resenas ?: 0,
                 estaAbierto = isOpen && availableSpots > 0,
                 tieneCamaras = hasCameras(this.nivel_seguridad),
-                tieneVigilancia24h = has24hSurveillance(this.nivel_seguridad)
+                tieneVigilancia24h = has24hSurveillance(this.nivel_seguridad),
+                imagenUrl = imagenUrl
             )
         } catch (e: Exception) {
             println("💥 [CONVERSION] Error convirtiendo ${this.nombre}: ${e.message}")
@@ -200,11 +201,28 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 totalResenas = 0,
                 estaAbierto = false,
                 tieneCamaras = false,
-                tieneVigilancia24h = false
+                tieneVigilancia24h = false,
+                imagenUrl = getDefaultParkingImage()
             )
         }
     }
-
+    private fun buildImageUrl(imagenPath: String?): String {
+        return when {
+            imagenPath.isNullOrEmpty() -> getDefaultParkingImage()
+            imagenPath.startsWith("http") -> imagenPath // URL completa
+            imagenPath.startsWith("/") -> "https://tu-dominio.com$imagenPath" // Ruta relativa
+            else -> "https://tu-dominio.com/media/$imagenPath" // Ruta de media Django
+        }
+    }
+    private fun getDefaultParkingImage(): String {
+        // Usar placeholders sin emojis, solo colores y texto
+        return when ((1..4).random()) {
+            1 -> "https://via.placeholder.com/80/4CAF50/FFFFFF?text=PKG" // Verde - Parking
+            2 -> "https://via.placeholder.com/80/2196F3/FFFFFF?text=EST" // Azul - Estacionamiento
+            3 -> "https://via.placeholder.com/80/FF9800/FFFFFF?text=LOT" // Naranja - Lote
+            else -> "https://via.placeholder.com/80/666666/FFFFFF?text=CAR" // Gris - Carro
+        }
+    }
     private fun parseCoordinates(coordenadas: String?): Pair<Double, Double> {
         return try {
             when {

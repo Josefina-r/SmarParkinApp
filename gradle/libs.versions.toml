@@ -28,6 +28,8 @@ coil = "2.4.0"
 material3 = "1.2.0"
 composeUi = "1.5.0"
 materialIcons = "1.7.0"
+androidxFoundation = "1.9.4"
+uiTextVersion = "1.9.4"
 
 [libraries]
 # EXISTENTES
@@ -82,6 +84,8 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composeUi" }
 material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
+foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "androidxFoundation" }
+androidx-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiTextVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

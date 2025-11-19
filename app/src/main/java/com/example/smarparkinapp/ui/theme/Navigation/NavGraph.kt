@@ -5,7 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import  com.example.smarparkinapp.ui.theme.data.model.EstacionamientoDetalleScreen
-import com.example.smarparkinapp.ui.screens.ReservationScreen
+import com.example.smarparkinapp.ui.theme.screens.ReservationScreen
 import com.example.smarparkinapp.ui.theme.screens.*
 
 @Composable
@@ -86,17 +86,22 @@ fun AppNavGraph(navController: NavHostController) {
 
         // Reservation
         composable(NavRoutes.Reservation.route) { backStackEntry ->
-            val parkingName = backStackEntry.arguments?.getString("parkingName") ?: "Estacionamiento"
-            val plate = backStackEntry.arguments?.getString("plate") ?: ""
-            val duration = backStackEntry.arguments?.getString("duration")?.toInt() ?: 1
-            val total = backStackEntry.arguments?.getString("total")?.toDouble() ?: 0.0
+
+            val parkingId = backStackEntry.arguments
+                ?.getString("parkingId")
+                ?.toIntOrNull()
+                ?: 0
 
             ReservationScreen(
-                navController = navController,
-                parkingName = parkingName,
-                pricePerHour = total / duration
+                parkingId = parkingId,
+                onSuccessNavigate = {
+                    navController.navigate(NavRoutes.Home.route) {
+                        popUpTo(NavRoutes.Reservation.route) { inclusive = true }
+                    }
+                }
             )
         }
+
         composable(
             route = NavRoutes.ParkingDetail.route
         ) { backStackEntry ->

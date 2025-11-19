@@ -5,7 +5,9 @@ import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLotResponse
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
+import com.example.smarparkinapp.ui.theme.data.model.GenericResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpotResponse
+import com.example.smarparkinapp.ui.theme.data.model.Reservation
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -15,7 +17,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
-    // 🔐 AUTENTICACIÓN
+    // AUTENTICACIÓN
     @POST("auth/login/")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
@@ -24,7 +26,7 @@ interface ApiService {
 
     @POST("api/password/reset/")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
-    // 🅿️ ESTACIONAMIENTOS - CORREGIDO
+    // ESTACIONAMIENTOS - CORREGIDO
     @GET("api/parkings/")
     suspend fun getApprovedParkingLots(): Response<ParkingLotResponse>
 
@@ -46,20 +48,35 @@ interface ApiService {
     // 🚗 VEHÍCULOS
     @POST("cars/")
     suspend fun addCar(@Body car: CarRequest): Response<CarResponse> // ✅ Solo CarRequest
-    // 📅 RESERVAS - VERIFICAR si estas rutas existen
-    @POST("api/reservations/")
+    // RESERVAS - VERIFICAR si estas rutas existen
+    // ========== RESERVAS ==========
+    @GET("reservations/client/mis-reservas/")
+    suspend fun getMyReservations(): Response<List<Reservation>>
+
+    @GET("reservations/client/active/")
+    suspend fun getActiveReservations(): Response<List<Reservation>>
+
+    @POST("reservations/{codigo}/cancel/")
+    suspend fun cancelReservation(@Path("codigo") codigo: String): Response<GenericResponse>
+
+    @POST("reservations/{codigo}/extend/")
+    suspend fun extendReservation(
+        @Path("codigo") codigo: String,
+        @Body body: Map<String, Any>
+    ): Response<GenericResponse>
+
+    @POST("reservations/{codigo}/checkin/")
+    suspend fun checkIn(@Path("codigo") codigo: String): Response<GenericResponse>
+
+    @POST("reservations/{codigo}/checkout/")
+    suspend fun checkOut(@Path("codigo") codigo: String): Response<GenericResponse>
+
+    @POST("reservations/reservations/")
     suspend fun createReservation(
-        @Body reservation: ReservationRequest,
-        @Header("Authorization") token: String
-    ): Response<ReservationResponse>
+        @Body body: Map<String, Any>
+    ): Response<Reservation>
 
-    @GET("api/reservations/user/{userId}/")
-    suspend fun getUserReservations(
-        @Path("userId") userId: Int,
-        @Header("Authorization") token: String
-    ): Response<List<ReservationResponse>>
-
-    // 💳 PAGOS - VERIFICAR si estas rutas existen
+    // PAGOS - VERIFICAR si estas rutas existen
     @POST("api/payments/")
     suspend fun processPayment(
         @Body payment: PaymentRequest,
