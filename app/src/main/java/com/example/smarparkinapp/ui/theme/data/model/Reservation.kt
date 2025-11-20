@@ -1,20 +1,19 @@
-// Reservation.kt
 package com.example.smarparkinapp.data.model
 
 import com.google.gson.annotations.SerializedName
-import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
+
 data class Reservation(
     @SerializedName("id")
-    val id: Int = 0,
+    val id: Long = 0,
 
     @SerializedName("codigo")
     val codigo: String = "",
 
     @SerializedName("estacionamiento")
-    val parking: ParkingLot? = null,
+    val parking: ParkingShort? = null,
 
     @SerializedName("vehiculo")
-    val car: Car? = null,
+    val vehicle: VehicleShort? = null,
 
     @SerializedName("fecha")
     val fecha: String = "",
@@ -39,4 +38,33 @@ data class Reservation(
 
     @SerializedName("updated_at")
     val updatedAt: String = ""
+)
+
+// Modelos auxiliares para las respuestas
+data class VehicleShort(
+    @SerializedName("id")
+    val id: Int,
+
+    @SerializedName("license_plate")
+    val licensePlate: String,
+
+    @SerializedName("brand")
+    val brand: String,
+
+    @SerializedName("model")
+    val model: String
+)
+
+data class ParkingShort(
+    @SerializedName("id")
+    val id: Long,
+
+    @SerializedName("nombre")
+    val nombre: String,
+
+    @SerializedName("direccion")
+    val direccion: String? = null,
+
+    @SerializedName("tarifa_hora")
+    val tarifaHora: Double? = null
 )

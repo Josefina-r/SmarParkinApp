@@ -7,7 +7,6 @@ import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.GenericResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpotResponse
-import com.example.smarparkinapp.data.model.Reservation
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET

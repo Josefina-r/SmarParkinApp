@@ -51,7 +51,7 @@ fun RegisterScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val registeredUserId by viewModel.registeredUserId.collectAsState()
 
-    // ✅ Cuando el registro es exitoso, navega al CompleteProfileScreen
+    //  Cuando el registro es exitoso, navega al CompleteProfileScreen
     LaunchedEffect(registeredUserId) {
         registeredUserId?.let { id ->
             onRegisterSuccess(id)

@@ -26,15 +26,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smarparkinapp.components.VehicleItem
 import com.example.smarparkinapp.data.model.Car
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,8 +45,8 @@ fun VehicleSelectionScreen(
     onAddVehicle: () -> Unit,
     viewModel: ReservationViewModel
 ) {
-    // Obtener los vehículos directamente del ViewModel
-    val vehicles = viewModel.vehicles
+    // CORREGIDO: Usar collectAsState() para observar el StateFlow
+    val vehicles by viewModel.vehicles.collectAsState()
 
     Scaffold(
         topBar = {

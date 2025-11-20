@@ -21,6 +21,6 @@ sealed class NavRoutes(val route: String) {
         fun createRoute(parkingId: Int) = "parking_detail/$parkingId"
     }
 
-    // ✅ CORRECTO: VehicleSelection como objeto separado
+
     object VehicleSelection : NavRoutes("vehicle_selection")
 }

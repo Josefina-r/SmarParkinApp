@@ -10,11 +10,16 @@ import androidx.navigation.navArgument
 import com.example.smarparkinapp.components.AddVehicleDialog
 import com.example.smarparkinapp.screens.VehicleSelectionScreen
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
+import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 import com.example.smarparkinapp.ui.theme.screens.ReservationScreen
 import com.example.smarparkinapp.ui.theme.screens.*
+import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
+    val context = LocalContext.current
+
     NavHost(
         navController = navController,
         startDestination = NavRoutes.Splash.route
@@ -62,7 +67,7 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // HOME - CORREGIDO
+        // HOME
         composable(NavRoutes.Home.route) {
             HomeScreen(
                 navController = navController,
@@ -70,7 +75,6 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.navigate(NavRoutes.ParkingDetail.createRoute(parkingId))
                 },
                 onReservationClick = { parkingId, vehicleId, startTime, endTime ->
-                    // Manejar la reserva - puedes navegar a ReservationScreen
                     navController.navigate(
                         NavRoutes.Reservation.createRoute(parkingId, vehicleId, startTime, endTime)
                     )
@@ -102,13 +106,42 @@ fun AppNavGraph(navController: NavHostController) {
         ) { backStackEntry ->
             val parkingId = backStackEntry.arguments?.getInt("parkingId") ?: 0
 
+            // TODO: Obtener el objeto ParkingLot completo desde tu API
+            val parkingLot = ParkingLot(
+                id = parkingId.toLong(),
+                nombre = "Estacionamiento Temporal",
+                direccion = "Dirección temporal",
+                coordenadas = null,
+                telefono = null,
+                descripcion = null,
+                horario_apertura = null,
+                horario_cierre = null,
+                nivel_seguridad = null,
+                tarifa_hora = 5.0,
+                total_plazas = 50,
+                plazas_disponibles = 25,
+                rating_promedio = null,
+                total_resenas = null,
+                aprobado = true,
+                activo = true,
+                dueno = null,
+                esta_abierto = true,
+                imagen_principal = null,
+                dueno_nombre = null
+            )
+
+            val reservationViewModel: ReservationViewModel = viewModel(
+                factory = ReservationViewModelFactory(context)
+            )
+
             ReservationScreen(
-                parkingId = parkingId,
+                parking = parkingLot,
                 onSuccessNavigate = {
                     navController.navigate(NavRoutes.Home.route) {
                         popUpTo(NavRoutes.Reservation.route) { inclusive = true }
                     }
-                }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -125,16 +158,19 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // VEHICLE SELECTION
+        // VEHICLE SELECTION - CORREGIDO
         composable(NavRoutes.VehicleSelection.route) {
-            val viewModel: ReservationViewModel = viewModel()
+            val viewModel: ReservationViewModel = viewModel(
+                factory = ReservationViewModelFactory(context)
+            )
 
             VehicleSelectionScreen(
                 onBack = { navController.popBackStack() },
                 onVehicleSelected = { car ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set(
-                        "selectedVehicle",
-                        car
+                    // CORRECCIÓN: Especificar el tipo explícitamente
+                    navController.previousBackStackEntry?.savedStateHandle?.set<Int>(
+                        key = "selectedVehicleId",
+                        car.id
                     )
                     navController.popBackStack()
                 },
@@ -144,7 +180,6 @@ fun AppNavGraph(navController: NavHostController) {
                 viewModel = viewModel
             )
 
-            // Modal para agregar vehículo
             if (viewModel.showAddVehicleDialog) {
                 AddVehicleDialog(
                     viewModel = viewModel,
