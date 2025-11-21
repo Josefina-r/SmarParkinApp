@@ -54,6 +54,7 @@ fun HomeScreen(
     onReservationClick: (parkingName: String, plate: String, duration: Int, total: Double) -> Unit
 ) {
     val context = LocalContext.current
+
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(context.applicationContext)
     )
@@ -89,6 +90,7 @@ fun HomeScreen(
         viewModel.fetchParkingSpots()
         viewModel.updateUserLocation(userLatLng.value.latitude, userLatLng.value.longitude)
     }
+
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -603,37 +605,6 @@ fun ModernParkingCard(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = Color.Black
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "S/ 6.00 /hora",
-                                color = Color.Gray,
-                                fontSize = 12.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Precio Moto
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.TwoWheeler,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = Color.Black
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "S/ 15.00 /día",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color.Black
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "S/ 4.00 /hora",
-                                color = Color.Gray,
-                                fontSize = 12.sp
                             )
                         }
                     }

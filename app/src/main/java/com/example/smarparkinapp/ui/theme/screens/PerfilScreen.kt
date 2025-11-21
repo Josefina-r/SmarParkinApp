@@ -1,590 +1,523 @@
-package com.example.smarparkinapp.ui.theme.screens
+package com.example.smarparkinapp.ui.theme.screens.profile
 
-import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
-import androidx.navigation.NavHostController
-import com.example.smarparkinapp.ui.theme.theme.*
-import coil.compose.rememberAsyncImagePainter
-
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.ui.graphics.vector.ImageVector
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PerfilScreen(
-    navController: NavHostController? = null,
-    onCerrarSesion: () -> Unit = {}
-) {
-    // Estados para los menús
-    var showLogoutDialog by remember { mutableStateOf(false) }
-    var topBarMenuExpanded by remember { mutableStateOf(false) }
-    var selectedVehicleIndex by remember { mutableStateOf(-1) }
-
-    // Estado para la imagen de perfil
-    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
-
-    // Launcher para seleccionar imagen de galería
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { profileImageUri = it }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            "Mi Perfil",
-                            color = Blanco,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Gestiona tu información personal",
-                            color = Blanco.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController?.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = Blanco,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                actions = {
-                    // Menú de opciones en TopBar
-                    Box {
-                        IconButton(onClick = { topBarMenuExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Más opciones",
-                                tint = Blanco,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = topBarMenuExpanded,
-                            onDismissRequest = { topBarMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Editar perfil", fontWeight = FontWeight.Medium)
-                                },
-                                onClick = {
-                                    topBarMenuExpanded = false
-                                    // Navegar a edición de perfil
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Configuración", fontWeight = FontWeight.Medium)
-                                },
-                                onClick = {
-                                    topBarMenuExpanded = false
-                                    // Navegar a configuración
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Settings, contentDescription = null)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Ayuda y Soporte", fontWeight = FontWeight.Medium)
-                                },
-                                onClick = {
-                                    topBarMenuExpanded = false
-                                    // Navegar a ayuda
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Help, contentDescription = null)
-                                }
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AzulPrincipal
-                )
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                        colors = listOf(GrisClaro, Color.White)
-                    )
-                )
-                .padding(padding)
-        ) {
-            // Header con foto de perfil
-            ProfileHeader(
-                profileImageUri = profileImageUri,
-                onProfileImageClick = { galleryLauncher.launch("image/*") }
-            )
-
-            // Contenido principal con scroll
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 12.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Información personal
-                ProfileSection(
-                    title = "Información Personal",
-                    icon = Icons.Default.Person,
-                    items = listOf(
-                        ProfileItem("Correo electrónico", "juan.perez@email.com"),
-                        ProfileItem("Teléfono", "+52 55 1234 5678"),
-                        ProfileItem("Fecha de registro", "15/03/2024")
-                    )
-                )
-
-                // Vehículos registrados
-                ProfileSection(
-                    title = "Vehículos Registrados",
-                    icon = Icons.Default.DirectionsCar,
-                    items = listOf(
-                        ProfileItem("Toyota Corolla 2020", "Placa: ABC-123", true),
-                        ProfileItem("", "", false, isAction = true, isAddButton = true) // Solo icono +
-                    ),
-                    onVehicleLongPress = { index -> selectedVehicleIndex = index }
-                )
-
-                // Métodos de pago
-                ProfileSection(
-                    title = "Métodos de Pago",
-                    icon = Icons.Default.CreditCard,
-                    items = listOf(
-                        ProfileItem("Visa terminada en 1234", "Principal", false),
-                        ProfileItem("", "", false, isAction = true, isAddButton = true) // Solo icono +
-                    )
-                )
-
-                // Botones de acción
-                ActionButtons(
-                    onCerrarSesion = { showLogoutDialog = true },
-                    onEditarPerfil = { /* Navegar a edición */ },
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-        }
-
-        // Menú contextual
-        VehicleContextMenu(
-            selectedIndex = selectedVehicleIndex,
-            onDismiss = { selectedVehicleIndex = -1 },
-            onEditar = {
-                selectedVehicleIndex = -1
-                // Navegar a edición de vehículo
-            },
-            onEliminar = {
-                selectedVehicleIndex = -1
-                // Eliminar vehículo
-            }
-        )
-
-        if (showLogoutDialog) {
-            LogoutConfirmationDialog(
-                onConfirm = {
-                    showLogoutDialog = false
-                    onCerrarSesion()
-                },
-                onDismiss = { showLogoutDialog = false }
-            )
-        }
-    }
-}
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.ProfileViewModel
 
 @Composable
-fun ProfileHeader(
-    profileImageUri: Uri?,
-    onProfileImageClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(AzulPrincipal, AzulPrincipal.copy(alpha = 0.9f))
-                )
-            )
-            .padding(vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        // Foto de perfil
-        Box(
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            Surface(
-                modifier = Modifier
-                    .size(70.dp)
-                    .shadow(8.dp, CircleShape)
-                    .clip(CircleShape),
-                color = VerdeSecundario,
-                border = BorderStroke(2.dp, Blanco),
-                onClick = onProfileImageClick
-            ) {
-                if (profileImageUri != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(profileImageUri),
-                        contentDescription = "Foto de perfil",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Foto de perfil",
-                        tint = Blanco,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-            }
-
-            // Badge para cambiar foto
-            Surface(
-                modifier = Modifier.size(24.dp),
-                shape = CircleShape,
-                color = VerdePrincipal,
-                onClick = onProfileImageClick
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Cambiar foto",
-                    tint = Blanco,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        }
-
-        // Información del usuario
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "Juan Carlos Pérez García",
-                style = MaterialTheme.typography.titleMedium,
-                color = Blanco,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun ProfileSection(
-    title: String,
-    icon: ImageVector,
-    items: List<ProfileItem>,
-    onVehicleLongPress: (Int) -> Unit = { _ -> }
+fun ErrorCard(
+    message: String,
+    onRetry: (() -> Unit)?,
+    onDismiss: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(10.dp),
-                clip = true
-            ),
-        colors = CardDefaults.cardColors(containerColor = Blanco),
-        shape = RoundedCornerShape(10.dp)
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
     ) {
-        Column(modifier = Modifier.padding(6.dp)) {
-            // Header de la sección
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 8.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = VerdePrincipal,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = AzulPrincipal
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items.forEachIndexed { index, item ->
-                    ProfileItemRow(
-                        item = item,
-                        onLongPress = {
-                            if (item.isVehicle) onVehicleLongPress(index)
-                        }
-                    )
-                    if (index < items.lastIndex) {
-                        Divider(color = GrisClaro.copy(alpha = 0.3f))
-                    }
-                }
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = message,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Cerrar")
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ProfileItemRow(
-    item: ProfileItem,
-    onLongPress: () -> Unit = {}
+fun SuccessCard(
+    message: String,
+    onDismiss: () -> Unit
 ) {
-    val backgroundColor = if (item.isAction) AzulPrincipal.copy(alpha = 0.1f) else Color.Transparent
-    val textColor = if (item.isAction) AzulPrincipal else Color.Gray
-
-    val clickModifier = when {
-        item.isAction -> {
-            Modifier.clickable {
-                // Acción para "Agregar nuevo vehículo" o "Agregar método de pago"
-            }
-        }
-        item.isVehicle -> {
-            Modifier.combinedClickable(
-                onClick = { /* No hacer nada en click normal */ },
-                onLongClick = onLongPress
-            )
-        }
-        else -> Modifier
-    }
-
-    Box(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(backgroundColor)
-            .then(clickModifier)
-            .padding(vertical = 4.dp, horizontal = 2.dp)
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
-        if (item.isAddButton) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar",
-                    tint = AzulPrincipal,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        } else {
-            Column {
-                Text(
-                    item.title,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = if (item.isAction) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (item.isAction) AzulPrincipal else Color.Black,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (item.subtitle.isNotEmpty()) {
-                    Text(
-                        item.subtitle,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = textColor,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = message,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Cerrar")
             }
         }
     }
 }
 
 @Composable
-fun ActionButtons(
-    onCerrarSesion: () -> Unit,
-    onEditarPerfil: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun ProfilePhotoSection() {
     Column(
-        modifier = modifier
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Editar perfil
-        OutlinedButton(
-            onClick = onEditarPerfil,
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(42.dp),
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, AzulPrincipal),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = AzulPrincipal
-            )
+                .size(120.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Edit,
-                contentDescription = "Editar perfil",
-                modifier = Modifier.size(16.dp)
+                contentDescription = "Foto de perfil",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(40.dp)
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Editar Perfil", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
         }
-
-        Button(
-            onClick = onCerrarSesion,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF6B6C),
-                contentColor = Blanco
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(42.dp),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Logout,
-                contentDescription = "Cerrar sesión",
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Cerrar Sesión", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-fun VehicleContextMenu(
-    selectedIndex: Int,
-    onDismiss: () -> Unit,
-    onEditar: () -> Unit,
-    onEliminar: () -> Unit
-) {
-    if (selectedIndex != -1) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = {
-                Text(
-                    "Opciones del Vehículo",
-                    fontWeight = FontWeight.Bold,
-                    color = AzulPrincipal
-                )
-            },
-            text = {
-                Text("¿Qué acción deseas realizar con este vehículo?")
-            },
-            confirmButton = {
-                TextButton(onClick = onEditar) {
-                    Text("Editar", fontWeight = FontWeight.Medium)
-                }
-                TextButton(onClick = onEliminar) {
-                    Text("Eliminar", color = Color.Red, fontWeight = FontWeight.Medium)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancelar")
-                }
-            }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Cambiar foto",
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LogoutConfirmationDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+fun ProfileScreen(
+    onBackClick: () -> Unit,
+    viewModel: ProfileViewModel = viewModel()
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = "Advertencia",
-                tint = Color(0xFFFF6B6B)
-            )
-        },
-        title = {
-            Text(
-                "Cerrar Sesión",
-                fontWeight = FontWeight.Bold,
-                color = AzulPrincipal
-            )
-        },
-        text = {
-            Text("¿Estás seguro de que quieres cerrar sesión? Tendrás que volver a iniciar sesión para usar la aplicación.")
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFFF6B6B)
-                )
-            ) {
-                Text("Sí, cerrar sesión", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar", fontWeight = FontWeight.Medium)
-            }
+    val context = LocalContext.current
+    val updateSuccess by viewModel.updateSuccess.collectAsState() // ✅ MOVIDO AQUÍ
+
+    // Cargar perfil al iniciar la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.loadUserProfile(context)
+    }
+
+    // ✅ CORREGIDO: Solo un LaunchedEffect para updateSuccess
+    LaunchedEffect(updateSuccess) {
+        if (updateSuccess) {
+            onBackClick() // Esto hará que se recargue la pantalla condicional
+            viewModel.resetUpdateSuccess()
         }
+    }
+
+    ProfileScreenContent(
+        viewModel = viewModel,
+        onBackClick = onBackClick,
+        context = context
     )
 }
 
-data class ProfileItem(
-    val title: String,
-    val subtitle: String = "",
-    val isVehicle: Boolean = false,
-    val isAction: Boolean = false,
-    val isAddButton: Boolean = false
-)
-
-@Preview(showBackground = true)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PerfilScreenPreview() {
-    SmarParkinAppTheme {
-        PerfilScreen()
+private fun ProfileScreenContent(
+    viewModel: ProfileViewModel,
+    onBackClick: () -> Unit,
+    context: android.content.Context
+) {
+    val userProfile by viewModel.userProfile.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val validationErrors by viewModel.validationErrors.collectAsState()
+
+    // Estados locales
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var documentType by remember { mutableStateOf("") }
+    var documentNumber by remember { mutableStateOf("") }
+    var birthDate by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var postalCode by remember { mutableStateOf("") }
+    var country by remember { mutableStateOf("Perú") }
+    var address by remember { mutableStateOf("") }
+
+    // Estado para formato de documento
+    var documentHint by remember { mutableStateOf("Ej: 87654321") }
+
+    // Actualizar hint según tipo de documento
+    LaunchedEffect(documentType) {
+        documentHint = when (documentType) {
+            "DNI" -> "8 dígitos (Ej: 87654321)"
+            "Pasaporte" -> "6-12 caracteres (Ej: AB123456)"
+            "Carnet de Extranjería" -> "9-12 caracteres (Ej: A123456789)"
+            else -> "Ingrese número"
+        }
+
+        // Limpiar número cuando cambia el tipo
+        if (documentNumber.isNotEmpty()) {
+            documentNumber = ""
+        }
+    }
+
+    // Cargar datos del perfil en los estados locales
+    LaunchedEffect(userProfile) {
+        userProfile?.let { profile ->
+            firstName = profile.firstName
+            lastName = profile.lastName
+            phone = profile.phone
+            address = profile.address
+            documentType = when (profile.tipoDocumento) {
+                "dni" -> "DNI"
+                "pasaporte" -> "Pasaporte"
+                "carnet_extranjeria" -> "Carnet de Extranjería"
+                else -> profile.tipoDocumento ?: ""
+            }
+            documentNumber = profile.numeroDocumento
+            birthDate = profile.fechaNacimiento
+            postalCode = profile.codigoPostal
+            country = profile.pais
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Actualizar Datos") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Mensajes de error general
+            errorMessage?.let { message ->
+                ErrorCard(
+                    message = message,
+                    onRetry = null,
+                    onDismiss = { viewModel.clearError() }
+                )
+            }
+
+            // Formulario
+            ProfileForm(
+                firstName = firstName,
+                lastName = lastName,
+                documentType = documentType,
+                documentNumber = documentNumber,
+                documentHint = documentHint,
+                birthDate = birthDate,
+                phone = phone,
+                postalCode = postalCode,
+                country = country,
+                address = address,
+                validationErrors = validationErrors,
+                onFirstNameChange = { firstName = it },
+                onLastNameChange = { lastName = it },
+                onDocumentTypeChange = {
+                    documentType = it
+                    viewModel.clearValidationErrors()
+                },
+                onDocumentNumberChange = {
+                    documentNumber = it
+                    if (validationErrors.containsKey("documentNumber")) {
+                        viewModel.clearValidationErrors()
+                    }
+                },
+                onBirthDateChange = { birthDate = it },
+                onPhoneChange = { phone = it },
+                onPostalCodeChange = { postalCode = it },
+                onCountryChange = { country = it },
+                onAddressChange = { address = it },
+                isLoading = isLoading,
+                onSaveClick = {
+                    // Antes de enviar, mapear el tipo de documento al formato backend
+                    val backendDocumentType = mapDocumentTypeToBackendFormat(documentType)
+
+                    viewModel.updateProfile(
+                        context = context,
+                        firstName = firstName,
+                        lastName = lastName,
+                        phone = phone,
+                        address = address,
+                        documentType = backendDocumentType,
+                        documentNumber = documentNumber,
+                        birthDate = birthDate,
+                        postalCode = postalCode,
+                        country = country
+                    )
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileForm(
+    firstName: String,
+    lastName: String,
+    documentType: String,
+    documentNumber: String,
+    documentHint: String,
+    birthDate: String,
+    phone: String,
+    postalCode: String,
+    country: String,
+    address: String,
+    validationErrors: Map<String, String>,
+    onFirstNameChange: (String) -> Unit,
+    onLastNameChange: (String) -> Unit,
+    onDocumentTypeChange: (String) -> Unit,
+    onDocumentNumberChange: (String) -> Unit,
+    onBirthDateChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onPostalCodeChange: (String) -> Unit,
+    onCountryChange: (String) -> Unit,
+    onAddressChange: (String) -> Unit,
+    isLoading: Boolean,
+    onSaveClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        // Sección de foto
+        ProfilePhotoSection()
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Nombres y Apellidos
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = firstName,
+                onValueChange = onFirstNameChange,
+                label = { Text("Nombres *") },
+                modifier = Modifier.weight(1f),
+                enabled = !isLoading,
+                isError = validationErrors.containsKey("firstName"),
+                supportingText = {
+                    validationErrors["firstName"]?.let { error ->
+                        Text(text = error, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            )
+            OutlinedTextField(
+                value = lastName,
+                onValueChange = onLastNameChange,
+                label = { Text("Apellidos *") },
+                modifier = Modifier.weight(1f),
+                enabled = !isLoading,
+                isError = validationErrors.containsKey("lastName"),
+                supportingText = {
+                    validationErrors["lastName"]?.let { error ->
+                        Text(text = error, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Tipo Documento y Número
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Dropdown para tipo de documento
+            var expanded by remember { mutableStateOf(false) }
+            val documentTypes = listOf("DNI", "Pasaporte", "Carnet de Extranjería")
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.weight(1f)
+            ) {
+                OutlinedTextField(
+                    value = documentType,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Tipo Documento *") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor(),
+                    enabled = !isLoading,
+                    isError = validationErrors.containsKey("documentType"),
+                    supportingText = {
+                        validationErrors["documentType"]?.let { error ->
+                            Text(text = error, color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    placeholder = { Text("Seleccionar") }
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    documentTypes.forEach { tipo ->
+                        DropdownMenuItem(
+                            text = { Text(tipo) },
+                            onClick = {
+                                onDocumentTypeChange(tipo)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = documentNumber,
+                onValueChange = onDocumentNumberChange,
+                label = { Text("Número *") },
+                modifier = Modifier.weight(1f),
+                enabled = !isLoading && documentType.isNotEmpty(),
+                isError = validationErrors.containsKey("documentNumber"),
+                supportingText = {
+                    if (validationErrors.containsKey("documentNumber")) {
+                        Text(
+                            text = validationErrors["documentNumber"] ?: "",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        Text(text = documentHint, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                placeholder = { Text(documentHint) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Fecha de Nacimiento
+        OutlinedTextField(
+            value = birthDate,
+            onValueChange = onBirthDateChange,
+            label = { Text("Fecha Nacimiento") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading,
+            isError = validationErrors.containsKey("birthDate"),
+            supportingText = {
+                validationErrors["birthDate"]?.let { error ->
+                    Text(text = error, color = MaterialTheme.colorScheme.error)
+                } ?: Text("Formato: dd/mm/yyyy", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            },
+            placeholder = { Text("01/01/1990") }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Teléfono
+        OutlinedTextField(
+            value = phone,
+            onValueChange = onPhoneChange,
+            label = { Text("Celular *") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading,
+            prefix = { Text("+51 ") },
+            isError = validationErrors.containsKey("phone"),
+            supportingText = {
+                validationErrors["phone"]?.let { error ->
+                    Text(text = error, color = MaterialTheme.colorScheme.error)
+                } ?: Text("9 dígitos (Ej: 987654321)", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            },
+            placeholder = { Text("987654321") }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Código Postal y País
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = postalCode,
+                onValueChange = onPostalCodeChange,
+                label = { Text("Código Postal") },
+                modifier = Modifier.weight(1f),
+                enabled = !isLoading
+            )
+            OutlinedTextField(
+                value = country,
+                onValueChange = onCountryChange,
+                label = { Text("País") },
+                modifier = Modifier.weight(1f),
+                enabled = !isLoading
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Dirección
+        OutlinedTextField(
+            value = address,
+            onValueChange = onAddressChange,
+            label = { Text("Dirección") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading,
+            minLines = 2
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Botón Guardar
+        Button(
+            onClick = onSaveClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            enabled = !isLoading &&
+                    firstName.isNotEmpty() &&
+                    lastName.isNotEmpty() &&
+                    phone.isNotEmpty() &&
+                    documentType.isNotEmpty() &&
+                    documentNumber.isNotEmpty()
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Guardar Cambios")
+            }
+        }
+    }
+}
+
+// Helper: mapear etiqueta UI -> valor backend
+private fun mapDocumentTypeToBackendFormat(documentTypeLabel: String): String? {
+    return when (documentTypeLabel) {
+        "DNI" -> "dni"
+        "Pasaporte" -> "pasaporte"
+        "Carnet de Extranjería" -> "carnet_extranjeria"
+        else -> null
     }
 }

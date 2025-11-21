@@ -12,6 +12,7 @@ sealed class NavRoutes(val route: String) {
     object Home : NavRoutes("home")
     object Main : NavRoutes("main")
     object Perfil : NavRoutes("perfil")
+
     object Historial : NavRoutes("historial")
     object Reservation : NavRoutes("reservation/{parkingName}/{plate}/{duration}/{total}") {
         fun createRoute(parkingName: String, plate: String, duration: Int, total: Double) =

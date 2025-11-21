@@ -20,6 +20,7 @@ playServicesMaps = "18.2.0"
 playServicesLocation = "21.0.1"
 mapsCompose = "2.11.4"
 coil = "2.4.0"
+foundation = "1.9.5"
 
 # ELIMINAR estas versiones duplicadas:
 # foundation = "1.9.2" ❌
@@ -93,6 +94,7 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

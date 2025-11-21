@@ -7,11 +7,15 @@ import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.GenericResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpotResponse
+import com.example.smarparkinapp.ui.theme.data.model.UpdateProfileRequest
+import com.example.smarparkinapp.ui.theme.data.model.UserProfileResponse
+import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -25,6 +29,7 @@ interface ApiService {
 
     @POST("api/password/reset/")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
+
     // ESTACIONAMIENTOS - CORREGIDO
     @GET("api/parkings/")
     suspend fun getApprovedParkingLots(): Response<ParkingLotResponse>
@@ -47,6 +52,7 @@ interface ApiService {
     // 🚗 VEHÍCULOS
     @POST("cars/")
     suspend fun addCar(@Body car: CarRequest): Response<CarResponse>
+
     // RESERVAS - VERIFICAR si estas rutas existen
     // ========== RESERVAS ==========
     @POST("reservations/")
@@ -89,15 +95,25 @@ interface ApiService {
     @GET("api/parking/mapa/")
     suspend fun getParkingMapa(): Response<ParkingLotResponse>
 
-    // fun resetPassword(resetPasswordRequest: ResetPasswordRequest) // Esto no puede estar aquí, debe ser suspend y tener anotación HTTP
+    //  RUTAS PARA PERFIL
+    @GET("api/profile/")
+    suspend fun getUserProfile(): Response<UserProfileResponse>
+
+    @PUT("api/profile/update/")
+    suspend fun updateUserProfile(@Body request: UpdateProfileRequest): Response<UserProfileResponse>
+
+    @GET("api/users/profile/")
+    suspend fun getUserProfileCompat(): Response<UserProfileResponse>
+
+    @PUT("api/users/profile/update/")
+    suspend fun updateUserProfileCompat(@Body request: UpdateProfileRequest): Response<UserProfileResponse>
 }
 
-// MODELOS DE AUTENTICACIÓN
 data class LoginRequest(val username: String, val password: String)
 
 data class LoginResponse(
-    val access: String,      // Token de acceso JWT
-    val refresh: String,     // Token de refresh
+    val access: String,
+    val refresh: String,
     val user: UserResponse? = null
 )
 
@@ -129,17 +145,6 @@ data class UserResponse(
     val last_name: String? = null,
     val is_staff: Boolean? = false,
     val is_superuser: Boolean? = false
-)
-
-data class UserProfileResponse(
-    val id: Int,
-    val username: String,
-    val email: String,
-    val first_name: String?,
-    val last_name: String?,
-    val role: String,  // 'client', 'owner', 'admin'
-    val phone: String? = null,
-    val address: String? = null
 )
 
 // MODELOS DE DASHBOARD
@@ -207,7 +212,6 @@ data class ParkingShort(
     val direccion: String? = null
 )
 
-// MODELOS PARA RECUPERACIÓN DE CONTRASEÑA (si existen en tu Django)
 data class ResetPasswordRequest(
     val email: String
 )

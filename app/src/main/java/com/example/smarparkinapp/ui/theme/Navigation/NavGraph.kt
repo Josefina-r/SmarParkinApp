@@ -1,6 +1,17 @@
 package com.example.smarparkinapp.ui.theme.Navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -9,12 +20,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smarparkinapp.components.AddVehicleDialog
 import com.example.smarparkinapp.screens.VehicleSelectionScreen
-import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
+import com.example.smarparkinapp.ui.theme.data.model.UserProfile
+import com.example.smarparkinapp.ui.theme.screens.HistoryScreen
+import com.example.smarparkinapp.ui.theme.screens.HomeScreen
+import com.example.smarparkinapp.ui.theme.screens.LoginScreen
+import com.example.smarparkinapp.ui.theme.screens.ParkingDetailScreen
+import com.example.smarparkinapp.ui.theme.screens.ProfileOverviewScreen
+import com.example.smarparkinapp.ui.theme.screens.RegisterScreen
 import com.example.smarparkinapp.ui.theme.screens.ReservationScreen
-import com.example.smarparkinapp.ui.theme.screens.*
+import com.example.smarparkinapp.ui.theme.screens.SplashScreen
+import com.example.smarparkinapp.ui.theme.screens.profile.ProfileScreen
+import com.example.smarparkinapp.ui.theme.viewmodel.ProfileViewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
-import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
@@ -51,23 +70,7 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // Complete Profile
-        composable(
-            route = NavRoutes.CompleteProfile.route,
-            arguments = listOf(navArgument("userId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getInt("userId") ?: 0
-            CompleteProfileScreen(
-                userId = userId,
-                onProfileCompleted = {
-                    navController.navigate(NavRoutes.Home.route) {
-                        popUpTo(NavRoutes.Register.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        // HOME
+        // Home
         composable(NavRoutes.Home.route) {
             HomeScreen(
                 navController = navController,
@@ -82,21 +85,22 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // Perfil
-        composable(NavRoutes.Perfil.route) {
-            PerfilScreen(
-                navController = navController,
-                onCerrarSesion = {
-                    navController.navigate(NavRoutes.Login.route) {
-                        popUpTo(NavRoutes.Home.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-
         // Historial
         composable(NavRoutes.Historial.route) {
             HistoryScreen(navController = navController)
+        }
+
+        // Parking Detail
+        composable(
+            route = NavRoutes.ParkingDetail.route,
+            arguments = listOf(navArgument("parkingId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val parkingId = backStackEntry.arguments?.getInt("parkingId") ?: 0
+
+            ParkingDetailScreen(
+                navController = navController,
+                parkingId = parkingId
+            )
         }
 
         // Reservation
@@ -145,20 +149,7 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // Parking Detail
-        composable(
-            route = NavRoutes.ParkingDetail.route,
-            arguments = listOf(navArgument("parkingId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val parkingId = backStackEntry.arguments?.getInt("parkingId") ?: 0
-
-            ParkingDetailScreen(
-                navController = navController,
-                parkingId = parkingId
-            )
-        }
-
-        // VEHICLE SELECTION - CORREGIDO
+        // Vehicle Selection
         composable(NavRoutes.VehicleSelection.route) {
             val viewModel: ReservationViewModel = viewModel(
                 factory = ReservationViewModelFactory(context)
@@ -167,10 +158,9 @@ fun AppNavGraph(navController: NavHostController) {
             VehicleSelectionScreen(
                 onBack = { navController.popBackStack() },
                 onVehicleSelected = { car ->
-                    // CORRECCIÓN: Especificar el tipo explícitamente
                     navController.previousBackStackEntry?.savedStateHandle?.set<Int>(
                         key = "selectedVehicleId",
-                        car.id
+                        value = car.id
                     )
                     navController.popBackStack()
                 },
@@ -188,5 +178,87 @@ fun AppNavGraph(navController: NavHostController) {
                 )
             }
         }
+
+        // Perfil
+        composable(NavRoutes.Perfil.route) {
+            ProfileConditionalScreen(
+                navController = navController,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Edición de Perfil
+        composable("profile_edit") {
+            ProfileScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
+}
+
+// Componente para decidir qué pantalla de perfil mostrar
+@Composable
+fun ProfileConditionalScreen(
+    navController: NavHostController,
+    onBackClick: () -> Unit,
+    viewModel: ProfileViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    val userProfile by viewModel.userProfile.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    // Cargar perfil al iniciar
+    LaunchedEffect(Unit) {
+        viewModel.loadUserProfile(context)
+    }
+
+    // Mostrar loading mientras se carga
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    // Lógica condicional: Decidir qué pantalla mostrar
+    if (isProfileComplete(userProfile)) {
+        // Perfil completo → Mostrar Overview
+        ProfileOverviewScreen(
+            onBack = onBackClick,
+            onEditProfile = {
+                navController.navigate("profile_edit")
+            },
+            onPaymentMethods = {
+                // navController.navigate("payment_methods")
+            },
+            onMyVehicles = {
+                // navController.navigate("my_vehicles")
+            }
+        )
+    } else {
+        // Perfil incompleto → Mostrar formulario de completar
+        ProfileScreen(
+            onBackClick = onBackClick
+        )
+    }
+}
+
+// Función para verificar si el perfil está completo
+private fun isProfileComplete(userProfile: UserProfile?): Boolean {
+    return userProfile?.let { profile ->
+        profile.firstName.isNotEmpty() &&
+                profile.lastName.isNotEmpty() &&
+                profile.phone.isNotEmpty() &&
+                profile.tipoDocumento?.isNotEmpty() == true &&
+                profile.numeroDocumento?.isNotEmpty() == true
+    } ?: false
 }
