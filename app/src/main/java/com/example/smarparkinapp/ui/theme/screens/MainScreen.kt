@@ -13,7 +13,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.launch
-import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
+import com.example.smarparkinapp.ui.theme.NavRoutes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

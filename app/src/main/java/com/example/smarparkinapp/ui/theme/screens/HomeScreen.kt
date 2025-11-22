@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
+import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
 import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
@@ -91,7 +91,6 @@ fun HomeScreen(
         viewModel.updateUserLocation(userLatLng.value.latitude, userLatLng.value.longitude)
     }
 
-
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             scope.launch { snackbarHostState.showSnackbar(it) }
@@ -138,9 +137,9 @@ fun HomeScreen(
                     scope.launch { drawerState.close() }
                     navController.navigate(NavRoutes.Perfil.route)
                 })
-                DrawerMenuItem("Reservas", onClick = {
+                DrawerMenuItem("Historial", onClick = {
                     scope.launch { drawerState.close() }
-                    // Navegar a reservas
+                    navController.navigate(NavRoutes.Historial.route)
                 })
                 DrawerMenuItem("Configuración", onClick = {})
                 DrawerMenuItem("Cerrar Sesión", onClick = {})
@@ -396,14 +395,10 @@ fun HomeScreen(
                                     val distance = calculateDistance(userLatLng.value, LatLng(spot.latitude, spot.longitude))
                                     distance <= selectedDistance
                                 }) { parking ->
-                                    // En HomeScreen.kt dentro del LazyColumn
                                     ModernParkingCard(
                                         parkingSpot = parking,
                                         distance = calculateDistance(userLatLng.value, LatLng(parking.latitude, parking.longitude)),
-                                        // ALERTA: Aquí usamos onParkingClick para ir al detalle pasando el ID
-                                        onReserveClick = {
-                                            onParkingClick(parking.id)
-                                        },
+                                        // ✅ CORREGIDO: Solo usar onDetailClick para navegar al detalle
                                         onDetailClick = {
                                             onParkingClick(parking.id)
                                         }
@@ -415,11 +410,6 @@ fun HomeScreen(
                 }
             }
 
-            // Pop-up del marcador del mapa (cuando se selecciona un pin)
-            selectedParkingSpot?.let { spot ->
-                // Puedes personalizar esto también si quieres, o dejarlo como estaba
-            }
-
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.align(Alignment.BottomCenter)
@@ -428,34 +418,12 @@ fun HomeScreen(
     }
 }
 
-// COMPONENTE: Texto Tab
-@Composable
-fun TabText(text: String, isSelected: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = text,
-            fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color(0xFF0055FF) else Color.Black,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(3.dp)
-                    .background(Color(0xFF0055FF))
-            )
-        }
-    }
-}
-
-// COMPONENTE: Tarjeta estilo Airbnb (Diseño solicitado)
+// COMPONENTE: Tarjeta estilo Airbnb (Diseño solicitado) - CORREGIDO
 @Composable
 fun ModernParkingCard(
     parkingSpot: ParkingSpot,
     distance: Double,
-    onReserveClick: () -> Unit,
-    onDetailClick: () -> Unit
+    onDetailClick: () -> Unit // ✅ CORREGIDO: Solo un parámetro para navegación
 ) {
     Card(
         modifier = Modifier
@@ -611,7 +579,7 @@ fun ModernParkingCard(
 
                     // Botón Ver Cochera
                     Button(
-                        onClick = onReserveClick,
+                        onClick = onDetailClick, // ✅ CORREGIDO: Usar onDetailClick aquí también
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF5555FF) // Azul exacto
                         ),
@@ -630,6 +598,27 @@ fun ModernParkingCard(
                     }
                 }
             }
+        }
+    }
+}
+
+// COMPONENTE: Texto Tab
+@Composable
+fun TabText(text: String, isSelected: Boolean) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color(0xFF0055FF) else Color.Black,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(3.dp)
+                    .background(Color(0xFF0055FF))
+            )
         }
     }
 }

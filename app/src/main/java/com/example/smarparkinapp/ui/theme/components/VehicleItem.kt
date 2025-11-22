@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.TwoWheeler
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.smarparkinapp.data.model.Car
-import com.example.smarparkinapp.data.model.VehicleType
 
 @Composable
 fun VehicleItem(
@@ -59,14 +57,10 @@ fun VehicleItem(
 
             // Modelo y Color (como "Camioneta Blanco", "Camioneta Azul")
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Icono según tipo de vehículo
+                // Icono de automóvil (siempre el mismo ya que solo tienes automóviles)
                 Icon(
-                    imageVector = if (car.type == VehicleType.AUTOMOVIL) {
-                        Icons.Outlined.DirectionsCar
-                    } else {
-                        Icons.Outlined.TwoWheeler
-                    },
-                    contentDescription = null,
+                    imageVector = Icons.Outlined.DirectionsCar,
+                    contentDescription = "Automóvil",
                     modifier = Modifier.size(16.dp),
                     tint = Color.Gray
                 )

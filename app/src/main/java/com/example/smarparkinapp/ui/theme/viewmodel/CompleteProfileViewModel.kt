@@ -6,17 +6,20 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
-import com.example.smarparkinapp.ui.theme.data.model.CarRequest
+import com.example.smarparkinapp.ui.theme.data.api.CarRequest as ApiCarRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import android.content.Context
+import android.content.SharedPreferences
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
 
-class CompleteProfileViewModel : ViewModel() {
+class CompleteProfileViewModel(private val context: Context) : ViewModel() {
 
     // Campos observables (Compose)
     var placa by mutableStateOf("")
@@ -31,21 +34,29 @@ class CompleteProfileViewModel : ViewModel() {
     val uiState = _uiState.asStateFlow()
 
     private val apiService = RetrofitInstance.apiService
+    private val prefs: SharedPreferences = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
 
     fun saveProfile(userId: Int) {
         viewModelScope.launch {
             try {
                 _uiState.value = ProfileUiState(isLoading = true)
 
-                // ✅ CORREGIDO: Solo envía CarRequest
+                // Obtener el token de autenticación
+                val authToken = getAuthToken()
+                if (authToken.isEmpty()) {
+                    _uiState.value = ProfileUiState(errorMessage = "No estás autenticado. Inicia sesión nuevamente.")
+                    return@launch
+                }
+
+                // ✅ CORREGIDO: Pasar el token como primer parámetro
                 val response = apiService.addCar(
-                    CarRequest(
+                    token = "Bearer $authToken", // ← Token como primer parámetro
+                    car = ApiCarRequest(        // ← CarRequest como segundo parámetro
                         placa = placa,
+                        marca = marca,
                         modelo = modelo,
                         color = color,
-                        brand = marca,
-                        tipo = "auto",
-                        paymentMethod = metodoPago,
+                        year = Calendar.getInstance().get(Calendar.YEAR)
                     )
                 )
 
@@ -65,5 +76,9 @@ class CompleteProfileViewModel : ViewModel() {
                 println("💥 [PROFILE] $errorMsg")
             }
         }
+    }
+
+    private fun getAuthToken(): String {
+        return prefs.getString("auth_token", "") ?: ""
     }
 }

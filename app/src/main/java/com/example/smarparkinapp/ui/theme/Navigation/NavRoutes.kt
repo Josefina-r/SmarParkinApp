@@ -1,4 +1,5 @@
-package com.example.smarparkinapp.ui.theme.Navigation
+// ui/theme/NavRoutes.kt
+package com.example.smarparkinapp.ui.theme
 
 sealed class NavRoutes(val route: String) {
     object Splash : NavRoutes("splash")
@@ -12,16 +13,16 @@ sealed class NavRoutes(val route: String) {
     object Home : NavRoutes("home")
     object Main : NavRoutes("main")
     object Perfil : NavRoutes("perfil")
-
     object Historial : NavRoutes("historial")
-    object Reservation : NavRoutes("reservation/{parkingName}/{plate}/{duration}/{total}") {
-        fun createRoute(parkingName: String, plate: String, duration: Int, total: Double) =
-            "reservation/$parkingName/$plate/$duration/$total"
+
+    // Rutas actualizadas
+    object Reservation : NavRoutes("reservation/{parkingId}") {
+        fun createRoute(parkingId: Int) = "reservation/$parkingId"
     }
+
     object ParkingDetail : NavRoutes("parking_detail/{parkingId}") {
         fun createRoute(parkingId: Int) = "parking_detail/$parkingId"
     }
-
 
     object VehicleSelection : NavRoutes("vehicle_selection")
 }

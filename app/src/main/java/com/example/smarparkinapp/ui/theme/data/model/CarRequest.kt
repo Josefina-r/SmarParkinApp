@@ -1,4 +1,4 @@
-package com.example.smarparkinapp.ui.theme.data.model
+/*package com.example.smarparkinapp.ui.theme.data.model
 
 data class CarRequest(
     val placa: String,
@@ -8,4 +8,4 @@ data class CarRequest(
     val brand: String,
     val paymentMethod: String
 
-)
+)*/

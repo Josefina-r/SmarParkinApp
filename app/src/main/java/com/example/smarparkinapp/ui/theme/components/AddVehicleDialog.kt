@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.smarparkinapp.data.model.VehicleType
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,25 +46,6 @@ fun AddVehicleDialog(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-
-                // TIPO DE VEHÍCULO (Solo automóvil)
-                Text(
-                    text = "Tipo de Vehículo",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                // Forzar automóvil como único tipo
-                LaunchedEffect(Unit) {
-                    viewModel.updateVehicleType(VehicleType.AUTOMOVIL)
-                }
-                FilterChip(
-                    selected = true,
-                    onClick = { },
-                    label = { Text("Automóvil") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 // MARCA (Solo marcas de carros)
                 Text(
@@ -255,15 +235,18 @@ fun AddVehicleDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Botón Guardar
                 Button(
-                    onClick = onSave,
+                    onClick = {
+                        // ✅ Esto debe llamar a saveNewVehicleAndNavigate del ViewModel
+                        viewModel.saveNewVehicleAndNavigate()
+                        onSave() // Opcional: para notificar al componente padre
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
                     enabled = isFormValid(viewModel)
                 ) {
-                    Text("Guardar Vehículo")
+                    Text("Guardar Vehículo y Continuar")
                 }
             }
         }

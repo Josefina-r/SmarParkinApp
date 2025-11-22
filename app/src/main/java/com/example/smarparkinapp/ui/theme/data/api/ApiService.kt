@@ -1,17 +1,19 @@
 package com.example.smarparkinapp.ui.theme.data.api
 
-import com.example.smarparkinapp.ui.theme.data.model.CarRequest
+import com.example.smarparkinapp.ui.theme.data.api.CarRequest
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLotResponse
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.GenericResponse
+import com.example.smarparkinapp.ui.theme.data.model.PaginatedResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpotResponse
 import com.example.smarparkinapp.ui.theme.data.model.UpdateProfileRequest
 import com.example.smarparkinapp.ui.theme.data.model.UserProfileResponse
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
@@ -50,15 +52,40 @@ interface ApiService {
     suspend fun getMasEconomicos(): Response<List<ParkingLot>>
 
     // 🚗 VEHÍCULOS
-    @POST("cars/")
-    suspend fun addCar(@Body car: CarRequest): Response<CarResponse>
+    @POST("api/vehicles/")  // ← URL CORRECTA
+    suspend fun addCar(
+        @Header("Authorization") token: String,
+        @Body car: CarRequest
+    ): Response<CarResponse>
+
+
+    // En tu ApiService interface, agrega:
+    @GET("api/vehicles/")
+    suspend fun getUserVehicles(
+        @Header("Authorization") token: String
+    ): Response<PaginatedResponse<CarResponse>>
+
+    // Agrega estos endpoints en tu ApiService:
+
+    @PUT("api/vehicles/{id}/")  // ← URL CORRECTA
+    suspend fun updateVehicle(
+        @Header("Authorization") token: String,
+        @Path("id") vehicleId: Int,
+        @Body car: CarRequest
+    ): Response<CarResponse>
+
+    @DELETE("api/vehicles/{id}/")  // ← URL CORRECTA
+    suspend fun deleteVehicle(
+        @Header("Authorization") token: String,
+        @Path("id") vehicleId: Int
+    ): Response<GenericResponse>
 
     // RESERVAS - VERIFICAR si estas rutas existen
     // ========== RESERVAS ==========
     @POST("reservations/")
     suspend fun createReservation(@Body body: Map<String, Any>): Response<ReservationResponse>
 
-    @GET("reservations/client/mis-reservas/")
+    @GET("api/reservations/client/mis-reservas/")
     suspend fun getMyReservations(): Response<List<ReservationResponse>>
 
     @GET("reservations/client/active/")
@@ -155,25 +182,27 @@ data class DashboardStatsResponse(
     val total_spent: Double
 )
 
-// MODELOS DE VEHÍCULOS
+// En tu ApiService, cambia los modelos de vehículos:
+
+// MODELOS DE VEHÍCULOS - ACTUALIZADOS para coincidir con Django
 data class CarRequest(
-    val brand: String,
-    val model: String,
-    val year: Int,
-    val color: String,
-    val license_plate: String
+    val placa: String,        // ← igual que en Django
+    val marca: String,        // ← igual que en Django
+    val modelo: String,       // ← igual que en Django
+    val color: String,        // ← igual que en Django
+    val year: Int? = null     // Opcional si tu modelo no lo tiene
 )
 
 data class CarResponse(
     val id: Int,
-    val brand: String,
-    val model: String,
-    val year: Int,
+    val placa: String,
+    val marca: String,
+    val modelo: String,
     val color: String,
-    val license_plate: String,
-    val user: Int
+    val activo: Boolean = true,
+    val fecha_creacion: String? = null,
+    val fecha_actualizacion: String? = null
 )
-
 // MODELOS DE RESERVAS
 data class ReservationRequest(
     val estacionamiento: Long,
@@ -183,14 +212,8 @@ data class ReservationRequest(
     val vehiculo: Int
 )
 
-data class ReservationResponse(
-    val id: Long,
-    val estacionamiento: ParkingShort,
-    val estado: String,
-    val hora_entrada: String,
-    val hora_salida: String,
-    val total: Double? = null
-)
+// ✅ CORREGIDO: Eliminada la definición duplicada de ReservationResponse
+// Mantenemos solo esta definición que es más completa
 
 // MODELOS DE PAGOS
 data class PaymentRequest(
@@ -220,3 +243,4 @@ data class ResetPasswordResponse(
     val detail: String,
     val message: String? = null
 )
+

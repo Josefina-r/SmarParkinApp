@@ -1,3 +1,4 @@
+// ParkingDetailScreen.kt - VERSIÓN FINAL CORREGIDA
 package com.example.smarparkinapp.ui.theme.screens
 
 import androidx.compose.foundation.background
@@ -23,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
+import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.data.model.Car
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
@@ -44,7 +45,6 @@ fun ParkingDetailScreen(
         factory = HomeViewModelFactory(context.applicationContext)
     )
 
-    // CORREGIDO: Usar Factory para ReservationViewModel
     val reservationViewModel: ReservationViewModel = viewModel(
         factory = ReservationViewModelFactory(context)
     )
@@ -52,18 +52,19 @@ fun ParkingDetailScreen(
     // Estado para el vehículo seleccionado
     var selectedVehicle by remember { mutableStateOf<Car?>(null) }
 
-    // ✅ CORREGIDO: Escuchar el vehículo completo
+    // ✅ CORREGIDO: Escuchar el vehículo con clave consistente
     val returnedVehicle by navController.currentBackStackEntry
         ?.savedStateHandle
-        ?.getStateFlow<Car?>("selectedVehicle", null)
+        ?.getStateFlow<Car?>("selected_vehicle", null)
         ?.collectAsState() ?: remember { mutableStateOf(null) }
 
     // ✅ CORREGIDO: Actualizar cuando regrese con un vehículo
     LaunchedEffect(returnedVehicle) {
         returnedVehicle?.let { vehicle ->
+            println("🚗 [ParkingDetail] Vehículo seleccionado recibido: ${vehicle.plate}")
             selectedVehicle = vehicle
-            // Limpiar después de usar
-            navController.currentBackStackEntry?.savedStateHandle?.remove<Car>("selectedVehicle")
+            // IMPORTANTE: Limpiar después de usar para evitar bucles
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Car>("selected_vehicle")
         }
     }
 
@@ -104,17 +105,24 @@ fun ParkingDetailScreen(
                     selectedVehicle = selectedVehicle,
                     primaryColor = BluePrimary,
                     onSelectVehicle = {
-                        navController.navigate(NavRoutes.VehicleSelection.route)
+                        println("🔍 [ParkingDetail] Navegando a selección de vehículo")
+                        // ✅ CORREGIDO: Pasar el parkingId a VehicleSelection
+                        navController.navigate("${NavRoutes.VehicleSelection.route}?parkingId=${parkingSpot.id}")
                     },
                     onReserve = {
                         if (selectedVehicle != null) {
-                            navController.navigate(
-                                NavRoutes.Reservation.createRoute(
-                                    parkingName = parkingSpot.name,
-                                    plate = selectedVehicle!!.plate,
-                                    duration = 1, // 1 hora por defecto
-                                    total = parkingSpot.price.toDoubleOrNull() ?: 5.0)
-                            )
+                            println("🔍 [ParkingDetail] Iniciando reserva para:")
+                            println("   🅿️ Parking ID: ${parkingSpot.id}")
+                            println("   🚗 Vehículo: ${selectedVehicle!!.plate} (ID: ${selectedVehicle!!.id})")
+
+                            // ✅ CORREGIDO: Usar el método CORRECTO para ParkingSpot
+                            reservationViewModel.startReservationFlowWithParkingSpot(parkingSpot)
+                            reservationViewModel.setSelectedVehicleFromOutside(selectedVehicle!!)
+
+                            // ✅ CORREGIDO: Navegar a la ruta CORRECTA con el parámetro parkingId
+                            navController.navigate(NavRoutes.Reservation.createRoute(parkingSpot.id))
+                        } else {
+                            println("❌ [ParkingDetail] No hay vehículo seleccionado")
                         }
                     }
                 )
@@ -249,7 +257,8 @@ fun ParkingDetailScreen(
                         SelectedVehicleSection(
                             vehicle = selectedVehicle!!,
                             onChangeVehicle = {
-                                navController.navigate(NavRoutes.VehicleSelection.route)
+                                println("🔍 [ParkingDetail] Cambiando vehículo")
+                                navController.navigate("${NavRoutes.VehicleSelection.route}?parkingId=${parkingSpot.id}")
                             }
                         )
                         Spacer(modifier = Modifier.height(24.dp))
@@ -520,7 +529,7 @@ fun SelectedVehicleSection(vehicle: Car, onChangeVehicle: () -> Unit) {
                         color = Color.Gray
                     )
                     Text(
-                        text = "${vehicle.color} • ${vehicle.type}",
+                        text = vehicle.color,
                         fontSize = 14.sp,
                         color = Color.Gray
                     )

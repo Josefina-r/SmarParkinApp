@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.smarparkinapp.ui.theme.Navigation.NavRoutes
+import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.ui.theme.theme.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 
