@@ -1,4 +1,4 @@
-// VehicleSelectionScreen.kt - VERSIÓN COMPLETA CON DEBUG
+// VehicleSelectionScreen.kt - VERSIÓN COMPLETA ACTUALIZADA
 package com.example.smarparkinapp.screens
 
 import androidx.compose.foundation.clickable
@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -43,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.smarparkinapp.components.AddVehicleDialog
 import com.example.smarparkinapp.data.model.Car
 import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
@@ -57,8 +59,9 @@ fun VehicleSelectionScreen(
 ) {
     // Estado para el vehículo seleccionado
     var selectedVehicle by remember { mutableStateOf<Car?>(null) }
+    var showAddVehicleDialog by remember { mutableStateOf(false) } // ✅ ESTADO PARA CONTROLAR EL DIÁLOGO
 
-    // CORREGIDO: Usar collectAsState() para observar el StateFlow
+    // Observar los vehículos del ViewModel
     val vehicles by viewModel.vehicles.collectAsState()
 
     // ✅ DEBUG: Ver qué datos tenemos al iniciar
@@ -80,6 +83,9 @@ fun VehicleSelectionScreen(
     // ✅ DEBUG: Ver cuando cambian los vehículos
     LaunchedEffect(vehicles) {
         println("🔍 [VehicleSelection] Vehículos actualizados: ${vehicles.size}")
+        if (vehicles.isNotEmpty()) {
+            println("🔍 [VehicleSelection] ✅ Ahora hay vehículos disponibles")
+        }
     }
 
     Scaffold(
@@ -143,8 +149,8 @@ fun VehicleSelectionScreen(
             println("🔍 [VehicleSelection] 📭 Mostrando estado VACÍO (sin vehículos)")
             EmptyVehiclesState(
                 onAddVehicle = {
-                    println("🔍 [VehicleSelection] ➕ Navegando a agregar vehículo")
-                    navController.navigate(NavRoutes.AddVehicle.route)
+                    println("🔍 [VehicleSelection] ➕ MOSTRANDO DIÁLOGO DE AGREGAR VEHÍCULO")
+                    showAddVehicleDialog = true // ✅ MOSTRAR DIÁLOGO DIRECTAMENTE
                 }
             )
         } else {
@@ -176,7 +182,7 @@ fun VehicleSelectionScreen(
                             .padding(16.dp)
                             .clickable {
                                 println("🔍 [VehicleSelection] ➕ Clic en 'Agregar vehículo'")
-                                navController.navigate(NavRoutes.AddVehicle.route)
+                                showAddVehicleDialog = true // ✅ MOSTRAR DIÁLOGO DIRECTAMENTE
                             },
                         colors = CardDefaults.cardColors(
                             containerColor = Color.LightGray.copy(alpha = 0.3f)
@@ -198,6 +204,25 @@ fun VehicleSelectionScreen(
             }
         }
     }
+
+    // ✅ MOSTRAR EL DIÁLOGO CUANDO SEA NECESARIO
+    if (showAddVehicleDialog) {
+        println("🔍 [VehicleSelection] 🗨️ MOSTRANDO AddVehicleDialog")
+        AddVehicleDialog(
+            viewModel = viewModel,
+            onDismiss = {
+                println("🔍 [VehicleSelection] ❌ AddVehicleDialog descartado")
+                showAddVehicleDialog = false
+            },
+            onSave = {
+                println("🔍 [VehicleSelection] 💾 Vehículo guardado, cerrando diálogo")
+                showAddVehicleDialog = false
+                // Recargar vehículos después de guardar
+                println("🔍 [VehicleSelection] 🔄 Recargando lista de vehículos...")
+                viewModel.loadUserVehicles()
+            }
+        )
+    }
 }
 
 @Composable
@@ -218,12 +243,12 @@ private fun EmptyVehiclesState(onAddVehicle: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             "No tienes vehículos registrados",
-            style = androidx.compose.material3.MaterialTheme.typography.headlineSmall
+            style = MaterialTheme.typography.headlineSmall
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "Agrega tu primer vehículo para realizar reservas",
-            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray
         )
         Spacer(modifier = Modifier.height(24.dp))
@@ -256,10 +281,10 @@ fun VehicleItem(
                 println("🔍 [VehicleItem] onClick ejecutado")
             },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFF5555FF).copy(alpha = 0.1f) else Color.White
+            containerColor = if (isSelected) Color(0xFF5555FF).copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
         ),
         border = if (isSelected) CardDefaults.outlinedCardBorder() else null,
-        elevation = if (isSelected) CardDefaults.cardElevation(8.dp) else CardDefaults.cardElevation(2.dp)
+        elevation = if (isSelected) CardDefaults.cardElevation(4.dp) else CardDefaults.cardElevation(2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -277,17 +302,17 @@ fun VehicleItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "${car.brand} ${car.model}",
-                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
                 )
                 Text(
                     text = car.plate,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
                 Text(
                     text = car.color,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
             }

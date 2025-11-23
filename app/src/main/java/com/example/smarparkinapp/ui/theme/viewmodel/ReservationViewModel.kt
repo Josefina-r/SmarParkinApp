@@ -35,7 +35,6 @@ class ReservationViewModel(
     private val context: Context
 ) : ViewModel() {
 
-    // ✅ REPOSITORIOS CON DEPENDENCIAS CORRECTAS
     private val apiService = RetrofitInstance.apiService
     private val reservationRepository = ReservationRepository(context)
     private val paymentRepository = PaymentRepository(context)
@@ -45,14 +44,14 @@ class ReservationViewModel(
     var currentScreen by mutableStateOf(ReservationScreen.VEHICLE_SELECTION)
         private set
 
-    // ✅ ESTADOS DE NAVEGACIÓN PARA NAVGRAPH - CORREGIDOS
+
     var shouldNavigateToVehicleSelectionFlag by mutableStateOf(false)
         private set
 
     var shouldReturnToReservationFlag by mutableStateOf(false)
         private set
 
-    // ✅ HACER PÚBLICAS estas propiedades
+
     var selectedParking by mutableStateOf<ParkingLot?>(null)
     var selectedVehicle by mutableStateOf<Car?>(null)
 
