@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -101,48 +102,157 @@ fun HomeScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(280.dp)
-                    .background(Blanco)
+                modifier = Modifier.width(290.dp),
+                drawerContainerColor = Blanco,
+                drawerTonalElevation = 8.dp
             ) {
-                // ENCABEZADO DEL DRAWER
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(AzulPrincipal)
-                        .padding(20.dp)
+                        .fillMaxHeight()
+                        .background(Blanco)
                 ) {
-                    Text(
-                        "Hola",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Blanco,
-                            fontSize = 16.sp
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(VerdePrincipal)
+                            .padding(20.dp)
+                    ) {
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                            // Avatar - Icono de persona como solicitaste
+                            Box(
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .clip(CircleShape)
+                                    .background(Blanco.copy(alpha = 0.25f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.AccountCircle,
+                                    contentDescription = null,
+                                    tint = Blanco,
+                                    modifier = Modifier.size(70.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                "Hola",
+                                color = Blanco.copy(alpha = 0.8f),
+                                fontSize = 14.sp
+                            )
+
+                            Text(
+                                "Usuario Invitado",
+                                color = Blanco,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+
+                                // CARD SALDO
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Blanco,
+                                    shadowElevation = 3.dp,
+                                    border = BorderStroke(1.dp, GrisMedio)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Saldo", color = GrisTexto, fontSize = 13.sp)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("S/ 10.00", color = AzulPrincipal, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Blanco,
+                                    shadowElevation = 3.dp,
+                                    border = BorderStroke(1.dp, GrisMedio)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Recargar", color = VerdePrincipal, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            tint = VerdeSecundario
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(25.dp))
+
+                    DrawerMenuItem("Inicio", Icons.Default.Home) {navController.navigate("home")}
+                    DrawerMenuItem("Perfil", Icons.Default.Person) {navController.navigate("perfil")}
+                    DrawerMenuItem("Reservas", Icons.Default.DateRange) {navController.navigate("reservas")}
+                    DrawerMenuItem("Mensajes", Icons.Default.Mail) {}
+                    DrawerMenuItem("ParkGO saldo", Icons.Default.AccountBalanceWallet) {}
+                    DrawerMenuItem("Soporte", Icons.Default.ChatBubble) {}
+                    DrawerMenuItem("Ajustes", Icons.Default.Settings) {}
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Divider(color = Blanco.copy(alpha = 0.3f))
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "¡Genera ingresos desde modo anfitrión!",
+                            color = Blanco.copy(alpha = 0.9f),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Usuario", // Nombre estático o del user
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Blanco,
-                            fontSize = 18.sp
-                        )
-                    )
+
+                        Spacer(modifier = Modifier.height(15.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp)
+                                .height(50.dp)
+                                .background(
+                                    color = VerdeSecundario,
+                                    shape = RoundedCornerShape(25.dp)
+                                )
+                                .clickable { },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Modo anfitrión", color = Blanco, fontSize = 17.sp) // ✅ Texto blanco
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        SocialIcon(Icons.Default.Facebook)
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
-
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-                DrawerMenuItem("Perfil", onClick = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate(NavRoutes.Perfil.route)
-                })
-                DrawerMenuItem("Historial", onClick = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate(NavRoutes.Historial.route)
-                })
-                DrawerMenuItem("Configuración", onClick = {})
-                DrawerMenuItem("Cerrar Sesión", onClick = {})
             }
         }
     ) {
@@ -170,7 +280,7 @@ fun HomeScreen(
                             snippet = buildMarkerSnippet(spot, distance),
                             icon = BitmapDescriptorFactory.defaultMarker(if (spot.estaAbierto) BitmapDescriptorFactory.HUE_GREEN else BitmapDescriptorFactory.HUE_RED),
                             onClick = {
-                                selectedParkingSpot = spot
+                                onParkingClick(spot.id)
                                 true
                             }
                         )
@@ -665,4 +775,38 @@ fun HomeScreenPreview() {
         onParkingClick = { },
         onReservationClick = { _, _, _, _ -> }
     )
+}
+@Composable
+fun DrawerMenuItem(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = AzulPrincipal)
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(text, color = GrisTexto, fontSize = 16.sp)
+    }
+}
+@Composable
+fun SocialIcon(icon: ImageVector) {
+    Surface(
+        shape = CircleShape,
+        color = Blanco,
+        shadowElevation = 3.dp,
+        modifier = Modifier.size(45.dp)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = AzulPrincipal)
+        }
+    }
 }

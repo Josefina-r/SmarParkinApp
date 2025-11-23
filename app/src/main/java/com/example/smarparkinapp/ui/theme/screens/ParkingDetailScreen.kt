@@ -1,4 +1,4 @@
-// ParkingDetailScreen.kt - VERSIÓN SIN SELECCIÓN DE VEHÍCULO
+// ParkingDetailScreen.kt - VERSIÓN CON NUEVA PALETA DE COLORES
 package com.example.smarparkinapp.ui.theme.screens
 
 import androidx.compose.foundation.background
@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Black
+import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +29,7 @@ import coil.compose.AsyncImage
 import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.data.model.Car
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
+import com.example.smarparkinapp.ui.theme.theme.* // Importar tu nueva paleta de colores
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModelFactory
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
@@ -49,11 +52,16 @@ fun ParkingDetailScreen(
     val parkingSpots by homeViewModel.filteredParkingSpots.collectAsState()
     val parkingSpot = parkingSpots.find { it.id == parkingId }
 
-    // Colores de tu diseño
-    val BluePrimary = Color(0xFF5555FF)
-    val TextBlack = Color(0xFF1A1A1A)
-    val TextGray = Color(0xFF757575)
-    val BgGray = Color(0xFFF5F5F5)
+    // Usar colores de tu nueva paleta
+    val BluePrimary = AzulPrincipal
+    val BlueSecondary = AzulSecundario
+    val GreenPrimary = VerdePrincipal
+    val GreenSecondary = VerdeSecundario
+    val White = Blanco
+    val BgGray = GrisClaro
+    val BorderGray = GrisMedio
+    val TextGray = GrisTexto
+    val TextBlack = Color(0xFF1A1A1A) // Mantenemos este para buen contraste
 
     // Generar amenidades basadas en las características del parking
     val amenidades = buildList {
@@ -69,7 +77,7 @@ fun ParkingDetailScreen(
 
     if (parkingSpot == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = BluePrimary)
+            CircularProgressIndicator(color = AzulPrincipal)
         }
         LaunchedEffect(Unit) {
             homeViewModel.fetchParkingSpots()
@@ -79,7 +87,8 @@ fun ParkingDetailScreen(
             bottomBar = {
                 SimpleReserveBar(
                     parkingSpot = parkingSpot,
-                    primaryColor = BluePrimary,
+                    primaryColor = AzulPrincipal,
+                    secondaryColor = VerdePrincipal,
                     onReserve = {
                         println("🔍 [ParkingDetail] Navegando a selección de vehículo para reserva")
                         println("🔍 [ParkingDetail] Parking ID: ${parkingSpot.id}")
@@ -98,7 +107,7 @@ fun ParkingDetailScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
-                    .background(Color.White)
+                    .background(Blanco)
             ) {
                 // 1. IMAGEN PRINCIPAL Y BOTÓN ATRÁS
                 Box(modifier = Modifier.height(250.dp).fillMaxWidth()) {
@@ -116,7 +125,7 @@ fun ParkingDetailScreen(
                             .padding(16.dp)
                             .align(Alignment.TopStart)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(Blanco)
                             .size(40.dp)
                     ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = TextBlack)
@@ -128,14 +137,14 @@ fun ParkingDetailScreen(
                             .align(Alignment.BottomEnd)
                             .padding(16.dp),
                         shape = RoundedCornerShape(8.dp),
-                        color = if (parkingSpot.estaAbierto) Color.Green else Color.Red
+                        color = if (parkingSpot.estaAbierto) VerdePrincipal else Color.Red
                     ) {
                         Text(
                             text = if (parkingSpot.estaAbierto) "Abierto" else "Cerrado",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = Color.White
+                            color = Blanco
                         )
                     }
                 }
@@ -165,12 +174,13 @@ fun ParkingDetailScreen(
                         // Rating Box
                         Column(horizontalAlignment = Alignment.End) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Star, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Star, contentDescription = null, tint = AzulPrincipal, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "%.1f".format(parkingSpot.ratingPromedio),
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
+                                    fontSize = 16.sp,
+                                    color = TextBlack
                                 )
                             }
                             Text(
@@ -192,7 +202,7 @@ fun ParkingDetailScreen(
                             Icons.Default.AccessTime,
                             "Horario",
                             if (parkingSpot.estaAbierto) "07:00 - 23:00" else "Cerrado",
-                            BluePrimary
+                            AzulPrincipal
                         )
                         InfoItem(
                             Icons.Default.Security,
@@ -203,18 +213,18 @@ fun ParkingDetailScreen(
                                 3 -> "Alta"
                                 else -> "Básica"
                             },
-                            BluePrimary
+                            AzulPrincipal
                         )
                         InfoItem(
                             Icons.Default.LocalParking,
                             "Espacios",
                             "${parkingSpot.availableSpots} libres",
-                            BluePrimary
+                            VerdePrincipal
                         )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    Divider(color = BgGray, thickness = 1.dp)
+                    Divider(color = BorderGray, thickness = 1.dp)
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // 4. DESCRIPCIÓN
@@ -242,10 +252,10 @@ fun ParkingDetailScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Servicios:", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextBlack)
                     Spacer(modifier = Modifier.height(8.dp))
-                    AmenidadesGrid(amenidades = amenidades, textGray = TextGray)
+                    AmenidadesGrid(amenidades = amenidades, textGray = TextGray, iconColor = AzulPrincipal)
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    Divider(color = BgGray, thickness = 1.dp)
+                    Divider(color = BorderGray, thickness = 1.dp)
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // 5. UBICACIÓN
@@ -258,7 +268,7 @@ fun ParkingDetailScreen(
                             .fillMaxWidth()
                             .height(150.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .border(1.dp, BgGray, RoundedCornerShape(12.dp))
+                            .border(1.dp, BorderGray, RoundedCornerShape(12.dp))
                     ) {
                         GoogleMap(
                             cameraPositionState = rememberCameraPositionState {
@@ -282,7 +292,7 @@ fun ParkingDetailScreen(
                     // Información de precio
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AttachMoney, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.AttachMoney, contentDescription = null, tint = AzulPrincipal, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Precio: ${parkingSpot.price} por hora", fontSize = 14.sp, color = TextGray)
                     }
@@ -294,18 +304,19 @@ fun ParkingDetailScreen(
     }
 }
 
-// --- COMPONENTES AUXILIARES MODIFICADOS ---
+// --- COMPONENTES AUXILIARES ACTUALIZADOS ---
 
 @Composable
 fun SimpleReserveBar(
     parkingSpot: ParkingSpot,
     primaryColor: Color,
+    secondaryColor: Color,
     onReserve: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shadowElevation = 16.dp,
-        color = Color.White,
+        color = Blanco,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
         Column(
@@ -324,18 +335,18 @@ fun SimpleReserveBar(
                         text = parkingSpot.price,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = Color.Black
+                        color = Blanco
                     )
                     Text(
                         text = "por hora",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = Blanco
                     )
                 }
 
                 Button(
                     onClick = onReserve,
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    colors = ButtonDefaults.buttonColors(containerColor = VerdeSecundario),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .height(48.dp)
@@ -349,7 +360,8 @@ fun SimpleReserveBar(
                             else -> "Reservar ahora"
                         },
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = Blanco
                     )
                 }
             }
@@ -365,7 +377,7 @@ fun SimpleReserveBar(
                 color = when {
                     !parkingSpot.estaAbierto -> Color.Red
                     parkingSpot.availableSpots <= 0 -> Color.Red
-                    else -> Color.Green
+                    else -> VerdePrincipal
                 },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -385,13 +397,13 @@ fun InfoItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Strin
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-        Text(subtitle, fontSize = 11.sp, color = Color.Gray)
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Black)
+        Text(subtitle, fontSize = 11.sp, color = Gray)
     }
 }
 
 @Composable
-fun AmenidadesGrid(amenidades: List<String>, textGray: Color) {
+fun AmenidadesGrid(amenidades: List<String>, textGray: Color, iconColor: Color) {
     Column {
         amenidades.forEach { amenidad ->
             Row(
@@ -403,7 +415,7 @@ fun AmenidadesGrid(amenidades: List<String>, textGray: Color) {
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color(0xFF5555FF),
+                    tint = iconColor,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))

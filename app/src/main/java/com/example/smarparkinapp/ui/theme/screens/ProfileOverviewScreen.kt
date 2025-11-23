@@ -51,6 +51,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.example.smarparkinapp.ui.theme.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,168 +81,344 @@ fun ProfileOverviewScreen(
         }
     }
 
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Información de Perfil") },
+                title = {
+                    Text(
+                        "Información de Perfil",
+                        color = Blanco,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.Person, contentDescription = "Volver")
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Volver",
+                            tint = Blanco
+                        )
                     }
-                }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = AzulPrincipal
+                )
             )
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(GrisClaro)
                 .padding(padding)
         ) {
-            // Header azul con avatar y nombre
+            // Header con gradiente azul
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .height(200.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(AzulPrincipal, AzulSecundario)
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val avatarModifier = Modifier
-                        .size(88.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-
-
+                    // Avatar con borde blanco
                     Box(
-                        modifier = avatarModifier,
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(Blanco)
+                            .padding(4.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Avatar",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(40.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(CircleShape)
+                                .background(AzulClaro),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Avatar",
+                                tint = AzulPrincipal,
+                                modifier = Modifier.size(42.dp)
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
                         text = userProfile?.firstName?.let { fn ->
                             "${fn} ${userProfile?.lastName ?: ""}".trim()
                         } ?: (userProfile?.username ?: "Usuario"),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Blanco
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    userProfile?.email?.let { email ->
+                        Text(
+                            text = email,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Blanco.copy(alpha = 0.9f)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Email y acciones
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+            // Contenido principal
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             ) {
-                // Email
-                userProfile?.email?.let { email ->
-                    Text(text = "Correo electrónico", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(text = email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                // Opciones: Actualizar mis datos / Métodos de Pago
+                // Tarjetas de acción
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onEditProfile() },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors()
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Blanco),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = "Actualizar mis datos", modifier = Modifier.weight(1f))
-                        Icon(Icons.Default.Person, contentDescription = null)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onPaymentMethods() },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors()
-                ) {
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.CreditCard, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = "Métodos de Pago", modifier = Modifier.weight(1f))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Tabs sencillas: Mi perfil | Mis vehículos
-                var selectedTabIndex by remember { mutableStateOf(0) }
-                val tabs = listOf("Mi perfil", "Mis vehículos")
-                TabRow(selectedTabIndex = selectedTabIndex) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(selected = selectedTabIndex == index, onClick = {
-                            selectedTabIndex = index
-                            if (index == 0) onMiPerfilTab()
-                            else onMyVehicles()
-                        }) {
-                            Text(text = title, modifier = Modifier.padding(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(VerdeClaro),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = null,
+                                tint = VerdePrincipal,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Actualizar mis datos",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = GrisTexto
+                        )
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = AzulPrincipal
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Contenido del tab "Mi perfil" (datos básicos)
-                if (selectedTabIndex == 0) {
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Teléfono", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(text = userProfile?.phone ?: "-", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "Dirección", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(text = userProfile?.address ?: "-", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "Tipo documento", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(text = userProfile?.tipoDocumento ?: "-", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "Número documento", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(text = userProfile?.numeroDocumento ?: "-", style = MaterialTheme.typography.bodyMedium)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onPaymentMethods() },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Blanco),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(AzulClaro.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.CreditCard,
+                                contentDescription = null,
+                                tint = AzulPrincipal,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Métodos de Pago",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = GrisTexto
+                        )
                     }
-                } else {
-                    // Contenido para "Mis vehículos" (puedes navegar a otra pantalla)
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Vehículos", style = MaterialTheme.typography.titleSmall)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "Ir a 'Mis vehículos' para ver y gestionar tus autos.")
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(onClick = onMyVehicles) {
-                                Text("Ver mis vehículos")
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Tabs con diseño mejorado
+                var selectedTabIndex by remember { mutableStateOf(0) }
+                val tabs = listOf("Mi perfil", "Mis vehículos")
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Blanco),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column {
+                        TabRow(
+                            selectedTabIndex = selectedTabIndex,
+                            containerColor = Blanco,
+                            contentColor = AzulPrincipal,
+                            divider = {},
+                            indicator = { tabPositions ->
+                                Box(
+                                    modifier = Modifier
+                                        .tabIndicatorOffset(tabPositions[selectedTabIndex])
+                                        .height(3.dp)
+                                        .background(
+                                            brush = Brush.horizontalGradient(
+                                                colors = listOf(VerdePrincipal, VerdeSecundario)
+                                            ),
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                            }
+                        ) {
+                            tabs.forEachIndexed { index, title ->
+                                Tab(
+                                    selected = selectedTabIndex == index,
+                                    onClick = {
+                                        selectedTabIndex = index
+                                        if (index == 0) onMiPerfilTab()
+                                        else onMyVehicles()
+                                    },
+                                    text = {
+                                        Text(
+                                            text = title,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = if (selectedTabIndex == index) FontWeight.SemiBold else FontWeight.Normal
+                                            ),
+                                            color = if (selectedTabIndex == index) AzulPrincipal else GrisTexto
+                                        )
+                                    }
+                                )
+                            }
+                        }
+
+                        // Contenido del tab seleccionado
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            when (selectedTabIndex) {
+                                0 -> {
+                                    // Contenido "Mi perfil"
+                                    Column {
+                                        ProfileInfoItem(
+                                            label = "Teléfono",
+                                            value = userProfile?.phone ?: "-"
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        ProfileInfoItem(
+                                            label = "Dirección",
+                                            value = userProfile?.address ?: "-"
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        ProfileInfoItem(
+                                            label = "Tipo documento",
+                                            value = userProfile?.tipoDocumento ?: "-"
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        ProfileInfoItem(
+                                            label = "Número documento",
+                                            value = userProfile?.numeroDocumento ?: "-"
+                                        )
+                                    }
+                                }
+                                1 -> {
+                                    // Contenido "Mis vehículos"
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "Gestión de Vehículos",
+                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = GrisTexto
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = "Administra y configura tus vehículos registrados",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = GrisTexto.copy(alpha = 0.7f),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Button(
+                                            onClick = onMyVehicles,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(50.dp),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                                containerColor = VerdePrincipal
+                                            )
+                                        ) {
+                                            Text(
+                                                text = "Ver mis vehículos",
+                                                style = MaterialTheme.typography.bodyLarge.copy(
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+fun ProfileInfoItem(label: String, value: String) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = GrisTexto.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = GrisTexto,
+            fontWeight = FontWeight.Normal
+        )
     }
 }
