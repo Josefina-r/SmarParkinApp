@@ -46,7 +46,7 @@ fun ReservationScreen(
     // Obtener vehículos del ViewModel de forma segura
     val vehicles = remember { viewModel.vehicles }.collectAsState().value
 
-    // Mostrar TimePickers - CORREGIDO: fuera del composable principal
+
     if (showTimePickerInicio) {
         TimePickerDialogComposable(
             showDialog = showTimePickerInicio,

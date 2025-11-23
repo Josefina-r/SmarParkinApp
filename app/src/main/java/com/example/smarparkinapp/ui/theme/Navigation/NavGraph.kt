@@ -2,10 +2,24 @@
 package com.example.smarparkinapp.ui.theme.Navigation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -13,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -80,7 +95,6 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.navigate(NavRoutes.ParkingDetail.createRoute(parkingId))
                 },
                 onReservationClick = { parkingName, plate, duration, total ->
-                    // ✅ CORREGIDO: Navegar a Reservation con un ID por defecto
                     navController.navigate(NavRoutes.Reservation.createRoute(1))
                 }
             )
@@ -91,21 +105,41 @@ fun AppNavGraph(navController: NavHostController) {
             HistoryScreen(navController = navController)
         }
 
-        // Parking Detail - CORREGIDO
+        // Parking Detail
         composable(
             route = NavRoutes.ParkingDetail.route,
             arguments = listOf(navArgument("parkingId") { type = NavType.IntType })
         ) { backStackEntry ->
             val parkingId = backStackEntry.arguments?.getInt("parkingId") ?: 0
 
-            // ✅ CORREGIDO: Llamar correctamente a ParkingDetailScreen
             ParkingDetailScreen(
                 navController = navController,
                 parkingId = parkingId
             )
         }
 
-        // Reservation - FLUJO PRINCIPAL CORREGIDO
+        // ✅ CORREGIDO: Vehicle Selection - Usando NavRoutes.VehicleSelection.route
+        composable(
+            route = NavRoutes.VehicleSelection.route,
+            arguments = listOf(navArgument("parkingId") {
+                type = NavType.IntType
+                defaultValue = -1
+            })
+        ) { backStackEntry ->
+            val parkingId = backStackEntry.arguments?.getInt("parkingId") ?: -1
+
+            VehicleSelectionScreen(
+                navController = navController,
+                parkingId = if (parkingId != -1) parkingId else null
+            )
+        }
+
+        // ✅ CORREGIDO: Add Vehicle Screen - Usando NavRoutes.AddVehicle.route
+        composable(NavRoutes.AddVehicle.route) {
+            BasicAddVehicleScreen(navController = navController)
+        }
+
+        // Reservation
         composable(
             route = NavRoutes.Reservation.route,
             arguments = listOf(navArgument("parkingId") { type = NavType.IntType })
@@ -116,7 +150,6 @@ fun AppNavGraph(navController: NavHostController) {
                 factory = ReservationViewModelFactory(context)
             )
 
-            // ✅ CORREGIDO: Crear parkingLot con el ID correcto
             val parkingLot = ParkingLot(
                 id = parkingId.toLong(),
                 nombre = "Estacionamiento $parkingId",
@@ -140,20 +173,8 @@ fun AppNavGraph(navController: NavHostController) {
                 dueno_nombre = null
             )
 
-            // ✅ CORREGIDO: Iniciar flujo con el parking correcto
             LaunchedEffect(parkingLot) {
                 reservationViewModel.startReservationFlow(parkingLot)
-            }
-
-            // ✅ CORREGIDO: Observar cuando necesitemos navegar a VehicleSelection
-            LaunchedEffect(reservationViewModel.currentScreen) {
-                when (reservationViewModel.currentScreen) {
-                    com.example.smarparkinapp.ui.theme.viewmodel.ReservationScreen.VEHICLE_SELECTION -> {
-                        navController.navigate(NavRoutes.VehicleSelection.route)
-                        println("🔄 [NavGraph] Navegando a VehicleSelection desde Reservation")
-                    }
-                    else -> {}
-                }
             }
 
             ReservationScreen(
@@ -166,47 +187,11 @@ fun AppNavGraph(navController: NavHostController) {
                 onBack = { navController.popBackStack() }
             )
 
-            // Mostrar diálogo de agregar vehículo si es necesario
             if (reservationViewModel.showAddVehicleDialog) {
                 AddVehicleDialog(
                     viewModel = reservationViewModel,
                     onDismiss = { reservationViewModel.hideAddVehicleForm() },
                     onSave = { reservationViewModel.saveNewVehicleAndNavigate() }
-                )
-            }
-        }
-
-        // Vehicle Selection - FLUJO CORREGIDO
-        composable(NavRoutes.VehicleSelection.route) {
-            val viewModel: ReservationViewModel = viewModel(
-                factory = ReservationViewModelFactory(context)
-            )
-
-            VehicleSelectionScreen(
-                onBack = {
-                    navController.popBackStack()
-                    println("🔙 [NavGraph] Regresando a Reservation desde VehicleSelection")
-                },
-                onVehicleSelected = { car ->
-                    // ✅ CORREGIDO: Seleccionar vehículo y regresar a Reservation
-                    viewModel.selectVehicle(car)
-                    viewModel.navigateToReservationForm(car)
-                    navController.popBackStack()
-                    println("🚗 [NavGraph] Vehículo seleccionado: ${car.plate}, regresando a Reservation")
-                },
-                onAddVehicle = {
-                    viewModel.showAddVehicleForm()
-                },
-                viewModel = viewModel
-            )
-
-            if (viewModel.showAddVehicleDialog) {
-                AddVehicleDialog(
-                    viewModel = viewModel,
-                    onDismiss = { viewModel.hideAddVehicleForm() },
-                    onSave = {
-                        viewModel.saveNewVehicleAndNavigate()
-                    }
                 )
             }
         }
@@ -239,6 +224,50 @@ fun AppNavGraph(navController: NavHostController) {
             ProfileScreen(
                 onBackClick = { navController.popBackStack() }
             )
+        }
+    }
+}
+
+// ✅ CORREGIDO: Pantalla básica para agregar vehículo con todos los imports
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BasicAddVehicleScreen(navController: NavHostController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Agregar Vehículo") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Funcionalidad de agregar vehículo",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "Aquí iría el formulario para agregar un nuevo vehículo",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = { navController.popBackStack() }
+            ) {
+                Text("Volver")
+            }
         }
     }
 }

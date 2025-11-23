@@ -1,4 +1,4 @@
-// ui/theme/NavRoutes.kt
+// ui/theme/NavRoutes.kt - VERSIÓN SIMPLIFICADA
 package com.example.smarparkinapp.ui.theme
 
 sealed class NavRoutes(val route: String) {
@@ -14,8 +14,8 @@ sealed class NavRoutes(val route: String) {
     object Main : NavRoutes("main")
     object Perfil : NavRoutes("perfil")
     object Historial : NavRoutes("historial")
+    object AddVehicle : NavRoutes("add_vehicle")
 
-    // Rutas actualizadas
     object Reservation : NavRoutes("reservation/{parkingId}") {
         fun createRoute(parkingId: Int) = "reservation/$parkingId"
     }
@@ -24,5 +24,8 @@ sealed class NavRoutes(val route: String) {
         fun createRoute(parkingId: Int) = "parking_detail/$parkingId"
     }
 
-    object VehicleSelection : NavRoutes("vehicle_selection")
+    // ✅ CORREGIDO: Usar el mismo formato que los demás - parámetro de ruta
+    object VehicleSelection : NavRoutes("vehicle_selection/{parkingId}") {
+        fun createRoute(parkingId: Int) = "vehicle_selection/$parkingId"
+    }
 }

@@ -10,9 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,44 +35,70 @@ fun VehicleItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { onClick() }
+            .clickable {
+                println("🔍 [VehicleItem] Clic en vehículo: ${car.plate}, seleccionado: $isSelected")
+                onClick()
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Color(0xFF5555FF).copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface
+        ),
+        border = if (isSelected) CardDefaults.outlinedCardBorder() else null,
+        elevation = if (isSelected) CardDefaults.cardElevation(4.dp) else CardDefaults.cardElevation(2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Marca en negrita (como BMW, Baic, Alesin)
-            Text(
-                text = car.brand,
-                style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            // Icono de vehículo
+            Icon(
+                imageVector = Icons.Outlined.DirectionsCar,
+                contentDescription = "Automóvil",
+                modifier = Modifier.size(32.dp),
+                tint = if (isSelected) Color(0xFF5555FF) else Color.Gray
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            // Placa (como A1B-134, A1B-098, AB-1234)
-            Text(
-                text = car.plate,
-                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Modelo y Color (como "Camioneta Blanco", "Camioneta Azul")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Icono de automóvil (siempre el mismo ya que solo tienes automóviles)
-                Icon(
-                    imageVector = Icons.Outlined.DirectionsCar,
-                    contentDescription = "Automóvil",
-                    modifier = Modifier.size(16.dp),
-                    tint = Color.Gray
+            // Información del vehículo
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                // Marca en negrita
+                Text(
+                    text = car.brand,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color(0xFF5555FF) else MaterialTheme.colorScheme.onSurface
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
+                // Placa
+                Text(
+                    text = car.plate,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isSelected) Color(0xFF5555FF) else Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Modelo y Color
                 Text(
                     text = "${car.model} • ${car.color}",
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Gray // ✅ CORREGIDO
+                )
+            }
+
+            // Indicador de selección
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Filled.CheckCircle,
+                    contentDescription = "Seleccionado",
+                    modifier = Modifier.size(24.dp),
+                    tint = Color(0xFF5555FF)
                 )
             }
         }

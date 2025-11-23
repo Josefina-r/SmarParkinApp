@@ -1,4 +1,4 @@
-// ParkingDetailScreen.kt - VERSIÓN FINAL CORREGIDA
+// ParkingDetailScreen.kt - VERSIÓN SIN SELECCIÓN DE VEHÍCULO
 package com.example.smarparkinapp.ui.theme.screens
 
 import androidx.compose.foundation.background
@@ -45,29 +45,6 @@ fun ParkingDetailScreen(
         factory = HomeViewModelFactory(context.applicationContext)
     )
 
-    val reservationViewModel: ReservationViewModel = viewModel(
-        factory = ReservationViewModelFactory(context)
-    )
-
-    // Estado para el vehículo seleccionado
-    var selectedVehicle by remember { mutableStateOf<Car?>(null) }
-
-    // ✅ CORREGIDO: Escuchar el vehículo con clave consistente
-    val returnedVehicle by navController.currentBackStackEntry
-        ?.savedStateHandle
-        ?.getStateFlow<Car?>("selected_vehicle", null)
-        ?.collectAsState() ?: remember { mutableStateOf(null) }
-
-    // ✅ CORREGIDO: Actualizar cuando regrese con un vehículo
-    LaunchedEffect(returnedVehicle) {
-        returnedVehicle?.let { vehicle ->
-            println("🚗 [ParkingDetail] Vehículo seleccionado recibido: ${vehicle.plate}")
-            selectedVehicle = vehicle
-            // IMPORTANTE: Limpiar después de usar para evitar bucles
-            navController.currentBackStackEntry?.savedStateHandle?.remove<Car>("selected_vehicle")
-        }
-    }
-
     // Cargar datos del parking
     val parkingSpots by homeViewModel.filteredParkingSpots.collectAsState()
     val parkingSpot = parkingSpots.find { it.id == parkingId }
@@ -100,30 +77,18 @@ fun ParkingDetailScreen(
     } else {
         Scaffold(
             bottomBar = {
-                BottomReserveBar(
+                SimpleReserveBar(
                     parkingSpot = parkingSpot,
-                    selectedVehicle = selectedVehicle,
                     primaryColor = BluePrimary,
-                    onSelectVehicle = {
-                        println("🔍 [ParkingDetail] Navegando a selección de vehículo")
-                        // ✅ CORREGIDO: Pasar el parkingId a VehicleSelection
-                        navController.navigate("${NavRoutes.VehicleSelection.route}?parkingId=${parkingSpot.id}")
-                    },
                     onReserve = {
-                        if (selectedVehicle != null) {
-                            println("🔍 [ParkingDetail] Iniciando reserva para:")
-                            println("   🅿️ Parking ID: ${parkingSpot.id}")
-                            println("   🚗 Vehículo: ${selectedVehicle!!.plate} (ID: ${selectedVehicle!!.id})")
+                        println("🔍 [ParkingDetail] Navegando a selección de vehículo para reserva")
+                        println("🔍 [ParkingDetail] Parking ID: ${parkingSpot.id}")
 
-                            // ✅ CORREGIDO: Usar el método CORRECTO para ParkingSpot
-                            reservationViewModel.startReservationFlowWithParkingSpot(parkingSpot)
-                            reservationViewModel.setSelectedVehicleFromOutside(selectedVehicle!!)
+                        // ✅ CORREGIDO: Usar createRoute en lugar de concatenar manualmente
+                        val route = NavRoutes.VehicleSelection.createRoute(parkingSpot.id)
+                        println("🔍 [ParkingDetail] Ruta completa: $route")
 
-                            // ✅ CORREGIDO: Navegar a la ruta CORRECTA con el parámetro parkingId
-                            navController.navigate(NavRoutes.Reservation.createRoute(parkingSpot.id))
-                        } else {
-                            println("❌ [ParkingDetail] No hay vehículo seleccionado")
-                        }
+                        navController.navigate(route)
                     }
                 )
             }
@@ -252,21 +217,7 @@ fun ParkingDetailScreen(
                     Divider(color = BgGray, thickness = 1.dp)
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 4. VEHÍCULO SELECCIONADO
-                    if (selectedVehicle != null) {
-                        SelectedVehicleSection(
-                            vehicle = selectedVehicle!!,
-                            onChangeVehicle = {
-                                println("🔍 [ParkingDetail] Cambiando vehículo")
-                                navController.navigate("${NavRoutes.VehicleSelection.route}?parkingId=${parkingSpot.id}")
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Divider(color = BgGray, thickness = 1.dp)
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
-
-                    // 5. DESCRIPCIÓN
+                    // 4. DESCRIPCIÓN
                     Text("Acerca de este estacionamiento", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextBlack)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -297,7 +248,7 @@ fun ParkingDetailScreen(
                     Divider(color = BgGray, thickness = 1.dp)
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 6. UBICACIÓN
+                    // 5. UBICACIÓN
                     Text("Ubicación", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextBlack)
                     Text(parkingSpot.address, fontSize = 14.sp, color = TextGray)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -343,14 +294,12 @@ fun ParkingDetailScreen(
     }
 }
 
-// --- COMPONENTES AUXILIARES ---
+// --- COMPONENTES AUXILIARES MODIFICADOS ---
 
 @Composable
-fun BottomReserveBar(
+fun SimpleReserveBar(
     parkingSpot: ParkingSpot,
-    selectedVehicle: Car?,
     primaryColor: Color,
-    onSelectVehicle: () -> Unit,
     onReserve: () -> Unit
 ) {
     Surface(
@@ -364,60 +313,7 @@ fun BottomReserveBar(
                 .padding(horizontal = 20.dp, vertical = 16.dp)
                 .navigationBarsPadding()
         ) {
-            // Sección de selección de vehículo
-            if (selectedVehicle == null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = Color.Gray)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Seleccionar vehículo",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(
-                        onClick = onSelectVehicle,
-                        colors = ButtonDefaults.textButtonColors(contentColor = primaryColor)
-                    ) {
-                        Text("Seleccionar")
-                    }
-                }
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = primaryColor)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "${selectedVehicle.brand} ${selectedVehicle.model}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = selectedVehicle.plate,
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                    }
-                    TextButton(
-                        onClick = onSelectVehicle,
-                        colors = ButtonDefaults.textButtonColors(contentColor = primaryColor)
-                    ) {
-                        Text("Cambiar")
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            Divider(color = Color.LightGray, thickness = 0.5.dp)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Sección de precio y reserva
+            // Sección de precio y reserva simplificada
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -444,11 +340,10 @@ fun BottomReserveBar(
                     modifier = Modifier
                         .height(48.dp)
                         .width(180.dp),
-                    enabled = selectedVehicle != null && parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto
+                    enabled = parkingSpot.availableSpots > 0 && parkingSpot.estaAbierto
                 ) {
                     Text(
                         text = when {
-                            selectedVehicle == null -> "Selecciona un vehículo"
                             !parkingSpot.estaAbierto -> "Cerrado"
                             parkingSpot.availableSpots <= 0 -> "Sin espacios"
                             else -> "Reservar ahora"
@@ -474,67 +369,6 @@ fun BottomReserveBar(
                 },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
-        }
-    }
-}
-
-@Composable
-fun SelectedVehicleSection(vehicle: Car, onChangeVehicle: () -> Unit) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "Vehículo seleccionado",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.Black
-            )
-            TextButton(onClick = onChangeVehicle) {
-                Text("Cambiar")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Tarjeta del vehículo seleccionado
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsCar,
-                    contentDescription = null,
-                    tint = Color(0xFF5555FF),
-                    modifier = Modifier.size(40.dp)
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "${vehicle.brand} ${vehicle.model}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp)
-                    Text(
-                        text = vehicle.plate,
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = vehicle.color,
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                }
-            }
         }
     }
 }
