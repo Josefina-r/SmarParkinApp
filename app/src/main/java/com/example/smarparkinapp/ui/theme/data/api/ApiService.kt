@@ -26,7 +26,7 @@ interface ApiService {
     @POST("auth/login/")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
-    @POST("auth/register/client/")
+    @POST("api/users/auth/register/client/")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
 
     @POST("api/password/reset/")
@@ -123,7 +123,7 @@ interface ApiService {
     suspend fun getParkingMapa(): Response<ParkingLotResponse>
 
     //  RUTAS PARA PERFIL
-    @GET("api/profile/")
+    @GET("api/users/profile/")
     suspend fun getUserProfile(): Response<UserProfileResponse>
 
     @PUT("api/profile/update/")
@@ -147,13 +147,6 @@ data class LoginResponse(
 data class RefreshTokenRequest(val refresh: String)
 data class RefreshTokenResponse(val access: String)
 
-data class RegisterRequest(
-    val username: String,
-    val email: String,
-    val password: String,
-    val first_name: String? = null,
-    val last_name: String? = null
-)
 
 data class RegisterResponse(
     val id: Int,

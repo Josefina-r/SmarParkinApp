@@ -22,6 +22,7 @@ import com.example.smarparkinapp.ui.theme.viewmodel.ProfileViewModel
 @Composable
 fun ErrorCard(
     message: String,
+
     onRetry: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
@@ -109,24 +110,29 @@ fun ProfilePhotoSection() {
 @Composable
 fun ProfileScreen(
     onBackClick: () -> Unit,
+    onUpdateSuccess: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val updateSuccess by viewModel.updateSuccess.collectAsState() // ✅ MOVIDO AQUÍ
+    val updateSuccess by viewModel.updateSuccess.collectAsState()
 
-    // Cargar perfil al iniciar la pantalla
     LaunchedEffect(Unit) {
         viewModel.loadUserProfile(context)
     }
 
-    // ✅ CORREGIDO: Solo un LaunchedEffect para updateSuccess
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
-            onBackClick() // Esto hará que se recargue la pantalla condicional
+            onUpdateSuccess()
             viewModel.resetUpdateSuccess()
         }
     }
+    LaunchedEffect(updateSuccess) {
+        if (updateSuccess) {
 
+            onUpdateSuccess()
+            viewModel.resetUpdateSuccess()
+        }
+    }
     ProfileScreenContent(
         viewModel = viewModel,
         onBackClick = onBackClick,

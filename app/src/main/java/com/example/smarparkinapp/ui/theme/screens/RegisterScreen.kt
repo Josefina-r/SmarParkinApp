@@ -295,10 +295,12 @@ fun RegisterScreen(
                                     username = name,
                                     email = email,
                                     password = password,
-                                    password2 = confirmPassword, // ✅ CONFIRMACIÓN REQUERIDA
+                                    passwordConfirm = confirmPassword,
                                     first_name = name,
-                                    last_name = "" // Puedes dividir el nombre si es necesario
+                                    last_name = "",
+                                    telefono = ""
                                 )
+                                viewModel.register(request)
                                 viewModel.register(request)
                             }
                         },

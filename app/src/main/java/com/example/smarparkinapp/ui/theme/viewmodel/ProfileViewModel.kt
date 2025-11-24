@@ -28,18 +28,35 @@ class ProfileViewModel : ViewModel() {
 
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
-
+    private val _hasLoadedProfile = MutableStateFlow(false)
+    val hasLoadedProfile: StateFlow<Boolean> = _hasLoadedProfile.asStateFlow()
     // ✅ NUEVO: Método para inicializar el repository
     fun initializeRepository(context: Context) {
         if (!userRepository.isInitialized()) {
             userRepository.initialize(context)
         }
     }
+    fun clearProfileData() {
+        _userProfile.value = null
+        _hasLoadedProfile.value = false
+        _updateSuccess.value = false
+        _errorMessage.value = null
+        _validationErrors.value = emptyMap()
+    }
 
+    fun refreshProfile(context: Context) {
+        _hasLoadedProfile.value = false
+        _userProfile.value = null
+        loadUserProfile(context)
+    }
     fun loadUserProfile(context: Context) {
+        if (_hasLoadedProfile.value) {
+            return
+        }
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
+
 
             try {
                 // ✅ Asegurar que el repository esté inicializado
@@ -47,8 +64,10 @@ class ProfileViewModel : ViewModel() {
 
                 val profile = userRepository.getUserProfile()
                 _userProfile.value = profile
+                _hasLoadedProfile.value = true
             } catch (e: Exception) {
                 _errorMessage.value = "Error al cargar perfil: ${e.message}"
+                _hasLoadedProfile.value = false
             } finally {
                 _isLoading.value = false
             }
@@ -100,6 +119,7 @@ class ProfileViewModel : ViewModel() {
 
                 _userProfile.value = updatedProfile
                 _updateSuccess.value = true
+                _hasLoadedProfile.value = true
 
             } catch (e: Exception) {
                 _errorMessage.value = "Error al actualizar: ${e.message}"
@@ -107,6 +127,8 @@ class ProfileViewModel : ViewModel() {
                 _isLoading.value = false
             }
         }
+
+
     }
 
     private fun validateProfileData(

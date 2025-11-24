@@ -175,8 +175,7 @@ fun HomeScreen(
                                         Text("S/ 10.00", color = AzulPrincipal, fontWeight = FontWeight.Bold)
                                     }
                                 }
-
-
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = Blanco,

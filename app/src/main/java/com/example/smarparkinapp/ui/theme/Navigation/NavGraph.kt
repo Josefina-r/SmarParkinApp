@@ -206,23 +206,35 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // Edición de Perfil
-        composable("profile_edit") {
+        composable("editProfile") {
             ProfileScreen(
                 onBackClick = {
+                    navController.popBackStack()
+                },
+                onUpdateSuccess = {
+
                     navController.popBackStack()
                 }
             )
         }
-
-        // Complete Profile
         composable(
             route = NavRoutes.CompleteProfile.route,
             arguments = listOf(navArgument("userId") { type = NavType.IntType })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getInt("userId") ?: 0
             ProfileScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = {
+
+                    navController.navigate(NavRoutes.Home.route) {
+                        popUpTo(0) // Limpiar todo el back stack
+                    }
+                },
+                onUpdateSuccess = {
+
+                    navController.navigate(NavRoutes.Home.route) {
+                        popUpTo(0) // Limpiar todo el back stack
+                    }
+                }
             )
         }
     }
@@ -282,13 +294,20 @@ fun ProfileConditionalScreen(
     val context = LocalContext.current
     val userProfile by viewModel.userProfile.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val updateSuccess by viewModel.updateSuccess.collectAsState()
 
     // Cargar perfil al iniciar
     LaunchedEffect(Unit) {
         viewModel.loadUserProfile(context)
     }
+    LaunchedEffect(updateSuccess) {
+        if (updateSuccess) {
 
-    // Mostrar loading mientras se carga
+            viewModel.refreshProfile(context)
+            viewModel.resetUpdateSuccess()
+        }
+    }
+
     if (isLoading) {
         Box(
             modifier = Modifier
@@ -307,7 +326,7 @@ fun ProfileConditionalScreen(
         ProfileOverviewScreen(
             onBack = onBackClick,
             onEditProfile = {
-                navController.navigate("profile_edit")
+                navController.navigate("editProfile")
             },
             onPaymentMethods = {
                 // navController.navigate("payment_methods")
@@ -319,7 +338,11 @@ fun ProfileConditionalScreen(
     } else {
         // Perfil incompleto → Mostrar formulario de completar
         ProfileScreen(
-            onBackClick = onBackClick
+            onBackClick = onBackClick,
+            onUpdateSuccess = {
+
+                viewModel.clearProfileData() // Limpiar para recargar
+            }
         )
     }
 }

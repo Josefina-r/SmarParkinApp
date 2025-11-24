@@ -20,7 +20,6 @@ class RegisterViewModel : ViewModel() {
     private val _registeredUserId = MutableStateFlow<Int?>(null)
     val registeredUserId: StateFlow<Int?> = _registeredUserId
 
-    // ✅ CORREGIDO: Usa RetrofitInstance en lugar de ApiClient
     private val apiService = RetrofitInstance.apiService
 
     fun register(request: RegisterRequest) {
