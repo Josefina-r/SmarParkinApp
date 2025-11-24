@@ -33,7 +33,8 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val apiService = RetrofitInstance.apiService
+    // ✅ CORREGIDO: Usar el apiService autenticado
+    private val apiService = RetrofitInstance.getAuthenticatedApiService(context)
     private val prefs: SharedPreferences = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
 
     fun saveProfile(userId: Int) {
@@ -41,18 +42,15 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
             try {
                 _uiState.value = ProfileUiState(isLoading = true)
 
-                // Obtener el token de autenticación
-                val authToken = getAuthToken()
-                if (authToken.isEmpty()) {
-                    _uiState.value = ProfileUiState(errorMessage = "No estás autenticado. Inicia sesión nuevamente.")
-                    return@launch
-                }
+                // ✅ CORREGIDO: Quitar la validación manual del token
+                // El interceptor de Retrofit maneja automáticamente la autenticación
 
-                // ✅ CORREGIDO: Pasar el token como primer parámetro
+                println("🚗 [PROFILE] Guardando vehículo: $marca $modelo - $placa")
+
+                // ✅ CORREGIDO: Llamar sin parámetro de token
                 val response = apiService.addCar(
-                    token = "Bearer $authToken", // ← Token como primer parámetro
-                    car = ApiCarRequest(        // ← CarRequest como segundo parámetro
-                        placa = placa,
+                    ApiCarRequest(
+                        placa = placa.uppercase().replace(" ", "").replace("-", ""),
                         marca = marca,
                         modelo = modelo,
                         color = color,
@@ -63,9 +61,15 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
                 if (response.isSuccessful) {
                     isSuccess = true
                     _uiState.value = ProfileUiState()
-                    println("✅ [PROFILE] Perfil guardado exitosamente")
+                    println("✅ [PROFILE] Vehículo guardado exitosamente")
                 } else {
-                    val errorMsg = "Error ${response.code()}: ${response.message()}"
+                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                    val errorMsg = when (response.code()) {
+                        400 -> "Datos inválidos: $errorBody"
+                        401 -> "Sesión expirada. Inicia sesión nuevamente."
+                        409 -> "La placa ya está registrada"
+                        else -> "Error ${response.code()}: $errorBody"
+                    }
                     _uiState.value = ProfileUiState(errorMessage = errorMsg)
                     println("❌ [PROFILE] $errorMsg")
                 }
@@ -74,8 +78,42 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
                 val errorMsg = "Error de conexión: ${e.message}"
                 _uiState.value = ProfileUiState(errorMessage = errorMsg)
                 println("💥 [PROFILE] $errorMsg")
+                e.printStackTrace()
             }
         }
+    }
+
+    // ✅ Método para validar el formato de la placa
+    fun isValidPlateFormat(plate: String): Boolean {
+        val cleanedPlate = plate.uppercase().replace(" ", "").replace("-", "")
+        // Formatos comunes: ABC123, ABC12D, AB123C, etc.
+        val plateRegex = Regex("^[A-Z]{2,3}[0-9]{3,4}[A-Z]?$")
+        return plateRegex.matches(cleanedPlate)
+    }
+
+    // ✅ Método para validar todos los campos
+    fun validateForm(): Boolean {
+        return placa.isNotBlank() &&
+                marca.isNotBlank() &&
+                modelo.isNotBlank() &&
+                color.isNotBlank() &&
+                isValidPlateFormat(placa)
+    }
+
+    // ✅ Método para limpiar el formulario
+    fun clearForm() {
+        placa = ""
+        modelo = ""
+        marca = ""
+        color = ""
+        metodoPago = ""
+        isSuccess = false
+        _uiState.value = ProfileUiState()
+    }
+
+    // ✅ Método para obtener el estado de autenticación
+    fun isUserAuthenticated(): Boolean {
+        return getAuthToken().isNotEmpty()
     }
 
     private fun getAuthToken(): String {

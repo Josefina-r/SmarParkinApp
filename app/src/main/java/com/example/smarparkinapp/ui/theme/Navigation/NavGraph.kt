@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import com.example.smarparkinapp.ui.theme.screens.SettingsScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -38,6 +39,7 @@ import com.example.smarparkinapp.components.AddVehicleDialog
 import com.example.smarparkinapp.screens.VehicleSelectionScreen
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 import com.example.smarparkinapp.ui.theme.data.model.UserProfile
+import com.example.smarparkinapp.ui.theme.screens.ChatbotScreen
 import com.example.smarparkinapp.ui.theme.screens.HistoryScreen
 import com.example.smarparkinapp.ui.theme.screens.HomeScreen
 import com.example.smarparkinapp.ui.theme.screens.LoginScreen
@@ -105,6 +107,14 @@ fun AppNavGraph(navController: NavHostController) {
             HistoryScreen(navController = navController)
         }
 
+        // ✅ NUEVO: Chatbot de Soporte
+        composable(NavRoutes.Chatbot.route) {
+            ChatbotScreen(navController = navController)
+        }
+        composable(NavRoutes.Settings.route) {
+            SettingsScreen(navController = navController)
+        }
+
         // Parking Detail
         composable(
             route = NavRoutes.ParkingDetail.route,
@@ -139,7 +149,7 @@ fun AppNavGraph(navController: NavHostController) {
             BasicAddVehicleScreen(navController = navController)
         }
 
-        // Reservation
+        // Reservation - CORREGIDO: Usando asignación directa
         composable(
             route = NavRoutes.Reservation.route,
             arguments = listOf(navArgument("parkingId") { type = NavType.IntType })
@@ -150,6 +160,7 @@ fun AppNavGraph(navController: NavHostController) {
                 factory = ReservationViewModelFactory(context)
             )
 
+            // Crear un ParkingLot de ejemplo
             val parkingLot = ParkingLot(
                 id = parkingId.toLong(),
                 nombre = "Estacionamiento $parkingId",
@@ -173,12 +184,14 @@ fun AppNavGraph(navController: NavHostController) {
                 dueno_nombre = null
             )
 
+            // CORREGIDO: Asignar directamente en lugar de usar startReservationFlow
             LaunchedEffect(parkingLot) {
-                reservationViewModel.startReservationFlow(parkingLot)
+                reservationViewModel.selectedParking = parkingLot
             }
 
             ReservationScreen(
                 viewModel = reservationViewModel,
+                selectedParking = parkingLot, // Pasar el parkingLot seleccionado
                 onSuccessNavigate = {
                     navController.navigate(NavRoutes.Home.route) {
                         popUpTo(NavRoutes.Reservation.route) { inclusive = true }
@@ -187,6 +200,7 @@ fun AppNavGraph(navController: NavHostController) {
                 onBack = { navController.popBackStack() }
             )
 
+            // Mostrar diálogo de agregar vehículo si es necesario
             if (reservationViewModel.showAddVehicleDialog) {
                 AddVehicleDialog(
                     viewModel = reservationViewModel,

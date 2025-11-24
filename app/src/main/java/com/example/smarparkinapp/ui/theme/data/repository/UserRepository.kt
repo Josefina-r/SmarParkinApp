@@ -5,12 +5,12 @@ import android.content.Context
 import android.util.Log
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
+import com.example.smarparkinapp.ui.theme.data.api.UpdateProfileRequest as ApiUpdateProfileRequest
+import com.example.smarparkinapp.ui.theme.data.api.UserProfileResponse as ApiUserProfileResponse
 import com.example.smarparkinapp.ui.theme.data.model.UpdateProfileRequest
 import com.example.smarparkinapp.ui.theme.data.model.UserProfile
-import com.example.smarparkinapp.ui.theme.data.model.UserProfileResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import retrofit2.Response
 
 class UserRepository {
     private lateinit var apiService: ApiService
@@ -84,18 +84,19 @@ class UserRepository {
 
         Log.d(TAG, "Actualizando perfil...")
 
+        // ✅ CORREGIDO: Convertir nuestro modelo local al modelo que espera el ApiService
         val request = UpdateProfileRequest(
             firstName = firstName,
             lastName = lastName,
             telefono = phone,
-            email = null, // ✅ Correcto - no enviar email si no se cambia
+            email = null,
             tipoDocumento = documentType,
             numeroDocumento = documentNumber,
             fechaNacimiento = birthDate,
             direccion = address,
             codigoPostal = postalCode,
             pais = country
-        )
+        ).toApiUpdateProfileRequest()
 
         try {
             // ✅ RUTA PRINCIPAL
@@ -108,7 +109,6 @@ class UserRepository {
                     return@withContext updatedProfile?.toUserProfile() ?: throw Exception("Respuesta inválida")
                 } else {
                     Log.e(TAG, "Error HTTP ruta 1: ${response.code()} - ${response.message()}")
-                    // Leer error body para más detalles
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "Error body ruta 1: $errorBody")
                 }
@@ -116,9 +116,9 @@ class UserRepository {
                 Log.e(TAG, "Error en actualización ruta 1: ${e.message}")
             }
 
-            // ✅ RUTA DE COMPATIBILIDAD - CORREGIDA
+            // ✅ RUTA DE COMPATIBILIDAD
             try {
-                Log.d(TAG, "Intentando actualizar en ruta 2: users/profile/update/") // ✅ CORREGIDO
+                Log.d(TAG, "Intentando actualizar en ruta 2: users/profile/update/")
                 val response = apiService.updateUserProfileCompat(request)
                 if (response.isSuccessful) {
                     val updatedProfile = response.body()
@@ -153,4 +153,39 @@ class UserRepository {
     fun isInitialized(): Boolean {
         return ::apiService.isInitialized
     }
+}
+
+// ✅ FUNCIONES DE EXTENSIÓN PARA CONVERSIÓN ENTRE MODELOS
+
+// Convierte UserProfileResponse del ApiService a nuestro UserProfile local
+private fun ApiUserProfileResponse.toUserProfile(): UserProfile {
+    return UserProfile(
+        id = this.id,
+        username = this.username,
+        email = this.email,
+        firstName = this.first_name ?: "",
+        lastName = this.last_name ?: "",
+        phone = this.phone ?: "",
+        address = this.address ?: "",
+        role = "client", // Valor por defecto
+        roleDisplay = "Cliente", // Valor por defecto
+        isAdmin = false,
+        isOwner = false,
+        isClient = true,
+        tipoDocumento = "",
+        numeroDocumento = "",
+        fechaNacimiento = "",
+        codigoPostal = "",
+        pais = "Perú"
+    )
+}
+
+// Convierte nuestro UpdateProfileRequest local al que espera el ApiService
+private fun UpdateProfileRequest.toApiUpdateProfileRequest(): ApiUpdateProfileRequest {
+    return ApiUpdateProfileRequest(
+        first_name = this.firstName,
+        last_name = this.lastName,
+        phone = this.telefono,
+        address = this.direccion
+    )
 }

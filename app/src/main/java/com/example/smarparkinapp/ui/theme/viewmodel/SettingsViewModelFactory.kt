@@ -1,15 +1,15 @@
-// viewmodel/UserViewModelFactory.kt
+// viewmodel/SettingsViewModelFactory.kt
 package com.example.smarparkinapp.ui.theme.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 
-class UserViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
+class SettingsViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(UserViewModel::class.java)) {
-            return UserViewModel(context) as T
+        if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
+            return SettingsViewModel(context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

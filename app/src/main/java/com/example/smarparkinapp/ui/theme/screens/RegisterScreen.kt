@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smarparkinapp.R
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.theme.*
@@ -34,7 +35,7 @@ import com.example.smarparkinapp.ui.theme.viewmodel.RegisterViewModel
 fun RegisterScreen(
     onRegisterSuccess: (Int) -> Unit,
     onLoginClick: () -> Unit,
-    viewModel: RegisterViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: RegisterViewModel = viewModel()
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -51,7 +52,7 @@ fun RegisterScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val registeredUserId by viewModel.registeredUserId.collectAsState()
 
-    //  Cuando el registro es exitoso, navega al CompleteProfileScreen
+    // Cuando el registro es exitoso, navega al CompleteProfileScreen
     LaunchedEffect(registeredUserId) {
         registeredUserId?.let { id ->
             onRegisterSuccess(id)

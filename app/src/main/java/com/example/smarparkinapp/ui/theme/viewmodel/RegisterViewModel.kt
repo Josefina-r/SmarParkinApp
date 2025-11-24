@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
-import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
+import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

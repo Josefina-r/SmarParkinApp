@@ -31,8 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smarparkinapp.R
+import com.example.smarparkinapp.ui.theme.data.AuthManager
+import com.example.smarparkinapp.ui.theme.data.model.User
 import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.LoginViewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.UserViewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.UserViewModelFactory
 
 @Composable
 fun LoginScreen(
@@ -41,7 +45,7 @@ fun LoginScreen(
     onForgotPasswordClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val viewModel: LoginViewModel = viewModel(
+    val loginViewModel: LoginViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 return LoginViewModel(context) as T
@@ -49,21 +53,53 @@ fun LoginScreen(
         }
     )
 
+    // ✅ NUEVO: UserViewModel para manejar la sesión del usuario
+    val userViewModel: UserViewModel = viewModel(
+        factory = UserViewModelFactory(context)
+    )
+
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val loginSuccess by viewModel.loginSuccess.collectAsState()
+    val isLoading by loginViewModel.isLoading.collectAsState()
+    val errorMessage by loginViewModel.errorMessage.collectAsState()
+    val loginSuccess by loginViewModel.loginSuccess.collectAsState()
 
-    // ✅ LOGS DETALLADOS DE NAVEGACIÓN
+    // ✅ MEJORADO: Manejo del login exitoso con UserViewModel
     LaunchedEffect(loginSuccess) {
         println("🔄 [SCREEN] LoginScreen - loginSuccess: $loginSuccess")
         if (loginSuccess) {
-            println("🚀 [SCREEN] Navegando al Home...")
+            println("🚀 [SCREEN] Login exitoso, configurando usuario...")
+
+            // Obtener información del usuario desde AuthManager
+            val authManager = AuthManager(context)
+            val userId = authManager.getUserId()
+            val username = authManager.getUsername()
+            val token = authManager.getAuthToken()
+
+            println("👤 [SCREEN] Usuario recuperado - ID: $userId, Username: $username")
+
+            if (userId != -1 && !username.isNullOrEmpty() && !token.isNullOrEmpty()) {
+                // Crear objeto User y configurar en UserViewModel
+                val user = User(
+                    id = userId,
+                    username = username,
+                    email = "", // Puedes obtener el email si lo guardas en AuthManager
+                    first_name = null,
+                    last_name = null
+                )
+
+                userViewModel.login(user, token)
+                println("✅ [SCREEN] Usuario configurado en UserViewModel")
+            } else {
+                println("❌ [SCREEN] No se pudo recuperar información completa del usuario")
+            }
+
+            // Navegar al home
+            println("🏠 [SCREEN] Navegando al Home...")
             onLoginSuccess()
-            viewModel.clearLoginSuccess()
+            loginViewModel.clearLoginSuccess()
             println("🧹 [SCREEN] Estado limpiado")
         }
     }
@@ -191,6 +227,7 @@ fun LoginScreen(
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -201,18 +238,27 @@ fun LoginScreen(
                         modifier = Modifier
                             .align(Alignment.End)
                             .clickable {
-                                viewModel.resetPassword(username)
+                                if (username.isNotEmpty()) {
+                                    loginViewModel.resetPassword(username)
+                                } else {
+                                    // Mostrar diálogo o mensaje para ingresar email
+                                    println("⚠ [SCREEN] Ingresa tu usuario/email primero")
+                                }
                             }
                             .padding(top = 12.dp, bottom = 28.dp),
                         fontWeight = FontWeight.Medium
                     )
 
-                    viewModel.resetMessage?.let {
-                        Text(
-                            text = it,
-                            color = Color.Red,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
+                    // Mostrar mensaje de reset de contraseña
+                    loginViewModel.resetMessage?.let { message ->
+                        if (message.isNotEmpty()) {
+                            Text(
+                                text = message,
+                                color = if (message.contains("Error")) Color.Red else VerdePrincipal,
+                                modifier = Modifier.padding(top = 8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
 
                     // Botón Login
@@ -226,9 +272,9 @@ fun LoginScreen(
                                     colors = listOf(VerdeSecundario, VerdePrincipal)
                                 )
                             )
-                            .clickable(enabled = !isLoading) {
-                                println("🖱️ [SCREEN] Botón login presionado - Usuario: $username")
-                                viewModel.login(username, password)
+                            .clickable(enabled = !isLoading && username.isNotEmpty() && password.isNotEmpty()) {
+                                println("🖱 [SCREEN] Botón login presionado - Usuario: $username")
+                                loginViewModel.login(username, password)
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -245,12 +291,17 @@ fun LoginScreen(
                     }
 
                     // Mostrar error si existe
-                    errorMessage?.let {
-                        Text(
-                            text = it,
-                            color = Color.Red,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
+                    errorMessage?.let { error ->
+                        if (error.isNotEmpty()) {
+                            Text(
+                                text = error,
+                                color = Color.Red,
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
 
                     Spacer(Modifier.height(24.dp))
@@ -258,7 +309,8 @@ fun LoginScreen(
                     // Ir a registro
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("¿No tienes cuenta? ", color = Color.DarkGray)
                         Text(
