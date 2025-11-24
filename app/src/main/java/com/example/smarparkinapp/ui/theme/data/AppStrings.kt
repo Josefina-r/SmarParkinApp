@@ -1,0 +1,115 @@
+package com.example.smarparkinapp.ui.theme.data
+
+import androidx.compose.runtime.compositionLocalOf
+
+data class AppStrings(
+    val settings: String = "Ajustes",
+    val back: String = "Volver",
+    val account: String = "Cuenta",
+    val profile: String = "Perfil",
+    val profileSubtitle: String = "Gestiona tu información personal",
+    val privacy: String = "Privacidad y permisos",
+    val privacySubtitle: String = "Gestiona permisos de la app",
+    val notifications: String = "Notificaciones",
+    val notificationsSubtitle: String = "Permitir notificaciones push",
+    val app: String = "Aplicación",
+    val language: String = "Idioma",
+    val theme: String = "Tema",
+    val storage: String = "Almacenamiento y datos",
+    val storageSubtitle: String = "Gestionar caché y datos de la app",
+    val location: String = "Permisos de ubicación",
+    val locationSubtitle: String = "Gestionar acceso a ubicación",
+    val help: String = "Ayuda y Soporte",
+    val helpCenter: String = "Centro de ayuda",
+    val helpCenterSubtitle: String = "Preguntas frecuentes y guías",
+    val chatbot: String = "Asistente virtual",
+    val chatbotSubtitle: String = "Chatea con nuestro asistente IA",
+    val contact: String = "Contactar soporte",
+    val contactSubtitle: String = "Soporte técnico por email",
+    val about: String = "Acerca de ParkeaYa",
+    val aboutSubtitle: String = "Versión 1.0.0",
+    val legal: String = "Legal",
+    val terms: String = "Términos y condiciones",
+    val termsSubtitle: String = "Términos de uso del servicio",
+    val privacyPolicy: String = "Política de privacidad",
+    val privacyPolicySubtitle: String = "Cómo manejamos tus datos",
+    val cancel: String = "Cancelar",
+    val select: String = "Seleccionar"
+) {
+    fun getStringsForLanguage(language: String): AppStrings {
+        return when (language) {
+            "en" -> AppStrings(
+                settings = "Settings",
+                back = "Back",
+                account = "Account",
+                profile = "Profile",
+                profileSubtitle = "Manage your personal information",
+                privacy = "Privacy and permissions",
+                privacySubtitle = "Manage app permissions",
+                notifications = "Notifications",
+                notificationsSubtitle = "Allow push notifications",
+                app = "Application",
+                language = "Language",
+                theme = "Theme",
+                storage = "Storage and data",
+                storageSubtitle = "Manage cache and app data",
+                location = "Location permissions",
+                locationSubtitle = "Manage location access",
+                help = "Help and Support",
+                helpCenter = "Help Center",
+                helpCenterSubtitle = "Frequently asked questions and guides",
+                chatbot = "Virtual assistant",
+                chatbotSubtitle = "Chat with our AI assistant",
+                contact = "Contact support",
+                contactSubtitle = "Technical support by email",
+                about = "About ParkeaYa",
+                aboutSubtitle = "Version 1.0.0",
+                legal = "Legal",
+                terms = "Terms and conditions",
+                termsSubtitle = "Service usage terms",
+                privacyPolicy = "Privacy policy",
+                privacyPolicySubtitle = "How we handle your data",
+                cancel = "Cancel",
+                select = "Select"
+            )
+            "pt" -> AppStrings(
+                settings = "Configurações",
+                back = "Voltar",
+                account = "Conta",
+                profile = "Perfil",
+                profileSubtitle = "Gerencie suas informações pessoais",
+                privacy = "Privacidade e permissões",
+                privacySubtitle = "Gerenciar permissões do aplicativo",
+                notifications = "Notificações",
+                notificationsSubtitle = "Permitir notificações push",
+                app = "Aplicação",
+                language = "Idioma",
+                theme = "Tema",
+                storage = "Armazenamento e dados",
+                storageSubtitle = "Gerenciar cache e dados do aplicativo",
+                location = "Permissões de localização",
+                locationSubtitle = "Gerenciar acesso à localização",
+                help = "Ajuda e Suporte",
+                helpCenter = "Central de Ajuda",
+                helpCenterSubtitle = "Perguntas frequentes e guias",
+                chatbot = "Assistente virtual",
+                chatbotSubtitle = "Converse com nosso assistente IA",
+                contact = "Contatar suporte",
+                contactSubtitle = "Suporte técnico por email",
+                about = "Sobre o ParkeaYa",
+                aboutSubtitle = "Versão 1.0.0",
+                legal = "Legal",
+                terms = "Termos e condições",
+                termsSubtitle = "Termos de uso do serviço",
+                privacyPolicy = "Política de privacidade",
+                privacyPolicySubtitle = "Como lidamos com seus dados",
+                cancel = "Cancelar",
+                select = "Selecionar"
+            )
+            else -> AppStrings() // Español por defecto
+        }
+    }
+}
+
+// Proveedor local para los strings
+val LocalStrings = compositionLocalOf { AppStrings() }

@@ -114,7 +114,15 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+// Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+// Lifecycle ViewModel con Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
 }
 //kapt {
-  //  correctErrorTypes = true
+//  correctErrorTypes = true
 //}

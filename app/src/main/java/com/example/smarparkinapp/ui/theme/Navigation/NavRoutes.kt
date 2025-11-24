@@ -1,4 +1,4 @@
-// ui/theme/NavRoutes.kt - VERSIÓN SIMPLIFICADA
+// ui/theme/NavRoutes.kt - VERSIÓN ACTUALIZADA
 package com.example.smarparkinapp.ui.theme
 
 sealed class NavRoutes(val route: String) {
@@ -28,4 +28,14 @@ sealed class NavRoutes(val route: String) {
     object VehicleSelection : NavRoutes("vehicle_selection/{parkingId}") {
         fun createRoute(parkingId: Int) = "vehicle_selection/$parkingId"
     }
+
+    // ✅ NUEVO: Ruta para el chatbot de soporte
+    object Chatbot : NavRoutes("chatbot")
+
+    // En NavRoutes.kt, agrega:
+    object Settings : NavRoutes("settings")
+    object Terms : NavRoutes("terms")
+    object Privacy : NavRoutes("privacy")
+    object HelpCenter : NavRoutes("help_center")
+    object About : NavRoutes("about")
 }

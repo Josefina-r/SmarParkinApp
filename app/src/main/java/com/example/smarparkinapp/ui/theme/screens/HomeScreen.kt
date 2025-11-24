@@ -1,6 +1,7 @@
 package com.example.smarparkinapp.ui.theme.screens
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -41,6 +42,8 @@ import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
 import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModelFactory
+import com.example.smarparkinapp.ui.theme.viewmodel.UserViewModel
+import com.example.smarparkinapp.ui.theme.viewmodel.UserViewModelFactory
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.compose.*
@@ -60,6 +63,11 @@ fun HomeScreen(
         factory = HomeViewModelFactory(context.applicationContext)
     )
 
+    // ✅ NUEVO: UserViewModel para obtener el usuario logueado
+    val userViewModel: UserViewModel = viewModel(
+        factory = UserViewModelFactory(context)
+    )
+
     var searchQuery by remember { mutableStateOf("") }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -68,6 +76,10 @@ fun HomeScreen(
     val parkingSpots by viewModel.filteredParkingSpots.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
+    // ✅ NUEVO: Observar el estado del usuario
+    val currentUser by userViewModel.currentUser.collectAsState()
+    val isLoggedIn by userViewModel.isLoggedIn.collectAsState()
 
     // Ubicación del usuario
     val userLatLng = remember { mutableStateOf(LatLng(-8.111667, -79.028889)) }
@@ -79,7 +91,7 @@ fun HomeScreen(
 
     // Animación para la altura del panel
     val panelHeight by animateDpAsState(
-        targetValue = if (isPanelExpanded) 700.dp else 120.dp, // Panel más alto para ver mejor las cards
+        targetValue = if (isPanelExpanded) 700.dp else 120.dp,
         animationSpec = tween(durationMillis = 300)
     )
 
@@ -121,7 +133,7 @@ fun HomeScreen(
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                            // Avatar - Icono de persona como solicitaste
+                            // Avatar - Icono de persona
                             Box(
                                 modifier = Modifier
                                     .size(70.dp)
@@ -145,8 +157,20 @@ fun HomeScreen(
                                 fontSize = 14.sp
                             )
 
+                            // ✅ ACTUALIZADO: Mostrar nombre del usuario logueado o "Invitado"
                             Text(
-                                "Usuario Invitado",
+                                if (isLoggedIn) {
+                                    currentUser?.let { user ->
+                                        // Mostrar nombre completo si está disponible, sino username
+                                        if (!user.first_name.isNullOrEmpty() && !user.last_name.isNullOrEmpty()) {
+                                            "${user.first_name} ${user.last_name}"
+                                        } else {
+                                            user.username
+                                        }
+                                    } ?: "Usuario"
+                                } else {
+                                    "Usuario Invitado"
+                                },
                                 color = Blanco,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
@@ -176,7 +200,6 @@ fun HomeScreen(
                                     }
                                 }
 
-
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = Blanco,
@@ -202,13 +225,31 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(25.dp))
 
-                    DrawerMenuItem("Inicio", Icons.Default.Home) {navController.navigate("home")}
-                    DrawerMenuItem("Perfil", Icons.Default.Person) {navController.navigate("perfil")}
-                    DrawerMenuItem("Reservas", Icons.Default.DateRange) {navController.navigate("reservas")}
+                    DrawerMenuItem("Inicio", Icons.Default.Home) { navController.navigate("home") }
+                    DrawerMenuItem("Perfil", Icons.Default.Person) { navController.navigate("perfil") }
+                    DrawerMenuItem("Reservas", Icons.Default.DateRange) { navController.navigate("reservas") }
                     DrawerMenuItem("Mensajes", Icons.Default.Mail) {}
-                    DrawerMenuItem("ParkGO saldo", Icons.Default.AccountBalanceWallet) {}
-                    DrawerMenuItem("Soporte", Icons.Default.ChatBubble) {}
-                    DrawerMenuItem("Ajustes", Icons.Default.Settings) {}
+
+                    // ✅ ACTUALIZADO: Cambiado de "ParkGO saldo" a "Parkea Ya saldo"
+                    DrawerMenuItem("Parkea Ya saldo", Icons.Default.AccountBalanceWallet) {}
+
+                    DrawerMenuItem("Soporte", Icons.Default.ChatBubble) {
+                        navController.navigate("chatbot")
+                    }
+                    DrawerMenuItem("Ajustes", Icons.Default.Settings) {
+                        navController.navigate(NavRoutes.Settings.route)
+                    }
+
+                    // ✅ NUEVO: Opción de Cerrar Sesión si está logueado
+                    if (isLoggedIn) {
+                        DrawerMenuItem("Cerrar Sesión", Icons.Default.Logout) {
+                            userViewModel.logout()
+                            // Navegar al login o recargar la pantalla
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -238,17 +279,45 @@ fun HomeScreen(
                                 .clickable { },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Modo anfitrión", color = Blanco, fontSize = 17.sp) // ✅ Texto blanco
+                            Text("Modo anfitrión", color = Blanco, fontSize = 17.sp)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                    // ✅ ACTUALIZADO: Botón para compartir la app en lugar de Facebook
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .height(50.dp)
+                            .background(
+                                color = AzulPrincipal,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable {
+                                compartirApp(context)
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        SocialIcon(Icons.Default.Facebook)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = "Compartir",
+                                tint = Blanco,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Compartir la App",
+                                color = Blanco,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -327,6 +396,16 @@ fun HomeScreen(
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
 
+                    // ✅ NUEVO: Mostrar nombre de usuario en el header si está logueado
+                    if (isLoggedIn) {
+                        Text(
+                            text = "Hola, ${currentUser?.username ?: "Usuario"}",
+                            color = Blanco,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                    }
+
                     FloatingActionButton(
                         onClick = {
                             cameraPositionState.move(
@@ -345,7 +424,7 @@ fun HomeScreen(
                 }
             }
 
-            // PANEL INFERIOR DESLIZANTE
+            // PANEL INFERIOR DESLIZANTE (resto del código permanece igual)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -492,11 +571,11 @@ fun HomeScreen(
 
                             Divider(color = Color.LightGray.copy(alpha = 0.5f))
 
-                            // LISTA DE ESTACIONAMIENTOS (Nuevo Diseño)
+                            // LISTA DE ESTACIONAMIENTOS
                             LazyColumn(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .background(Color(0xFFF8F9FA)) // Fondo gris muy claro
+                                    .background(Color(0xFFF8F9FA))
                                     .padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalArrangement = Arrangement.spacedBy(24.dp),
                                 contentPadding = PaddingValues(bottom = 20.dp)
@@ -508,7 +587,6 @@ fun HomeScreen(
                                     ModernParkingCard(
                                         parkingSpot = parking,
                                         distance = calculateDistance(userLatLng.value, LatLng(parking.latitude, parking.longitude)),
-                                        // ✅ CORREGIDO: Solo usar onDetailClick para navegar al detalle
                                         onDetailClick = {
                                             onParkingClick(parking.id)
                                         }
@@ -767,6 +845,30 @@ private fun buildMarkerSnippet(spot: ParkingSpot, distance: Double): String {
     return "${spot.price} - ${spot.availableSpots} disp. - ${"%.1f".format(distance)} km"
 }
 
+// ✅ NUEVA FUNCIÓN: Para compartir la aplicación
+private fun compartirApp(context: Context) {
+    try {
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Descarga ParkeaYa")
+            putExtra(
+                Intent.EXTRA_TEXT,
+                "¡Descarga ParkeaYa! 🚗\n\n" +
+                        "La mejor app para encontrar estacionamiento fácilmente.\n\n" +
+                        "• Encuentra cocheras disponibles en tiempo real\n" +
+                        "• Reserva desde tu celular\n" +
+                        "• Precios competitivos\n" +
+                        "• Fácil de usar\n\n" +
+                        "Descárgala ahora: [https://tudominio.com/parkea-ya]"
+            )
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Compartir ParkeaYa"))
+    } catch (e: Exception) {
+        // Puedes mostrar un Toast o Snackbar si quieres
+        println("Error al compartir la app: ${e.message}")
+    }
+}
+
 @Preview
 @Composable
 fun HomeScreenPreview() {
@@ -776,6 +878,7 @@ fun HomeScreenPreview() {
         onReservationClick = { _, _, _, _ -> }
     )
 }
+
 @Composable
 fun DrawerMenuItem(
     text: String,
@@ -794,6 +897,7 @@ fun DrawerMenuItem(
         Text(text, color = GrisTexto, fontSize = 16.sp)
     }
 }
+
 @Composable
 fun SocialIcon(icon: ImageVector) {
     Surface(

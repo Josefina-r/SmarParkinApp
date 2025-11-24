@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
-import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
+import com.example.smarparkinapp.ui.theme.data.api.RegisterRequest // ✅ Usar del ApiService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -20,7 +20,6 @@ class RegisterViewModel : ViewModel() {
     private val _registeredUserId = MutableStateFlow<Int?>(null)
     val registeredUserId: StateFlow<Int?> = _registeredUserId
 
-    // ✅ CORREGIDO: Usa RetrofitInstance en lugar de ApiClient
     private val apiService = RetrofitInstance.apiService
 
     fun register(request: RegisterRequest) {

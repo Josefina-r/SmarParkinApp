@@ -118,7 +118,7 @@ fun VehicleSelectionScreen(
                                 println("🔍 [VehicleSelection] 🚗 Configurando ViewModel con vehículo...")
 
                                 // Configurar el vehículo seleccionado en el ViewModel
-                                viewModel.setSelectedVehicleFromOutside(vehicle)
+                                viewModel.selectVehicle(vehicle)
                                 println("🔍 [VehicleSelection] ✅ ViewModel configurado con: ${vehicle.plate}")
 
                                 // Navegar a la pantalla de reserva

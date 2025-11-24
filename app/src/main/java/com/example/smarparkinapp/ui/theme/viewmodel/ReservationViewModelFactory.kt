@@ -9,7 +9,8 @@ class ReservationViewModelFactory(private val context: Context) : ViewModelProvi
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ReservationViewModel::class.java)) {
-            return ReservationViewModel(context) as T
+            // ✅ CORREGIDO: Llamar al constructor vacío
+            return ReservationViewModel() as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

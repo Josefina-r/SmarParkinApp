@@ -1,5 +1,4 @@
 // data/repository/VehicleRepository.kt
-// data/repository/VehicleRepository.kt
 package com.example.smarparkinapp.data.repository
 
 import android.content.Context
@@ -7,8 +6,6 @@ import android.content.SharedPreferences
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
 import com.example.smarparkinapp.ui.theme.data.AuthManager
 import com.example.smarparkinapp.data.model.Car
-// ✅ AGREGAR ESTE IMPORT
-import com.example.smarparkinapp.ui.theme.data.model.PaginatedResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Calendar
@@ -17,8 +14,6 @@ class VehicleRepository(
     private val context: Context,
     private val apiService: ApiService
 ) {
-    // ... resto del código ...
-
     private val authManager = AuthManager(context)
     private val prefs: SharedPreferences = context.getSharedPreferences("vehicle_prefs", Context.MODE_PRIVATE)
 
@@ -28,13 +23,8 @@ class VehicleRepository(
         try {
             println("🔍 Obteniendo vehículos desde API...")
 
-            val authToken = getAuthToken()
-            if (authToken.isEmpty()) {
-                println("❌ Token vacío, no se puede obtener vehículos")
-                return@withContext Result.failure(Exception("No autenticado. Inicia sesión nuevamente."))
-            }
-
-            val response = apiService.getUserVehicles("Bearer $authToken")
+            // ✅ CORREGIDO: Quitar el parámetro de token - el interceptor lo maneja
+            val response = apiService.getUserVehicles()
 
             println("🔍 Respuesta obtener vehículos: ${response.code()} - ${response.message()}")
 
@@ -100,12 +90,6 @@ class VehicleRepository(
             println("🚗 Creando vehículo en API...")
             println("   📝 Datos: placa=$plate, marca=$brand, modelo=$model, color=$color")
 
-            val authToken = getAuthToken()
-            if (authToken.isEmpty()) {
-                println("❌ Token vacío, no se puede crear vehículo")
-                return@withContext Result.failure(Exception("No autenticado. Inicia sesión nuevamente."))
-            }
-
             // Validar formato de placa
             if (!isValidPlateFormat(plate)) {
                 return@withContext Result.failure(Exception("Formato de placa inválido. Use: ABC123 o similar"))
@@ -121,7 +105,8 @@ class VehicleRepository(
 
             println("📤 JSON enviado a API: $carRequest")
 
-            val response = apiService.addCar("Bearer $authToken", carRequest)
+            // ✅ CORREGIDO: Quitar el parámetro de token - el interceptor lo maneja
+            val response = apiService.addCar(carRequest)
 
             println("📥 Respuesta crear vehículo: ${response.code()} - ${response.message()}")
 
@@ -176,11 +161,6 @@ class VehicleRepository(
         try {
             println("🔄 Actualizando vehículo ID: ${vehicle.id}")
 
-            val authToken = getAuthToken()
-            if (authToken.isEmpty()) {
-                return@withContext Result.failure(Exception("No autenticado"))
-            }
-
             // Validar formato de placa
             if (!isValidPlateFormat(vehicle.plate)) {
                 return@withContext Result.failure(Exception("Formato de placa inválido"))
@@ -194,7 +174,8 @@ class VehicleRepository(
                 year = Calendar.getInstance().get(Calendar.YEAR)
             )
 
-            val response = apiService.updateVehicle("Bearer $authToken", vehicle.id, carRequest)
+            // ✅ CORREGIDO: Quitar el parámetro de token y pasar solo los parámetros correctos
+            val response = apiService.updateVehicle(vehicle.id, carRequest)
 
             println("🔍 Respuesta actualizar vehículo: ${response.code()} - ${response.message()}")
 
@@ -228,12 +209,8 @@ class VehicleRepository(
         try {
             println("🗑️ Eliminando vehículo ID: $vehicleId")
 
-            val authToken = getAuthToken()
-            if (authToken.isEmpty()) {
-                return@withContext Result.failure(Exception("No autenticado"))
-            }
-
-            val response = apiService.deleteVehicle("Bearer $authToken", vehicleId)
+            // ✅ CORREGIDO: Quitar el parámetro de token - el interceptor lo maneja
+            val response = apiService.deleteVehicle(vehicleId)
 
             println("🔍 Respuesta eliminar vehículo: ${response.code()} - ${response.message()}")
 
@@ -259,11 +236,6 @@ class VehicleRepository(
     suspend fun getVehicleById(vehicleId: Int): Result<Car> = withContext(Dispatchers.IO) {
         try {
             println("🔍 Buscando vehículo por ID: $vehicleId")
-
-            val authToken = getAuthToken()
-            if (authToken.isEmpty()) {
-                return@withContext Result.failure(Exception("No autenticado"))
-            }
 
             // Obtener todos los vehículos y filtrar por ID
             val vehiclesResult = getUserVehicles()
@@ -353,7 +325,7 @@ class VehicleRepository(
     }
 
     fun isUserAuthenticated(): Boolean {
-        return getAuthToken().isNotEmpty()
+        return authManager.getAuthToken() != null
     }
 
     fun clearAuthData() {
@@ -363,12 +335,6 @@ class VehicleRepository(
     }
 
     // ========== MÉTODOS PRIVADOS ==========
-
-    private fun getAuthToken(): String {
-        val token = authManager.getAuthToken() ?: ""
-        println("🔐 [VehicleRepository] Token desde AuthManager: ${if (token.isNotEmpty()) "✅ PRESENTE (${token.length} chars)" else "❌ VACÍO"}")
-        return token
-    }
 
     private fun saveDefaultVehicleId(vehicleId: Int) {
         prefs.edit().putInt("default_vehicle_id", vehicleId).apply()

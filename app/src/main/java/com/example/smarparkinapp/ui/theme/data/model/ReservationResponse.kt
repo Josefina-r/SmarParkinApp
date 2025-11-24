@@ -1,5 +1,5 @@
 // ui/theme/data/api/ReservationResponse.kt
-package com.example.smarparkinapp.ui.theme.data.api
+/*package com.example.smarparkinapp.ui.theme.data.api
 
 import com.google.gson.annotations.SerializedName
 
@@ -36,4 +36,4 @@ data class ReservationResponse(
 
     @SerializedName("updated_at")
     val updated_at: String
-)
+)*/
