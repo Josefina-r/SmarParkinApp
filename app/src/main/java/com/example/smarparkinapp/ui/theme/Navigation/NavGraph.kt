@@ -336,12 +336,11 @@ fun ProfileConditionalScreen(
             }
         )
     } else {
-        // Perfil incompleto → Mostrar formulario de completar
+
         ProfileScreen(
             onBackClick = onBackClick,
             onUpdateSuccess = {
 
-                viewModel.clearProfileData() // Limpiar para recargar
             }
         )
     }

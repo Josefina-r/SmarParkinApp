@@ -59,7 +59,7 @@ class ProfileViewModel : ViewModel() {
 
 
             try {
-                // ✅ Asegurar que el repository esté inicializado
+                //  Asegurar que el repository esté inicializado
                 initializeRepository(context)
 
                 val profile = userRepository.getUserProfile()

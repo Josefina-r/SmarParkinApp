@@ -38,7 +38,6 @@ fun ProfileOverviewScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // ✅ CORREGIDO: Solo un LaunchedEffect para cargar datos
     LaunchedEffect(Unit) {
         viewModel.loadUserProfile(context)
     }

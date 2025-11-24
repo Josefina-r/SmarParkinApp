@@ -29,7 +29,7 @@ interface ApiService {
     @POST("api/users/auth/register/client/")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
 
-    @POST("api/password/reset/")
+    @POST("api/users/password/reset/")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
 
     // ESTACIONAMIENTOS - CORREGIDO
@@ -126,7 +126,7 @@ interface ApiService {
     @GET("api/users/profile/")
     suspend fun getUserProfile(): Response<UserProfileResponse>
 
-    @PUT("api/profile/update/")
+    @PUT("api/users/profile/update/")
     suspend fun updateUserProfile(@Body request: UpdateProfileRequest): Response<UserProfileResponse>
 
     @GET("api/users/profile/")
