@@ -1,4 +1,3 @@
-// ui/theme/viewmodel/ReservationViewModel.kt
 package com.example.smarparkinapp.ui.theme.viewmodel
 
 import androidx.compose.runtime.getValue
@@ -6,348 +5,259 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smarparkinapp.data.model.Car
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
+import com.example.smarparkinapp.ui.theme.data.repository.ReservationRepository
+import com.example.smarparkinapp.ui.theme.data.repository.VehicleRepository
+import com.example.smarparkinapp.ui.theme.data.repository.ParkingRepository
+import com.example.smarparkinapp.ui.theme.data.model.Car
+import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
+import com.example.smarparkinapp.ui.theme.data.model.Payment
+import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class ReservationViewModel : ViewModel() {
+class ReservationViewModel(
+    private val reservationRepository: ReservationRepository,
+    private val vehicleRepository: VehicleRepository,
+    private val parkingRepository: ParkingRepository
+) : ViewModel() {
 
-    // ========== ESTADOS DEL VIEWMODEL ==========
-    var selectedParking by mutableStateOf<ParkingLot?>(null)
-    // ELIMINADO: private set - ahora será público para poder asignarlo directamente
+    // ================== ESTADOS UI ==================
+    private var _selectedParking by mutableStateOf<ParkingLot?>(null)
+    val selectedParking: ParkingLot? get() = _selectedParking
 
-    var selectedVehicle by mutableStateOf<Car?>(null)
-        private set
+    private var _selectedVehicle by mutableStateOf<Car?>(null)
+    val selectedVehicle: Car? get() = _selectedVehicle
 
-    // Estados de reserva
-    var reservationDate by mutableStateOf("")
-    var reservationStartTime by mutableStateOf("")
-    var reservationEndTime by mutableStateOf("")
-    var reservationType by mutableStateOf("hora") // "hora" o "dia"
+    private var _reservationDate by mutableStateOf("")
+    val reservationDate: String get() = _reservationDate
 
-    // Estados de pago
-    var selectedPaymentMethod by mutableStateOf<String?>(null)
-        private set
+    private var _reservationStartTime by mutableStateOf("")
+    val reservationStartTime: String get() = _reservationStartTime
 
-    // Estados de UI
+    private var _reservationEndTime by mutableStateOf("")
+    val reservationEndTime: String get() = _reservationEndTime
+
+    private var _reservationType by mutableStateOf("hora")
+    val reservationType: String get() = _reservationType
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _createdReservation = MutableStateFlow<Map<String, Any>?>(null)
-    val createdReservation: StateFlow<Map<String, Any>?> = _createdReservation.asStateFlow()
-
-    private val _paymentStatus = MutableStateFlow<String?>(null)
-    val paymentStatus: StateFlow<String?> = _paymentStatus.asStateFlow()
-
-    // Lista de vehículos
     private val _vehicles = MutableStateFlow<List<Car>>(emptyList())
     val vehicles: StateFlow<List<Car>> = _vehicles.asStateFlow()
 
-    // Métodos de pago disponibles - SIMPLIFICADO para Yape y Plin como en tu backend
-    val availablePaymentMethods = listOf("Yape", "Plin")
+    private val _createdReservation = MutableStateFlow<ReservationResponse?>(null)
+    val createdReservation: StateFlow<ReservationResponse?> = _createdReservation.asStateFlow()
 
-    // ========== FUNCIONES PARA EL ADD VEHICLE DIALOG ==========
-    var showAddVehicleDialog by mutableStateOf(false)
-    var vehicleBrand by mutableStateOf("")
-    var vehicleModel by mutableStateOf("")
-    var vehicleColor by mutableStateOf("")
-    var vehiclePlate by mutableStateOf("")
+    private val _createdPayment = MutableStateFlow<Payment?>(null)
+    val createdPayment: StateFlow<Payment?> = _createdPayment.asStateFlow()
 
-    // ========== FUNCIONES PRINCIPALES ==========
+    private val _userReservations = MutableStateFlow<List<ReservationResponse>>(emptyList())
+    val userReservations: StateFlow<List<ReservationResponse>> = _userReservations.asStateFlow()
 
-    // ELIMINADA: fun setSelectedParking(parking: ParkingLot) - ya no es necesaria
-    // Ahora se puede asignar directamente: viewModel.selectedParking = parking
-
-    fun selectVehicle(vehicle: Car) {
-        selectedVehicle = vehicle
+    // ================== SETTERS ==================
+    fun setSelectedVehicle(vehicle: Car) {
+        _selectedVehicle = vehicle
     }
 
-    fun updateReservationDate(date: String) {
-        reservationDate = date
+    fun setReservationDate(date: String) {
+        _reservationDate = date
     }
 
-    fun updateReservationStartTime(time: String) {
-        reservationStartTime = time
+    fun setReservationStartTime(time: String) {
+        _reservationStartTime = time
     }
 
-    fun updateReservationEndTime(time: String) {
-        reservationEndTime = time
+    fun setReservationEndTime(time: String) {
+        _reservationEndTime = time
     }
 
-    fun updateReservationType(type: String) {
-        reservationType = type
+    fun setReservationType(type: String) {
+        _reservationType = type
     }
 
-    fun selectPaymentMethod(method: String) {
-        selectedPaymentMethod = method
+    fun setSelectedParking(parking: ParkingLot) {
+        _selectedParking = parking
+        println(" [ReservationViewModel] Parking establecido: ${parking.nombre} - Precio: S/ ${parking.tarifa_hora}")
     }
 
-    // ========== VALIDACIONES ==========
-
-    fun validateReservationForm(): Boolean {
-        return selectedVehicle != null &&
-                reservationDate.isNotEmpty() &&
-                reservationStartTime.isNotEmpty() &&
-                reservationEndTime.isNotEmpty() &&
-                reservationStartTime < reservationEndTime
-    }
-
-    // ========== CÁLCULO DE PRECIO ==========
-
-    fun getReservationPrice(): Double {
-        selectedParking?.let { parking ->
-            val basePrice = parking.tarifa_hora ?: 5.0
-
-            return when (reservationType) {
-                "hora" -> {
-                    val hours = calculateHoursBetween(reservationStartTime, reservationEndTime)
-                    basePrice * hours
-                }
-                "dia" -> basePrice * 8
-                else -> basePrice * 2
-            }
-        }
-        return 0.0
-    }
-
-    private fun calculateHoursBetween(start: String, end: String): Double {
-        return try {
-            val startParts = start.split(":")
-            val endParts = end.split(":")
-            val startHour = startParts[0].toDouble() + startParts[1].toDouble() / 60.0
-            val endHour = endParts[0].toDouble() + endParts[1].toDouble() / 60.0
-            if (endHour > startHour) endHour - startHour else (24 - startHour) + endHour
-        } catch (e: Exception) {
-            2.0
-        }
-    }
-
-    // ========== PROCESAMIENTO DE PAGO - ACTUALIZADO PARA TU BACKEND ==========
-
-    fun processPayment() {
-        if (selectedPaymentMethod == null) {
-            _error.value = "Selecciona un método de pago"
-            return
-        }
-
-        if (!validateReservationForm()) {
-            _error.value = "Completa todos los campos de la reserva"
-            return
-        }
-
+    // ================== CARGAR DATOS ==================
+    fun loadParkingById(parkingId: Long) {
         viewModelScope.launch {
             _isLoading.value = true
-            _paymentStatus.value = "Procesando pago..."
-
             try {
-                // Simular procesamiento según tu backend Django
-                kotlinx.coroutines.delay(2000)
-
-                // Crear objeto de reserva simulado
-                val reservation = createReservationObject()
-                _createdReservation.value = reservation
-
-                // Simular el estado de pago según tu backend
-                when (selectedPaymentMethod?.lowercase()) {
-                    "yape", "plin" -> {
-                        // Para Yape/Plin, el pago queda pendiente
-                        _paymentStatus.value = "Pago pendiente - Verificando..."
-
-                        // Simular verificación periódica como en tu backend
-                        kotlinx.coroutines.delay(3000)
-                        _paymentStatus.value = "Pago confirmado ✅"
+                when (val result = parkingRepository.getParkingById(parkingId)) {
+                    is com.example.smarparkinapp.ui.theme.data.repository.Result.Success -> {
+                        _selectedParking = result.data
+                        println(" [ReservationViewModel] Parking cargado: ${result.data.nombre} - Precio: S/ ${result.data.tarifa_hora}")
+                    }
+                    is com.example.smarparkinapp.ui.theme.data.repository.Result.Error -> {
+                        _error.value = "Error cargando estacionamiento: ${result.message}"
+                        println(" [ReservationViewModel] Error: ${result.message}")
                     }
                     else -> {
-                        _paymentStatus.value = "Pago procesado exitosamente ✅"
+                        _error.value = "Error desconocido"
                     }
                 }
-
             } catch (e: Exception) {
-                _error.value = "Error al procesar el pago: ${e.message}"
-                _paymentStatus.value = "Error en el pago"
+                _error.value = "Error: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
-
-    private fun createReservationObject(): Map<String, Any> {
-        val totalPrice = getReservationPrice()
-
-        // CORREGIDO: Crear el mapa explícitamente sin valores nulos problemáticos
-        val reservationMap = mutableMapOf<String, Any>()
-
-        reservationMap["id"] = System.currentTimeMillis()
-        reservationMap["codigo"] = "RES${System.currentTimeMillis()}"
-
-        // Información del parking - manejar valores nulos explícitamente
-        val parkingInfo = mutableMapOf<String, Any?>()
-        parkingInfo["id"] = selectedParking?.id
-        parkingInfo["nombre"] = selectedParking?.nombre ?: ""
-        parkingInfo["direccion"] = selectedParking?.direccion ?: ""
-        parkingInfo["tarifa_hora"] = selectedParking?.tarifa_hora ?: 0.0
-
-        // Convertir a Map<String, Any> eliminando valores nulos
-        reservationMap["parking"] = parkingInfo.mapValues { (_, value) ->
-            value ?: "" // Reemplazar null con string vacío o valor por defecto
-        }
-
-        // Información del vehículo - manejar valores nulos explícitamente
-        val vehicleInfo = mutableMapOf<String, Any?>()
-        vehicleInfo["id"] = selectedVehicle?.id
-        vehicleInfo["plate"] = selectedVehicle?.plate ?: ""
-        vehicleInfo["brand"] = selectedVehicle?.brand ?: ""
-        vehicleInfo["model"] = selectedVehicle?.model ?: ""
-
-        reservationMap["vehicle"] = vehicleInfo.mapValues { (_, value) ->
-            value ?: "" // Reemplazar null con string vacío
-        }
-
-        // Información básica de la reserva
-        reservationMap["fecha"] = reservationDate
-        reservationMap["hora_inicio"] = "$reservationDate $reservationStartTime:00"
-        reservationMap["hora_fin"] = "$reservationDate $reservationEndTime:00"
-        reservationMap["tipo"] = reservationType
-        reservationMap["estado"] = "pendiente"
-        reservationMap["costo_estimado"] = totalPrice
-        reservationMap["metodo_pago"] = selectedPaymentMethod ?: ""
-        reservationMap["fecha_creacion"] = System.currentTimeMillis().toString()
-        reservationMap["payment_status"] = "pending"
-
-        return reservationMap
-    }
-
-    // ========== GESTIÓN DE VEHÍCULOS ==========
 
     fun loadUserVehicles() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Simular carga de vehículos
-                kotlinx.coroutines.delay(500)
-
-                // Vehículos de ejemplo - CORREGIDO: usar solo campos existentes
-                val sampleVehicles = listOf(
-                    Car(
-                        id = 1,
-                        plate = "ABC123",
-                        brand = "Toyota",
-                        model = "Corolla",
-                        color = "Blanco",
-                        active = true
-                    ),
-                    Car(
-                        id = 2,
-                        plate = "XYZ789",
-                        brand = "Honda",
-                        model = "Civic",
-                        color = "Negro",
-                        active = true
-                    )
-                )
-
-                _vehicles.value = sampleVehicles
-
+                vehicleRepository.getUserVehicles().onSuccess {
+                    _vehicles.value = it
+                }.onFailure {
+                    _error.value = "Error cargando vehículos"
+                }
             } catch (e: Exception) {
-                _error.value = "Error al cargar vehículos"
+                _error.value = "Error cargando vehículos: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    // Funciones para el diálogo de agregar vehículo
-    fun showAddVehicleForm() {
-        showAddVehicleDialog = true
-    }
-
-    fun hideAddVehicleForm() {
-        showAddVehicleDialog = false
-        clearVehicleForm()
-    }
-
-    fun saveNewVehicleAndNavigate() {
-        if (vehicleBrand.isEmpty() || vehicleModel.isEmpty() ||
-            vehicleColor.isEmpty() || vehiclePlate.isEmpty()) {
-            _error.value = "Todos los campos son obligatorios"
-            return
+    fun addVehicle(
+        plate: String,
+        brand: String,
+        model: String,
+        color: String,
+        onSuccess: (Car) -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                vehicleRepository.createVehicle(plate, brand, model, color).onSuccess { car ->
+                    println(" [ReservationViewModel] Vehículo agregado exitosamente: ${car.plate}")
+                    loadUserVehicles()
+                    onSuccess(car)
+                }.onFailure { exception ->
+                    println("❌ [ReservationViewModel] Error agregando vehículo: ${exception.message}")
+                    _error.value = exception.message
+                    onError(exception.message ?: "Error desconocido")
+                }
+            } catch (e: Exception) {
+                println(" [ReservationViewModel] Exception agregando vehículo: ${e.message}")
+                _error.value = e.message
+                onError(e.message ?: "Error desconocido")
+            } finally {
+                _isLoading.value = false
+            }
         }
+    }
+    fun createReservation(onSuccess: (ReservationResponse) -> Unit = {}) {
+        val parkingId = _selectedParking?.id ?: return
+        val vehicleId = _selectedVehicle?.id ?: return
+
+        val start = "$_reservationDate ${_reservationStartTime}:00"
+        val end = "$_reservationDate ${_reservationEndTime}:00"
+        val durationMinutes = calculateDurationMinutes()
 
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Simular guardado
-                kotlinx.coroutines.delay(1000)
-
-                val newVehicle = Car(
-                    id = (_vehicles.value.maxByOrNull { it.id }?.id ?: 0) + 1,
-                    plate = vehiclePlate,
-                    brand = vehicleBrand,
-                    model = vehicleModel,
-                    color = vehicleColor,
-                    active = true
+                val request = ReservationRequest(
+                    estacionamientoId = parkingId,
+                    vehiculoId = vehicleId,
+                    horaEntrada = start,
+                    horaSalida = end,
+                    tipoReserva = _reservationType,
+                    duracionMinutos = durationMinutes
                 )
 
-                _vehicles.value = _vehicles.value + newVehicle
-                selectVehicle(newVehicle)
-                hideAddVehicleForm()
-
+                reservationRepository.createReservation(request).onSuccess { reservation ->
+                    _createdReservation.value = reservation
+                    onSuccess(reservation)
+                }.onFailure {
+                    _error.value = "Error creando reserva"
+                }
             } catch (e: Exception) {
-                _error.value = "Error al guardar vehículo"
+                _error.value = "Error creando reserva: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    private fun clearVehicleForm() {
-        vehicleBrand = ""
-        vehicleModel = ""
-        vehicleColor = ""
-        vehiclePlate = ""
-    }
+    // ================== PAGO ==================
+    fun createPayment(metodo: String, onSuccess: (Payment) -> Unit = {}) {
+        val reservation = _createdReservation.value ?: return
 
-    // ========== FUNCIONES ESPECÍFICAS PARA PAGOS ==========
-
-    fun simulatePaymentVerification() {
         viewModelScope.launch {
-            _paymentStatus.value = "Verificando pago..."
-            kotlinx.coroutines.delay(2000)
-            _paymentStatus.value = "Pago verificado exitosamente ✅"
+            _isLoading.value = true
+            try {
+                reservationRepository.createPayment(reservation.id, metodo)
+                    .onSuccess { payment ->
+                        _createdPayment.value = payment
+                        onSuccess(payment)
+                    }.onFailure {
+                        _error.value = "Error creando pago"
+                    }
+            } catch (e: Exception) {
+                _error.value = "Error creando pago: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    fun simulatePaymentRefund() {
+    // ================== OBTENER RESERVAS ==================
+    fun loadUserReservations() {
         viewModelScope.launch {
-            _paymentStatus.value = "Procesando reembolso..."
-            kotlinx.coroutines.delay(1500)
-            _paymentStatus.value = "Reembolso completado ✅"
+            _isLoading.value = true
+            try {
+                reservationRepository.getMyReservations().onSuccess {
+                    _userReservations.value = it
+                }.onFailure {
+                    _error.value = "Error cargando reservas"
+                }
+            } catch (e: Exception) {
+                _error.value = "Error cargando reservas: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    // ========== UTILIDADES ==========
+    // ================== UTILIDAD ==================
+    private fun calculateDurationMinutes(): Int {
+        return try {
+            val startDateTime = "$_reservationDate $_reservationStartTime:00"
+            val endDateTime = "$_reservationDate $_reservationEndTime:00"
+            val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            val start = format.parse(startDateTime)
+            val end = format.parse(endDateTime)
+            if (start != null && end != null) {
+                ((end.time - start.time) / (1000 * 60)).toInt()
+            } else {
+                60
+            }
+        } catch (e: Exception) {
+            60
+        }
+    }
 
     fun clearError() {
         _error.value = null
     }
 
-    fun clearPaymentStatus() {
-        _paymentStatus.value = null
-    }
-
-    fun clearCreatedReservation() {
+    fun clearData() {
         _createdReservation.value = null
-    }
-
-    // ========== INICIALIZACIÓN ==========
-
-    init {
-        loadUserVehicles()
+        _createdPayment.value = null
     }
 }

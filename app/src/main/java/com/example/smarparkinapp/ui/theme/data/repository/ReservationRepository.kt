@@ -1,12 +1,18 @@
-// data/repository/ReservationRepository.kt
-package com.example.smarparkinapp.data.repository
+package com.example.smarparkinapp.ui.theme.data.repository
 
 import android.content.Context
+import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
 import com.example.smarparkinapp.ui.theme.data.api.GenericResponse
-import com.example.smarparkinapp.ui.theme.data.api.ReservationResponse
+import com.example.smarparkinapp.ui.theme.data.model.Reservation
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
+import com.example.smarparkinapp.ui.theme.data.model.*
+import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
+import com.example.smarparkinapp.ui.theme.data.model.TicketResponse
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.Result
+
 
 class ReservationRepository(private val context: Context) {
 
@@ -14,159 +20,191 @@ class ReservationRepository(private val context: Context) {
         RetrofitInstance.getAuthenticatedApiService(context)
     }
 
-    suspend fun createReservation(
-        parkingId: Long,
-        vehicleId: Int,
-        horaInicio: String,
-        horaFin: String,
-        tipo: String = "normal"
-    ): Result<ReservationResponse> {
+
+
+    suspend fun createReservation(request: ReservationRequest): Result<ReservationResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                println("🔍 [ReservationRepository] Creando reserva...")
-                println("   🅿️ Parking ID: $parkingId")
-                println("   🚗 Vehicle ID: $vehicleId")
-                println("   ⏰ Inicio: $horaInicio")
-                println("   ⏰ Fin: $horaFin")
-                println("   📋 Tipo: $tipo")
+                println("📱 Creando reserva...")
+                println("🔍 Request: $request")
 
-                // Crear el mapa correctamente - ESTO ES LO QUE ESPERA TU API SERVICE
-                val request = mapOf(
-                    "estacionamiento" to parkingId,
-                    "vehiculo" to vehicleId,
-                    "hora_entrada" to horaInicio,
-                    "hora_salida" to horaFin,
-                    "tipo" to tipo
-                )
-
-                println("📤 [ReservationRepository] Enviando reserva a API...")
-                println("   📦 Request: $request")
-
-                // CORREGIDO: Quitar el parámetro "Bearer $token" - el interceptor lo maneja
                 val response = apiService.createReservation(request)
 
-                if (response.isSuccessful && response.body() != null) {
-                    val reservation = response.body()!!
-                    println("✅ [ReservationRepository] Reserva creada exitosamente:")
-                    println("   🆔 ID: ${reservation.id}")
-                    println("   📋 Código: ${reservation.codigo_reserva}")
-                    println("   🏢 Parking: ${reservation.estacionamiento?.nombre}")
-                    println("   🚗 Vehículo: ${reservation.vehiculo?.placa}")
-                    println("   💰 Costo: ${reservation.costo_estimado}")
+                println("📥 Response: ${response.code()} - ${response.message()}")
 
-                    Result.success(reservation)
-                } else {
-                    val errorCode = response.code()
-                    val errorBody = response.errorBody()?.string() ?: "Unknown error"
-                    println("❌ [ReservationRepository] Error HTTP $errorCode: $errorBody")
-
-                    val errorMessage = when (errorCode) {
-                        400 -> "Datos de reserva inválidos"
-                        401 -> "No autorizado - token inválido"
-                        403 -> "No tienes permisos para crear reservas"
-                        404 -> "Estacionamiento o vehículo no encontrado"
-                        else -> "Error del servidor: $errorCode"
+                if (response.isSuccessful) {
+                    val reservation = response.body()
+                    if (reservation != null) {
+                        println("✅ Reserva creada exitosamente:")
+                        println("   📋 Código: ${reservation.codigoReserva}")
+                        println("   💰 Costo: ${reservation.costoEstimado}")
+                        println("   📍 Estado: ${reservation.estado}")
+                        println("   🚗 Vehículo: ${reservation.vehiculo?.placa}")
+                        println("   🅿️ Estacionamiento: ${reservation.estacionamiento?.nombre}")
+                        Result.success(reservation)
+                    } else {
+                        println("❌ Respuesta vacía del servidor")
+                        Result.failure(Exception("Respuesta vacía del servidor"))
                     }
-
-                    Result.failure(Exception(errorMessage))
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                    println("❌ Error API: $errorBody")
+                    Result.failure(Exception("Error ${response.code()}: $errorBody"))
                 }
             } catch (e: Exception) {
-                println("❌ [ReservationRepository] Exception: ${e.message}")
-                e.printStackTrace()
+                println("❌ Exception: ${e.message}")
                 Result.failure(Exception("Error de conexión: ${e.message}"))
             }
         }
     }
 
-    suspend fun getMyReservations(): Result<List<ReservationResponse>> {
-        return withContext(Dispatchers.IO) {
-            try {
-                println("🔍 [ReservationRepository] Obteniendo mis reservas...")
+    suspend fun getMyReservations(): Result<List<ReservationResponse>> = withContext(Dispatchers.IO) {
+        try {
+            println("📱 Obteniendo mis reservas...")
+            val response = apiService.getMyReservations()
 
-                // CORREGIDO: Quitar el parámetro de token
-                val response = apiService.getMyReservations()
-
-                if (response.isSuccessful && response.body() != null) {
-                    val reservations = response.body()!!
-                    println("✅ [ReservationRepository] ${reservations.size} reservas obtenidas")
-                    Result.success(reservations)
-                } else {
-                    val errorCode = response.code()
-                    Result.failure(Exception("Error al obtener reservas: $errorCode"))
-                }
-            } catch (e: Exception) {
-                println("❌ [ReservationRepository] Error obteniendo reservas: ${e.message}")
-                Result.failure(Exception("Error al obtener reservas: ${e.message}"))
+            if (response.isSuccessful) {
+                val reservations = response.body() ?: emptyList()
+                println("✅ Reservas obtenidas: ${reservations.size}")
+                Result.success(reservations)
+            } else {
+                println("❌ Error obteniendo reservas: ${response.code()}")
+                Result.failure(Exception("Error al obtener reservas: ${response.code()}"))
             }
+        } catch (e: Exception) {
+            println("❌ Exception: ${e.message}")
+            Result.failure(Exception("Error: ${e.message}"))
         }
     }
 
-    suspend fun cancelReservation(codigo: String): Result<GenericResponse> {
-        return withContext(Dispatchers.IO) {
-            try {
-                println("🔍 [ReservationRepository] Cancelando reserva: $codigo")
+    suspend fun cancelReservation(codigo: String): Result<GenericResponse> = withContext(Dispatchers.IO) {
+        try {
+            println("📱 Cancelando reserva: $codigo")
+            val response = apiService.cancelReservation(codigo)
 
-                // CORREGIDO: Quitar el parámetro de token
-                val response = apiService.cancelReservation(codigo)
-
-                if (response.isSuccessful && response.body() != null) {
-                    val result = response.body()!!
-                    println("✅ [ReservationRepository] Reserva cancelada: ${result.detail}")
-                    Result.success(result)
-                } else {
-                    val errorCode = response.code()
-                    Result.failure(Exception("Error al cancelar reserva: $errorCode"))
-                }
-            } catch (e: Exception) {
-                println("❌ [ReservationRepository] Error cancelando reserva: ${e.message}")
-                Result.failure(Exception("Error al cancelar reserva: ${e.message}"))
+            if (response.isSuccessful) {
+                val result = response.body() ?: GenericResponse("Cancelado")
+                println("✅ Reserva cancelada: $codigo")
+                Result.success(result)
+            } else {
+                println("❌ Error cancelando: ${response.code()}")
+                Result.failure(Exception("Error al cancelar reserva"))
             }
+        } catch (e: Exception) {
+            println("❌ Exception: ${e.message}")
+            Result.failure(Exception("Error: ${e.message}"))
         }
     }
 
-    suspend fun getActiveReservations(): Result<List<ReservationResponse>> {
-        return withContext(Dispatchers.IO) {
-            try {
-                println("🔍 [ReservationRepository] Obteniendo reservas activas...")
+    suspend fun getActiveReservations(): Result<List<ReservationResponse>> = withContext(Dispatchers.IO) {
+        try {
+            println("📱 Obteniendo reservas activas...")
+            val response = apiService.getActiveReservations()
 
-                val response = apiService.getActiveReservations()
-
-                if (response.isSuccessful && response.body() != null) {
-                    val reservations = response.body()!!
-                    println("✅ [ReservationRepository] ${reservations.size} reservas activas obtenidas")
-                    Result.success(reservations)
-                } else {
-                    Result.failure(Exception("Error al obtener reservas activas"))
-                }
-            } catch (e: Exception) {
-                println("❌ [ReservationRepository] Error obteniendo reservas activas: ${e.message}")
+            if (response.isSuccessful) {
+                val reservations = response.body() ?: emptyList()
+                println("✅ Reservas activas: ${reservations.size}")
+                Result.success(reservations)
+            } else {
+                println("❌ Error obteniendo reservas activas")
                 Result.failure(Exception("Error al obtener reservas activas"))
             }
+        } catch (e: Exception) {
+            println("❌ Exception: ${e.message}")
+            Result.failure(Exception("Error: ${e.message}"))
         }
     }
 
-    suspend fun extendReservation(codigo: String, minutosExtras: Int): Result<GenericResponse> {
+    // ================== PAGOS ==================
+    suspend fun createPayment(reservationId: Long, metodo: String): Result<Payment> {
         return withContext(Dispatchers.IO) {
             try {
-                println("🔍 [ReservationRepository] Extendiendo reserva: $codigo por $minutosExtras minutos")
-
+                println("📱 Creando pago para reserva: $reservationId")
                 val request = mapOf(
-                    "minutos_extra" to minutosExtras
+                    "reserva" to reservationId,
+                    "metodo" to metodo
                 )
 
-                val response = apiService.extendReservation(codigo, request)
+                val response = apiService.createPayment(request)
 
-                if (response.isSuccessful && response.body() != null) {
-                    val result = response.body()!!
-                    println("✅ [ReservationRepository] Reserva extendida: ${result.detail}")
-                    Result.success(result)
+                if (response.isSuccessful) {
+                    val payment = response.body()
+                    if (payment != null) {
+                        println("✅ Pago creado:")
+                        println("   💳 Referencia: ${payment.referenciaPago}")
+                        println("   💰 Monto: ${payment.monto}")
+                        println("   📍 Estado: ${payment.estado}")
+                        Result.success(payment)
+                    } else {
+                        Result.failure(Exception("Respuesta vacía del servidor"))
+                    }
                 } else {
-                    Result.failure(Exception("Error al extender reserva"))
+                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                    Result.failure(Exception("Error creando pago: $errorBody"))
                 }
             } catch (e: Exception) {
-                println("❌ [ReservationRepository] Error extendiendo reserva: ${e.message}")
-                Result.failure(Exception("Error al extender reserva"))
+                Result.failure(Exception("Error: ${e.message}"))
             }
+        }
+    }
+
+    suspend fun processPayment(paymentId: String): Result<Payment> = withContext(Dispatchers.IO) {
+        try {
+            println("📱 Procesando pago: $paymentId")
+            val response = apiService.processPayment(paymentId)
+
+            if (response.isSuccessful) {
+                val payment = response.body()
+                if (payment != null) {
+                    println("✅ Pago procesado: ${payment.estado}")
+                    Result.success(payment)
+                } else {
+                    Result.failure(Exception("Respuesta vacía del servidor"))
+                }
+            } else {
+                Result.failure(Exception("Error procesando pago"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Error: ${e.message}"))
+        }
+    }
+
+    // ================== TICKETS ==================
+    suspend fun getTicketByReservation(reservationId: Long): Result<TicketResponse> = withContext(Dispatchers.IO) {
+        try {
+            println("📱 Obteniendo ticket para reserva: $reservationId")
+            val response = apiService.getTicketByReservation(reservationId)
+
+            if (response.isSuccessful) {
+                val ticket = response.body()
+                if (ticket != null) {
+                    println("✅ Ticket obtenido: ${ticket.codigoTicket}")
+                    Result.success(ticket)
+                } else {
+                    Result.failure(Exception("No se encontró ticket"))
+                }
+            } else {
+                Result.failure(Exception("Error obteniendo ticket"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Error: ${e.message}"))
+        }
+    }
+
+    suspend fun getValidTickets(): Result<List<TicketResponse>> = withContext(Dispatchers.IO) {
+        try {
+            println("📱 Obteniendo tickets válidos...")
+            val response = apiService.getValidTickets()
+
+            if (response.isSuccessful) {
+                val tickets = response.body() ?: emptyList()
+                println("✅ Tickets válidos: ${tickets.size}")
+                Result.success(tickets)
+            } else {
+                Result.failure(Exception("Error obteniendo tickets"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Error: ${e.message}"))
         }
     }
 }

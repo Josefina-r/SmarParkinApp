@@ -43,7 +43,7 @@ fun HistoryScreen(
     var showOptionsMenu by remember { mutableStateOf(false) }
 
     val navigateToParkingDetail = { reserva: ReservaHistorial ->
-        navController?.navigate(NavRoutes.ParkingDetail.createRoute(reserva.id.toInt())) {
+        navController?.navigate(NavRoutes.ParkingDetail.createRoute(reserva.id.toLong())) {
             launchSingleTop = true
         }
     }

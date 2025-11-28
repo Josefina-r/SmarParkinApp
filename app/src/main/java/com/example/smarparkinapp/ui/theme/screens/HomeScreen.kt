@@ -55,7 +55,7 @@ import kotlin.math.*
 fun HomeScreen(
     navController: NavHostController,
     onParkingClick: (Int) -> Unit,
-    onReservationClick: (parkingName: String, plate: String, duration: Int, total: Double) -> Unit
+    onReservationClick: (Long) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -63,7 +63,7 @@ fun HomeScreen(
         factory = HomeViewModelFactory(context.applicationContext)
     )
 
-    // ✅ NUEVO: UserViewModel para obtener el usuario logueado
+    // UserViewModel para obtener el usuario logueado
     val userViewModel: UserViewModel = viewModel(
         factory = UserViewModelFactory(context)
     )
@@ -77,7 +77,7 @@ fun HomeScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // ✅ NUEVO: Observar el estado del usuario
+    // Observar el estado del usuario
     val currentUser by userViewModel.currentUser.collectAsState()
     val isLoggedIn by userViewModel.isLoggedIn.collectAsState()
 
@@ -157,7 +157,7 @@ fun HomeScreen(
                                 fontSize = 14.sp
                             )
 
-                            // ✅ ACTUALIZADO: Mostrar nombre del usuario logueado o "Invitado"
+                            //  Mostrar nombre del usuario logueado o "Invitado"
                             Text(
                                 if (isLoggedIn) {
                                     currentUser?.let { user ->
@@ -232,7 +232,7 @@ fun HomeScreen(
                     DrawerMenuItem("Reservas", Icons.Default.DateRange) { navController.navigate("reservas") }
                     DrawerMenuItem("Mensajes", Icons.Default.Mail) {}
 
-                    // ✅ ACTUALIZADO: Cambiado de "ParkGO saldo" a "Parkea Ya saldo"
+                    // Cambiado de "ParkGO saldo" a "Parkea Ya saldo"
                     DrawerMenuItem("Parkea Ya saldo", Icons.Default.AccountBalanceWallet) {}
 
                     DrawerMenuItem("Soporte", Icons.Default.ChatBubble) {
@@ -242,7 +242,7 @@ fun HomeScreen(
                         navController.navigate(NavRoutes.Settings.route)
                     }
 
-                    // ✅ NUEVO: Opción de Cerrar Sesión si está logueado
+                    //  Opción de Cerrar Sesión si está logueado
                     if (isLoggedIn) {
                         DrawerMenuItem("Cerrar Sesión", Icons.Default.Logout) {
                             userViewModel.logout()
@@ -287,7 +287,7 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // ✅ ACTUALIZADO: Botón para compartir la app en lugar de Facebook
+                    //  Botón para compartir la app en lugar de Facebook
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -398,7 +398,7 @@ fun HomeScreen(
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
 
-                    // ✅ NUEVO: Mostrar nombre de usuario en el header si está logueado
+                    // Mostrar nombre de usuario en el header si está logueado
                     if (isLoggedIn) {
                         Text(
                             text = "Hola, ${currentUser?.username ?: "Usuario"}",
@@ -613,7 +613,7 @@ fun HomeScreen(
 fun ModernParkingCard(
     parkingSpot: ParkingSpot,
     distance: Double,
-    onDetailClick: () -> Unit // ✅ CORREGIDO: Solo un parámetro para navegación
+    onDetailClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -877,7 +877,7 @@ fun HomeScreenPreview() {
     HomeScreen(
         navController = androidx.navigation.compose.rememberNavController(),
         onParkingClick = { },
-        onReservationClick = { _, _, _, _ -> }
+        onReservationClick = {  }
     )
 }
 

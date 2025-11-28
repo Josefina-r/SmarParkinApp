@@ -1,11 +1,18 @@
-/*package com.example.smarparkinapp.ui.theme.data.model
+
+package com.example.smarparkinapp.ui.theme.data.model
+
+import com.google.gson.annotations.SerializedName
 
 data class CarRequest(
+    @SerializedName("placa")
     val placa: String,
-    val modelo: String,
-    val tipo: String,
-    val color: String,
-    val brand: String,
-    val paymentMethod: String
 
-)*/
+    @SerializedName("marca")
+    val marca: String,
+
+    @SerializedName("modelo")
+    val modelo: String,
+
+    @SerializedName("color")
+    val color: String
+)

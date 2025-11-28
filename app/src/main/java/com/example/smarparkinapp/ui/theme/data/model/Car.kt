@@ -1,5 +1,4 @@
-// data/model/Car.kt
-package com.example.smarparkinapp.data.model
+package com.example.smarparkinapp.ui.theme.data.model
 
 import com.google.gson.annotations.SerializedName
 

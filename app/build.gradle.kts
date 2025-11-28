@@ -80,6 +80,7 @@ dependencies {
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.4")
+    implementation("androidx.activity:activity:1.6.0-alpha05")
 
     // ViewModel & Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
@@ -105,6 +106,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.compose.runtime)
 
     // Testing
     testImplementation("junit:junit:4.13.2")

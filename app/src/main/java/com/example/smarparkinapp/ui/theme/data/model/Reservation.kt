@@ -1,4 +1,5 @@
-package com.example.smarparkinapp.data.model
+package com.example.smarparkinapp.ui.theme.data.model
+
 
 import com.google.gson.annotations.SerializedName
 
@@ -6,65 +7,58 @@ data class Reservation(
     @SerializedName("id")
     val id: Long = 0,
 
-    @SerializedName("codigo")
-    val codigo: String = "",
+    @SerializedName("codigo_reserva")
+    val codigoReserva: String = "",
 
-    @SerializedName("estacionamiento")
-    val parking: ParkingShort? = null,
+    @SerializedName("usuario")
+    val usuario: UserShort? = null,
 
     @SerializedName("vehiculo")
-    val vehicle: VehicleShort? = null,
+    val vehiculo: VehicleShort? = null,
 
-    @SerializedName("fecha")
-    val fecha: String = "",
+    @SerializedName("estacionamiento")
+    val estacionamiento: ParkingShort? = null,
 
     @SerializedName("hora_entrada")
-    val horaInicio: String = "",
+    val horaEntrada: String = "",
 
     @SerializedName("hora_salida")
-    val horaFin: String = "",
+    val horaSalida: String = "",
 
-    @SerializedName("tipo")
-    val tipo: String = "normal",
+    @SerializedName("duracion_minutos")
+    val duracionMinutos: Int = 0,
+
+    @SerializedName("costo_estimado")
+    val costoEstimado: Double = 0.0,
 
     @SerializedName("estado")
-    val estado: String = "pendiente",
+    val estado: String = "activa", // activa, finalizada, cancelada
 
-    @SerializedName("total")
-    val precio: Double = 0.0,
+    @SerializedName("tipo_reserva")
+    val tipoReserva: String = "hora", // hora, dia, mes
 
     @SerializedName("created_at")
     val createdAt: String = "",
 
-    @SerializedName("updated_at")
-    val updatedAt: String = ""
+    // Campos calculados del backend
+    @SerializedName("tiempo_restante")
+    val tiempoRestante: Int? = null,
+
+    @SerializedName("puede_cancelar")
+    val puedeCancelar: Boolean = false
 )
 
-// Modelos auxiliares para las respuestas
-data class VehicleShort(
-    @SerializedName("id")
-    val id: Int,
 
-    @SerializedName("license_plate")
-    val licensePlate: String,
-
-    @SerializedName("brand")
-    val brand: String,
-
-    @SerializedName("model")
-    val model: String
-)
-
-data class ParkingShort(
+data class UserShort(
     @SerializedName("id")
     val id: Long,
 
-    @SerializedName("nombre")
-    val nombre: String,
+    @SerializedName("email")
+    val email: String,
 
-    @SerializedName("direccion")
-    val direccion: String? = null,
+    @SerializedName("first_name")
+    val firstName: String,
 
-    @SerializedName("tarifa_hora")
-    val tarifaHora: Double? = null
+    @SerializedName("last_name")
+    val lastName: String
 )

@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
-import com.example.smarparkinapp.ui.theme.data.api.CarRequest as ApiCarRequest
+import com.example.smarparkinapp.ui.theme.data.model.CarRequest as ApiCarRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -47,14 +47,12 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
 
                 println("🚗 [PROFILE] Guardando vehículo: $marca $modelo - $placa")
 
-                // ✅ CORREGIDO: Llamar sin parámetro de token
                 val response = apiService.addCar(
                     ApiCarRequest(
                         placa = placa.uppercase().replace(" ", "").replace("-", ""),
                         marca = marca,
                         modelo = modelo,
                         color = color,
-                        year = Calendar.getInstance().get(Calendar.YEAR)
                     )
                 )
 

@@ -27,21 +27,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.smarparkinapp.ui.theme.NavRoutes
-import com.example.smarparkinapp.data.model.Car
+import com.example.smarparkinapp.ui.theme.data.model.Car
 import com.example.smarparkinapp.ui.theme.data.model.ParkingSpot
-import com.example.smarparkinapp.ui.theme.theme.* // Importar tu nueva paleta de colores
+import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModel
 import com.example.smarparkinapp.ui.theme.viewmodel.HomeViewModelFactory
-import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
-
+import com.example.smarparkinapp.ui.theme.theme.*
+import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 @Composable
 fun ParkingDetailScreen(
     navController: NavHostController,
-    parkingId: Int
+    parkingId: Long
 ) {
     val context = LocalContext.current
     val homeViewModel: HomeViewModel = viewModel(
@@ -50,18 +50,12 @@ fun ParkingDetailScreen(
 
     // Cargar datos del parking
     val parkingSpots by homeViewModel.filteredParkingSpots.collectAsState()
-    val parkingSpot = parkingSpots.find { it.id == parkingId }
+    val parkingSpot = parkingSpots.find { it.id == parkingId.toInt() }
 
     // Usar colores de tu nueva paleta
-    val BluePrimary = AzulPrincipal
-    val BlueSecondary = AzulSecundario
-    val GreenPrimary = VerdePrincipal
-    val GreenSecondary = VerdeSecundario
-    val White = Blanco
-    val BgGray = GrisClaro
-    val BorderGray = GrisMedio
+    val TextBlack = Color(0xFF1A1A1A)
     val TextGray = GrisTexto
-    val TextBlack = Color(0xFF1A1A1A) // Mantenemos este para buen contraste
+    val BorderGray = GrisMedio
 
     // Generar amenidades basadas en las características del parking
     val amenidades = buildList {
@@ -93,10 +87,8 @@ fun ParkingDetailScreen(
                         println("🔍 [ParkingDetail] Navegando a selección de vehículo para reserva")
                         println("🔍 [ParkingDetail] Parking ID: ${parkingSpot.id}")
 
-                        // ✅ CORREGIDO: Usar createRoute en lugar de concatenar manualmente
-                        val route = NavRoutes.VehicleSelection.createRoute(parkingSpot.id)
+                        val route = NavRoutes.VehicleSelection.createRoute(parkingSpot.id.toLong())
                         println("🔍 [ParkingDetail] Ruta completa: $route")
-
                         navController.navigate(route)
                     }
                 )
@@ -193,7 +185,7 @@ fun ParkingDetailScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // 3. INFORMACIÓN RÁPIDA
+                    // 3. INFORMACIÓN RÁPIDA - CORREGIDO (SOLO PROPIEDADES DE PARKINGSPOT)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -201,6 +193,7 @@ fun ParkingDetailScreen(
                         InfoItem(
                             Icons.Default.AccessTime,
                             "Horario",
+                            // ✅ USAR SOLO PROPIEDADES DE PARKINGSPOT
                             if (parkingSpot.estaAbierto) "07:00 - 23:00" else "Cerrado",
                             AzulPrincipal
                         )
@@ -289,12 +282,12 @@ fun ParkingDetailScreen(
                         }
                     }
 
-                    // Información de precio
+                    // Información de precio - CORREGIDO (INTERPOLACIÓN DE STRING)
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.AttachMoney, contentDescription = null, tint = AzulPrincipal, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Precio: ${parkingSpot.price} por hora", fontSize = 14.sp, color = TextGray)
+                        Text("Precio:  ${parkingSpot.price} por hora", fontSize = 14.sp, color = TextGray) // ✅ CORREGIDO
                     }
 
                     Spacer(modifier = Modifier.height(80.dp))
@@ -304,7 +297,6 @@ fun ParkingDetailScreen(
     }
 }
 
-// --- COMPONENTES AUXILIARES ACTUALIZADOS ---
 
 @Composable
 fun SimpleReserveBar(
@@ -332,15 +324,15 @@ fun SimpleReserveBar(
             ) {
                 Column {
                     Text(
-                        text = parkingSpot.price,
+                        text = " ${parkingSpot.price}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = Blanco
+                        color = AzulPrincipal
                     )
                     Text(
                         text = "por hora",
                         fontSize = 12.sp,
-                        color = Blanco
+                        color = AzulSecundario
                     )
                 }
 

@@ -21,6 +21,9 @@ playServicesLocation = "21.0.1"
 mapsCompose = "2.11.4"
 coil = "2.4.0"
 foundation = "1.9.5"
+uiText = "1.9.5"
+appcompat = "1.7.1"
+runtime = "1.9.5"
 
 # ELIMINAR estas versiones duplicadas:
 # foundation = "1.9.2" ❌
@@ -95,6 +98,9 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,10 +1,16 @@
 // ui/theme/data/api/ApiService.kt
 package com.example.smarparkinapp.ui.theme.data.api
 
-import com.example.smarparkinapp.data.model.PaymentRequest
-import com.example.smarparkinapp.data.model.PaymentResponse
+
+import com.example.smarparkinapp.ui.theme.NavRoutes
+import com.example.smarparkinapp.ui.theme.data.model.CarRequest
+import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
+import com.example.smarparkinapp.ui.theme.data.model.Payment
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
+import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
+import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
+import com.example.smarparkinapp.ui.theme.data.model.TicketResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -25,26 +31,28 @@ interface ApiService {
     @POST("api/users/password/reset/")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
 
-    // ESTACIONAMIENTOS (sin auth header)
     @GET("api/parkings/")
     suspend fun getApprovedParkingLots(): Response<ParkingLotResponse>
 
     @GET("api/parking/")
     suspend fun searchParkingLots(@Query("search") query: String): Response<ParkingLotResponse>
 
-    @GET("api/parking/cerca/")
+    @GET("api/parkings/cerca/")
     suspend fun getNearbyParkingLots(
         @Query("lat") latitud: Double,
         @Query("lng") longitud: Double
     ): Response<List<ParkingLot>>
 
-    @GET("api/parking/mejores_calificados/")
+    @GET("api/parkings/mejores_calificados/")
     suspend fun getTopRatedParkingLots(): Response<List<ParkingLot>>
 
-    @GET("api/parking/mas_economicos/")
+    @GET("api/parkings/mas_economicos/")
     suspend fun getMasEconomicos(): Response<List<ParkingLot>>
 
-    // VEHÍCULOS (sin auth header - manejado por interceptor)
+    @GET("api/parking/{id}/")
+    suspend fun getParkingById(@Path("id") parkingId: Long): Response<ParkingLot>
+
+
     @POST("api/vehicles/")
     suspend fun addCar(@Body car: CarRequest): Response<CarResponse>
 
@@ -60,47 +68,32 @@ interface ApiService {
     @DELETE("api/vehicles/{id}/")
     suspend fun deleteVehicle(@Path("id") vehicleId: Int): Response<GenericResponse>
 
-    // RESERVAS (sin auth header - manejado por interceptor)
+    // Reservas
     @POST("api/reservations/")
-    suspend fun createReservation(@Body body: Map<String, Any>): Response<ReservationResponse>
+    suspend fun createReservation(@Body request: ReservationRequest): Response<ReservationResponse>
 
-    @GET("api/reservations/client/mis-reservas/")
+    @GET("api/reservations/mis-reservas/")
     suspend fun getMyReservations(): Response<List<ReservationResponse>>
-
-    @GET("api/reservations/client/active/")
-    suspend fun getActiveReservations(): Response<List<ReservationResponse>>
 
     @POST("api/reservations/{codigo}/cancel/")
     suspend fun cancelReservation(@Path("codigo") codigo: String): Response<GenericResponse>
 
-    @POST("api/reservations/{codigo}/extend/")
-    suspend fun extendReservation(
-        @Path("codigo") codigo: String,
-        @Body body: Map<String, Any>
-    ): Response<GenericResponse>
+    @GET("api/reservations/activas/")
+    suspend fun getActiveReservations(): Response<List<ReservationResponse>>
 
-    @POST("api/reservations/{codigo}/checkin/")
-    suspend fun checkIn(@Path("codigo") codigo: String): Response<GenericResponse>
-
-    @POST("api/reservations/{codigo}/checkout/")
-    suspend fun checkOut(@Path("codigo") codigo: String): Response<GenericResponse>
-
-    @GET("api/reservations/tipos/")
-    suspend fun getReservationTypes(): Response<List<String>>
-
-    // PAGOS (sin auth header - manejado por interceptor)
+    // Pagos
     @POST("api/payments/")
-    suspend fun createPayment(@Body payment: PaymentRequest): Response<PaymentResponse>
-
-    @GET("api/payments/{id}/")
-    suspend fun getPayment(@Path("id") id: Long): Response<PaymentResponse>
+    suspend fun createPayment(@Body request: Map<String, Any>): Response<Payment>
 
     @POST("api/payments/{id}/process/")
-    suspend fun processPayment(@Path("id") id: Long): Response<PaymentResponse>
+    suspend fun processPayment(@Path("id") paymentId: String): Response<Payment>
 
-    @GET("api/payments/pending/")
-    suspend fun getPendingPayments(): Response<List<PaymentResponse>>
+    // Tickets
+    @GET("api/tickets/validos/")
+    suspend fun getValidTickets(): Response<List<TicketResponse>>
 
+    @GET("api/tickets/reserva/{reservationId}/")
+    suspend fun getTicketByReservation(@Path("reservationId") reservationId: Long): Response<TicketResponse>
     // PARKING SPOTS (sin auth header)
     @GET("api/parking/spots/")
     suspend fun getParkingSpots(): Response<List<ParkingSpotResponse>>
@@ -162,55 +155,6 @@ data class UserResponse(
     val is_superuser: Boolean? = false
 )
 
-// MODELOS DE VEHÍCULOS
-data class CarRequest(
-    val placa: String,
-    val marca: String,
-    val modelo: String,
-    val color: String,
-    val year: Int? = null
-)
-
-data class CarResponse(
-    val id: Int,
-    val placa: String,
-    val marca: String,
-    val modelo: String,
-    val color: String,
-    val activo: Boolean = true,
-    val fecha_creacion: String? = null,
-    val fecha_actualizacion: String? = null
-)
-
-// MODELOS DE RESERVAS - SOLO UNA DECLARACIÓN
-data class ReservationResponse(
-    val id: Long,
-    val codigo_reserva: String,
-    val estacionamiento: ParkingShort?,
-    val vehiculo: VehicleShort?,
-    val hora_entrada: String,
-    val hora_salida: String,
-    val estado: String,
-    val tipo: String,
-    val costo_estimado: Double? = 0.0,
-    val fecha_creacion: String? = null,
-    val fecha_actualizacion: String? = null
-)
-
-data class ParkingShort(
-    val id: Long,
-    val nombre: String,
-    val direccion: String? = null,
-    val tarifa_hora: Double? = 0.0
-)
-
-data class VehicleShort(
-    val id: Int,
-    val placa: String,
-    val marca: String,
-    val modelo: String,
-    val color: String? = null
-)
 
 
 // MODELOS DE ESTACIONAMIENTOS

@@ -16,5 +16,5 @@ data class ParkingSpot(
     val tieneCamaras: Boolean = false,
     val tieneVigilancia24h: Boolean = false,
     val distanciaKm: Double? = null,
-    val imagenUrl: String = "https://via.placeholder.com/80/666666/FFFFFF?text=🚗"
+    val imagenUrl: String = ""
 )

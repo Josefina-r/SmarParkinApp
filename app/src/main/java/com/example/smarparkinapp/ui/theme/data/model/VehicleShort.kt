@@ -1,4 +1,3 @@
-// VehicleShort.kt
 package com.example.smarparkinapp.ui.theme.data.model
 
 import com.google.gson.annotations.SerializedName
@@ -7,18 +6,18 @@ data class VehicleShort(
     @SerializedName("id")
     val id: Int,
 
+    @SerializedName("placa")
+    val placa: String,
+
     @SerializedName("marca")
-    val brand: String,
+    val marca: String,
 
     @SerializedName("modelo")
-    val model: String,
-
-    @SerializedName("placa")
-    val licensePlate: String,
+    val modelo: String,
 
     @SerializedName("color")
-    val color: String,
+    val color: String? = null,
 
-    @SerializedName("tipo")
-    val type: String
+    @SerializedName("tipo_vehiculo")
+    val tipoVehiculo: String? = null
 )

@@ -8,8 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// ✅ MOVER: Esta data class debe estar en el mismo archivo o importarse correctamente
-// Si prefieres, puedes dejarla en el mismo archivo del ViewModel
 data class ChatMessage(
     val id: String,
     val text: String,

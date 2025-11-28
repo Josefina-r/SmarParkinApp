@@ -2,7 +2,7 @@ package com.example.smarparkinapp.ui.theme.data.model
 
 data class Parking(
     val id: String,
-    val nombre: String, // Usamos nombre en español
+    val nombre: String,
     val direccion: String,
     val precioHora: Double,
     val horario: String,

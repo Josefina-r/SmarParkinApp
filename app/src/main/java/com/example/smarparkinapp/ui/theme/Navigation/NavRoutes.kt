@@ -1,4 +1,4 @@
-// ui/theme/NavRoutes.kt - VERSIÓN ACTUALIZADA
+// ui/theme/NavRoutes.kt - VERSIÓN CORREGIDA (SOLO LO NECESARIO)
 package com.example.smarparkinapp.ui.theme
 
 sealed class NavRoutes(val route: String) {
@@ -16,23 +16,52 @@ sealed class NavRoutes(val route: String) {
     object Historial : NavRoutes("historial")
     object AddVehicle : NavRoutes("add_vehicle")
 
+    // CORRECCIÓN: Cambiar a Long para consistencia
     object Reservation : NavRoutes("reservation/{parkingId}") {
-        fun createRoute(parkingId: Int) = "reservation/$parkingId"
+        fun createRoute(parkingId: Long) = "reservation/$parkingId" // ✅ Cambiado a Long
     }
 
+    // CORRECCIÓN: Cambiar a Long para consistencia
     object ParkingDetail : NavRoutes("parking_detail/{parkingId}") {
-        fun createRoute(parkingId: Int) = "parking_detail/$parkingId"
+        fun createRoute(parkingId: Long) = "parking_detail/$parkingId" // ✅ Cambiado a Long
     }
 
-    // ✅ CORREGIDO: Usar el mismo formato que los demás - parámetro de ruta
+    // CORRECCIÓN: Ya está correcto con Long
     object VehicleSelection : NavRoutes("vehicle_selection/{parkingId}") {
-        fun createRoute(parkingId: Int) = "vehicle_selection/$parkingId"
+        fun createRoute(parkingId: Long) = "vehicle_selection/$parkingId" // ✅ Ya correcto
     }
 
-    // ✅ NUEVO: Ruta para el chatbot de soporte
     object Chatbot : NavRoutes("chatbot")
 
-    // En NavRoutes.kt, agrega:
+    // CORRECCIÓN: Agregar parámetro que falta según tu NavGraph
+    object Payment : NavRoutes("payment/{reservationId}") {
+        fun createRoute(reservationId: Long) = "payment/$reservationId" // ✅ Agregado parámetro
+    }
+
+    // Función auxiliar (se mantiene igual)
+    fun createRoute(vararg params: String): String {
+        var newRoute = route
+        params.forEach { param ->
+            newRoute += "/$param"
+        }
+        return newRoute
+    }
+
+    object ReservationOptions : NavRoutes("reservation_options")
+    object EmbeddedReservations : NavRoutes("embedded_reservations")
+
+    // CORRECCIÓN: Cambiar a Long para consistencia
+    object ReservationDetail : NavRoutes("reservations/{parkingId}") {
+        fun createRoute(parkingId: Long) = "reservations/$parkingId" // ✅ Cambiado a Long
+    }
+
+    object ReservationSuccess : NavRoutes("reservation_success/{reservationId}") {
+        fun createRoute(reservationId: String) = "reservation_success/$reservationId"
+    }
+    object Ticket : NavRoutes("ticket/{paymentId}") {
+        fun createRoute(paymentId: String) = "ticket/$paymentId"
+    }
+    // Rutas de settings (se mantienen igual)
     object Settings : NavRoutes("settings")
     object Terms : NavRoutes("terms")
     object Privacy : NavRoutes("privacy")

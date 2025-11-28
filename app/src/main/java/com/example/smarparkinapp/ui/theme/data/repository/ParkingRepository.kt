@@ -23,12 +23,40 @@ class ParkingRepository @Inject constructor(
     private val basicApiService by lazy {
         RetrofitInstance.apiService
     }
+    suspend fun getParkingById(parkingId: Long): Result<ParkingLot> {
+        return try {
+            println("🔍 [REPO] Buscando parking ID: $parkingId")
+            val response = basicApiService.getParkingById(parkingId)
+
+            println("📥 [REPO] Response: ${response.code()} - ${response.message()}")
+
+            if (response.isSuccessful) {
+                val parking = response.body()
+                if (parking != null) {
+                    println("✅ [REPO] Parking encontrado: ${parking.nombre}")
+                    Result.Success(parking)
+                } else {
+                    println("❌ [REPO] Parking no encontrado (body null)")
+                    Result.Error("Parking no encontrado")
+                }
+            } else {
+                val errorMsg = "Error ${response.code()}: ${response.message()}"
+                println("❌ [REPO] $errorMsg")
+                Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            val errorMsg = "Error de conexión: ${e.message}"
+            println("💥 [REPO] $errorMsg")
+            e.printStackTrace()
+            Result.Error(errorMsg)
+        }
+    }
 
     suspend fun getNearbyParkingLots(lat: Double, lng: Double): Result<List<ParkingLot>> {
         return try {
-            println("🔄 [REPO] Buscando estacionamientos cercanos...")
+            println(" [REPO] Buscando estacionamientos cercanos...")
             val response = authenticatedApiService.getNearbyParkingLots(lat, lng)
-            println("✅ [REPO] Respuesta cercanos: ${response.code()}")
+            println(" [REPO] Respuesta cercanos: ${response.code()}")
 
             if (response.isSuccessful) {
                 val parkingLots = response.body() ?: emptyList()
@@ -51,20 +79,20 @@ class ParkingRepository @Inject constructor(
             println("🔄 [REPO] === INICIANDO CARGA DESDE: /api/parking/ ===")
 
             val response = basicApiService.getApprovedParkingLots()
-            println("✅ [REPO] Código: ${response.code()}")
-            println("✅ [REPO] Éxito: ${response.isSuccessful}")
-            println("✅ [REPO] Mensaje: ${response.message()}")
+            println(" [REPO] Código: ${response.code()}")
+            println(" [REPO] Éxito: ${response.isSuccessful}")
+            println("[REPO] Mensaje: ${response.message()}")
 
             if (response.isSuccessful) {
                 val parkingLotResponse = response.body()
-                println("📦 [REPO] Response Body: $parkingLotResponse")
+                println(" [REPO] Response Body: $parkingLotResponse")
 
                 val parkingLots = parkingLotResponse?.results ?: emptyList()
                 println("🏢 [REPO] Encontrados: ${parkingLots.size} estacionamientos")
 
                 // DEBUG detallado
                 parkingLots.forEachIndexed { index, parking ->
-                    println("   🅿️ [$index] ID: ${parking.id}, Nombre: ${parking.nombre}")
+                    println("   [$index] ID: ${parking.id}, Nombre: ${parking.nombre}")
                     println("        Dirección: ${parking.direccion}")
                     println("        Precio: ${parking.tarifa_hora}")
                     println("        Disponibles: ${parking.plazas_disponibles}")
@@ -94,7 +122,7 @@ class ParkingRepository @Inject constructor(
                 basicApiService.searchParkingLots(query) // Si hay query, usar búsqueda
             }
 
-            println("✅ [REPO] Respuesta búsqueda: ${response.code()}")
+            println(" [REPO] Respuesta búsqueda: ${response.code()}")
 
             if (response.isSuccessful) {
                 val parkingLotResponse = response.body()
@@ -116,9 +144,9 @@ class ParkingRepository @Inject constructor(
     // Método para estacionamientos públicos (sin autenticación)
     suspend fun getPublicParkingLots(): Result<List<ParkingLot>> {
         return try {
-            println("🔄 [REPO] Cargando estacionamientos públicos...")
+            println(" [REPO] Cargando estacionamientos públicos...")
             val response = basicApiService.getApprovedParkingLots()
-            println("✅ [REPO] Respuesta públicos: ${response.code()}")
+            println(" [REPO] Respuesta públicos: ${response.code()}")
 
             if (response.isSuccessful) {
                 val parkingLotResponse = response.body()
@@ -136,4 +164,5 @@ class ParkingRepository @Inject constructor(
             Result.Error(errorMsg)
         }
     }
+
 }
