@@ -16,5 +16,8 @@ data class ParkingSpot(
     val tieneCamaras: Boolean = false,
     val tieneVigilancia24h: Boolean = false,
     val distanciaKm: Double? = null,
-    val imagenUrl: String = ""
+    val imagenUrl: String = "",
+    val telefono: String? = null,
+    val horarioApertura: String? = null,
+    val horarioCierre: String? = null
 )

@@ -1,6 +1,5 @@
 package com.example.smarparkinapp.ui.theme.data.model
 
-// Función para convertir ParkingSpotResponse a ParkingSpot
 fun ParkingSpotResponse.toParkingSpot(): ParkingSpot {
 
     return ParkingSpot(
@@ -17,16 +16,14 @@ fun ParkingSpotResponse.toParkingSpot(): ParkingSpot {
         estaAbierto = this.estaAbierto ?: true,
         tieneCamaras = this.tieneCamaras ?: false,
         tieneVigilancia24h = this.tieneVigilancia24h ?: false,
-        distanciaKm = this.distanciaKm
+        distanciaKm = this.distanciaKm,
+       telefono =this.telefono
     )
 }
 
-// Función para convertir ParkingLot a ParkingSpot
 fun ParkingLot.toParkingSpot(): ParkingSpot {
-    // Parsear coordenadas (formato: "latitud,longitud")
     val (latitude, longitude) = parseCoordenadas(this.coordenadas)
 
-    // USAR imagen_principal DIRECTAMENTE - SIN lógica compleja
     val imagenUrl = buildImageUrl(this.imagen_principal)
     return ParkingSpot(
         id = this.id.toInt(),
@@ -43,7 +40,8 @@ fun ParkingLot.toParkingSpot(): ParkingSpot {
         tieneCamaras = hasCamaras(this.nivel_seguridad),
         tieneVigilancia24h = hasVigilancia24h(this.nivel_seguridad),
         distanciaKm = null,
-        imagenUrl = imagenUrl
+        imagenUrl = imagenUrl,
+        telefono= telefono,
 
     )
 }
@@ -52,14 +50,14 @@ private fun buildImageUrl(imagenPath: String?): String {
     return when {
         imagenPath.isNullOrEmpty() -> getDefaultParkingImage()
         imagenPath.startsWith("http") -> imagenPath // URL completa
-        imagenPath.startsWith("/") -> "https://tu-dominio.com$imagenPath" // Ruta relativa
-        else -> "https://tu-dominio.com/media/$imagenPath" // Ruta de media
+        imagenPath.startsWith("/") -> "https://localhost:8080$imagenPath" // ✅ Corregido
+        else -> "https://localhost:8080/media/$imagenPath" // ✅ Corregido
     }
 }
 
-// Función para imagen por defecto (solo si no hay imagen del backend)
+
 private fun getDefaultParkingImage(): String {
-    return "https://via.placeholder.com/80/666666/FFFFFF?text=🚗"
+    return ""
 }
 // Función auxiliar para parsear coordenadas
 private fun parseCoordenadas(coordenadas: String?): Pair<Double, Double> {
@@ -77,7 +75,6 @@ private fun parseCoordenadas(coordenadas: String?): Pair<Double, Double> {
     }
 }
 
-// Función auxiliar para parsear nivel de seguridad
 private fun parseNivelSeguridad(nivelSeguridad: String?): Int {
     return when (nivelSeguridad) {
         "ALTO" -> 3
@@ -87,12 +84,10 @@ private fun parseNivelSeguridad(nivelSeguridad: String?): Int {
     }
 }
 
-// Función auxiliar para determinar si tiene cámaras
 private fun hasCamaras(nivelSeguridad: String?): Boolean {
     return nivelSeguridad == "ALTO" || nivelSeguridad == "MEDIO"
 }
 
-// Función auxiliar para determinar si tiene vigilancia 24h
 private fun hasVigilancia24h(nivelSeguridad: String?): Boolean {
     return nivelSeguridad == "ALTO"
 }

@@ -7,7 +7,6 @@ data class Parking(
     val precioHora: Double,
     val horario: String,
     val amenidades: List<String>,
-    val telefono: String,
     // Campos para estacionamientos reales
     val latitude: Double,
     val longitude: Double,
@@ -18,7 +17,8 @@ data class Parking(
     val rating: Float? = null,
     val userRatingsTotal: Int? = null,
     val photos: List<ParkingPhoto> = emptyList(),
-    val placeId: String? = null
+    val placeId: String? = null,
+    val telefono: String? = null
 )
 
 data class ParkingPhoto(

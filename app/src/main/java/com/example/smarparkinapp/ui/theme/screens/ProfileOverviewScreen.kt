@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
@@ -54,8 +56,9 @@ fun ProfileOverviewScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
+
                         Icon(
-                            Icons.Default.Person,
+                            Icons.Default.ArrowBack,
                             contentDescription = "Volver",
                             tint = Blanco
                         )

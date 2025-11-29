@@ -13,29 +13,30 @@ sealed class NavRoutes(val route: String) {
     object Home : NavRoutes("home")
     object Main : NavRoutes("main")
     object Perfil : NavRoutes("perfil")
+
     object Historial : NavRoutes("historial")
     object AddVehicle : NavRoutes("add_vehicle")
 
     // CORRECCIÓN: Cambiar a Long para consistencia
     object Reservation : NavRoutes("reservation/{parkingId}") {
-        fun createRoute(parkingId: Long) = "reservation/$parkingId" // ✅ Cambiado a Long
+        fun createRoute(parkingId: Long) = "reservation/$parkingId"
     }
 
     // CORRECCIÓN: Cambiar a Long para consistencia
     object ParkingDetail : NavRoutes("parking_detail/{parkingId}") {
-        fun createRoute(parkingId: Long) = "parking_detail/$parkingId" // ✅ Cambiado a Long
+        fun createRoute(parkingId: Long) = "parking_detail/$parkingId"
     }
 
     // CORRECCIÓN: Ya está correcto con Long
     object VehicleSelection : NavRoutes("vehicle_selection/{parkingId}") {
-        fun createRoute(parkingId: Long) = "vehicle_selection/$parkingId" // ✅ Ya correcto
+        fun createRoute(parkingId: Long) = "vehicle_selection/$parkingId"
     }
 
     object Chatbot : NavRoutes("chatbot")
 
     // CORRECCIÓN: Agregar parámetro que falta según tu NavGraph
     object Payment : NavRoutes("payment/{reservationId}") {
-        fun createRoute(reservationId: Long) = "payment/$reservationId" // ✅ Agregado parámetro
+        fun createRoute(reservationId: Long) = "payment/$reservationId"
     }
 
     // Función auxiliar (se mantiene igual)

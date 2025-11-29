@@ -37,6 +37,7 @@ import com.example.smarparkinapp.ui.theme.screens.RegisterScreen
 import com.example.smarparkinapp.ui.theme.screens.SplashScreen
 import com.example.smarparkinapp.ui.theme.screens.profile.ProfileScreen
 import com.example.smarparkinapp.ui.theme.NavRoutes
+import com.example.smarparkinapp.ui.theme.screens.MyReservationsScreen
 import com.example.smarparkinapp.ui.theme.screens.PaymentScreen
 import com.example.smarparkinapp.ui.theme.screens.TicketScreen
 import com.example.smarparkinapp.ui.theme.viewmodel.ProfileViewModel
@@ -48,7 +49,9 @@ import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
 @Composable
 fun AppNavGraph(navController: NavHostController) {
     val context = LocalContext.current
-
+    val reservationViewModel: ReservationViewModel = viewModel(
+        factory = ReservationViewModelFactory(context)
+    )
     NavHost(
         navController = navController,
         startDestination = NavRoutes.Splash.route
@@ -139,7 +142,7 @@ fun AppNavGraph(navController: NavHostController) {
             VehicleSelectionScreen(
                 navController = navController,
                 parkingId = if (parkingId != -1L) parkingId else null,
-                viewModel = viewModel
+                viewModel = reservationViewModel
             )
         }
 
@@ -160,7 +163,7 @@ fun AppNavGraph(navController: NavHostController) {
 
             ReservationScreen(
                 navController = navController,
-                viewModel = viewModel
+                viewModel = reservationViewModel
             )
         }
 
@@ -177,7 +180,7 @@ fun AppNavGraph(navController: NavHostController) {
             PaymentScreen(
                 navController = navController,
                 reservationId = reservationId,
-                viewModel = viewModel
+                viewModel = reservationViewModel
             )
         }
 
@@ -200,10 +203,18 @@ fun AppNavGraph(navController: NavHostController) {
 
         // Perfil
         composable(NavRoutes.Perfil.route) {
-            ProfileConditionalScreen(
-                navController = navController,
-                onBackClick = {
+            ProfileOverviewScreen(
+                onBack = {
                     navController.popBackStack()
+                },
+                onEditProfile = {
+                    navController.navigate("editProfile")
+                },
+                onPaymentMethods = {
+                    // navController.navigate(NavRoutes.PaymentMethods.route)
+                },
+                onMyVehicles = {
+                    // navController.navigate(NavRoutes.MyVehicles.route)
                 }
             )
         }
@@ -239,67 +250,15 @@ fun AppNavGraph(navController: NavHostController) {
                 }
             )
         }
+        composable("myReservations") {
+            MyReservationsScreen(
+                navController = navController,
+               // viewModel = reservationViewModel
+            )
+        }
     }
 }
 
-// Componente para decidir qué pantalla de perfil mostrar
-@Composable
-fun ProfileConditionalScreen(
-    navController: NavHostController,
-    onBackClick: () -> Unit,
-    viewModel: ProfileViewModel = viewModel()
-) {
-    val context = LocalContext.current
-    val userProfile by viewModel.userProfile.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val updateSuccess by viewModel.updateSuccess.collectAsState()
-
-    // Cargar perfil al iniciar
-    LaunchedEffect(Unit) {
-        viewModel.loadUserProfile(context)
-    }
-    LaunchedEffect(updateSuccess) {
-        if (updateSuccess) {
-            viewModel.refreshProfile(context)
-            viewModel.resetUpdateSuccess()
-        }
-    }
-
-    if (isLoading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    // Lógica condicional: Decidir qué pantalla mostrar
-    if (isProfileComplete(userProfile)) {
-        // Perfil completo → Mostrar Overview
-        ProfileOverviewScreen(
-            onBack = onBackClick,
-            onEditProfile = {
-                navController.navigate("editProfile")
-            },
-            onPaymentMethods = {
-                // navController.navigate("payment_methods")
-            },
-            onMyVehicles = {
-                // navController.navigate("my_vehicles")
-            }
-        )
-    } else {
-        ProfileScreen(
-            onBackClick = onBackClick,
-            onUpdateSuccess = {
-                // Lógica de éxito
-            }
-        )
-    }
-}
 
 // Función para verificar si el perfil está completo
 private fun isProfileComplete(userProfile: UserProfile?): Boolean {

@@ -33,8 +33,7 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBfX_KKnq0WJAdJBXWFD45GCbuCIz_VQ8c"/>
-        <activity android:name=".ui.screens.webview.WebViewActivity"
-            android:exported="false"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

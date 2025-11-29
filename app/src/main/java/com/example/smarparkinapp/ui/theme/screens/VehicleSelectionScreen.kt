@@ -28,7 +28,7 @@ import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
 fun VehicleSelectionScreen(
     navController: NavHostController,
     parkingId: Long?,
-    viewModel: ReservationViewModel = viewModel(factory = ReservationViewModelFactory(LocalContext.current))
+    viewModel: ReservationViewModel
 ) {
     val context = LocalContext.current
 
@@ -49,11 +49,9 @@ fun VehicleSelectionScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-
     LaunchedEffect(vehicles) {
         println("✅ [VehicleSelection] Vehículos cargados: ${vehicles.size}")
     }
-
 
     // Mostrar errores
     LaunchedEffect(error) {
@@ -80,8 +78,12 @@ fun VehicleSelectionScreen(
                     onClick = {
                         selectedVehicle?.let { vehicle ->
                             parkingId?.let { id ->
+                                // ✅ CORREGIDO: Establecer el vehículo seleccionado en el ViewModel
                                 viewModel.setSelectedVehicle(vehicle)
-                                navController.navigate("reservation/$parkingId") {
+                                println("🚗 [VehicleSelection] Vehículo seleccionado: ${vehicle.plate}")
+
+                                // ✅ CORREGIDO: Navegar a ReservationScreen
+                                navController.navigate("reservation/$id") {
                                     launchSingleTop = true
                                 }
                             }
@@ -118,6 +120,7 @@ fun VehicleSelectionScreen(
                         isSelected = selectedVehicle?.id == car.id,
                         onClick = {
                             selectedVehicle = if (selectedVehicle?.id == car.id) null else car
+                            println("🚗 [VehicleSelection] Vehículo clickeado: ${car.plate}")
                         }
                     )
                 }
@@ -139,7 +142,11 @@ fun VehicleSelectionScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Agregar", tint = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Agregar",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Agregar vehículo", color = MaterialTheme.colorScheme.primary)
                         }
@@ -170,11 +177,18 @@ private fun EmptyVehiclesState(onAddVehicle: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Outlined.DirectionsCar, contentDescription = "No vehicles", modifier = Modifier.size(64.dp))
+        Icon(
+            Icons.Outlined.DirectionsCar,
+            contentDescription = "No vehicles",
+            modifier = Modifier.size(64.dp)
+        )
         Spacer(modifier = Modifier.height(16.dp))
         Text("No tienes vehículos registrados", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(8.dp))
-        Text("Agrega tu primer vehículo para realizar reservas", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            "Agrega tu primer vehículo para realizar reservas",
+            style = MaterialTheme.typography.bodyMedium
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onAddVehicle, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = "Agregar")
@@ -215,7 +229,11 @@ fun VehicleItem(car: Car, isSelected: Boolean, onClick: () -> Unit) {
                 Text(car.color, style = MaterialTheme.typography.bodySmall)
             }
             if (isSelected) {
-                Icon(Icons.Default.Check, contentDescription = "Seleccionado", tint = MaterialTheme.colorScheme.primary)
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Seleccionado",
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

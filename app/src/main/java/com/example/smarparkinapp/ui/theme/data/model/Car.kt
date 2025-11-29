@@ -19,5 +19,15 @@ data class Car(
     val color: String,
 
     @SerializedName("activo")
-    val active: Boolean = true
+    val active: Boolean = true,
+
+    @SerializedName("usuario")
+    val userId: Int? = null,
+
+    @SerializedName("fecha_creacion")
+    val fechaCreacion: String? = null,
+
+    @SerializedName("fecha_actualizacion")
+    val fechaActualizacion: String? = null
+
 )

@@ -60,7 +60,7 @@ data class UserProfile(
     val isAdmin: Boolean,
     val isOwner: Boolean,
     val isClient: Boolean,
-    //  NUEVOS CAMPOS
+
     val tipoDocumento: String,
     val numeroDocumento: String,
     val fechaNacimiento: String,

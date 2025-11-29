@@ -154,7 +154,6 @@ class UserRepository {
     }
 }
 
-// ✅ FUNCIONES DE EXTENSIÓN PARA CONVERSIÓN ENTRE MODELOS
 
 // Convierte UserProfileResponse del ApiService a nuestro UserProfile local
 private fun ApiUserProfileResponse.toUserProfile(): UserProfile {

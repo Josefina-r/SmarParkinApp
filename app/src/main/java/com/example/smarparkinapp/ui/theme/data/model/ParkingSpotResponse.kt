@@ -2,7 +2,6 @@ package com.example.smarparkinapp.ui.theme.data.model
 
 import com.google.gson.annotations.SerializedName
 
-// ✅ RESPONSE PARA ENDPOINT NORMAL
 data class ParkingSpotResponse(
     @SerializedName("id") val id: Int,
     @SerializedName("nombre") val nombre: String,
@@ -12,14 +11,16 @@ data class ParkingSpotResponse(
     @SerializedName("latitud") val latitud: Double,
     @SerializedName("longitud") val longitud: Double,
 
-    // ✅ NUEVOS CAMPOS (nullable para compatibilidad)
     @SerializedName("nivel_seguridad") val nivelSeguridad: Int? = 1,
     @SerializedName("rating_promedio") val ratingPromedio: Double? = 0.0,
     @SerializedName("total_reseñas") val totalResenas: Int? = 0,
     @SerializedName("esta_abierto") val estaAbierto: Boolean? = true,
     @SerializedName("tiene_camaras") val tieneCamaras: Boolean? = false,
     @SerializedName("tiene_vigilancia_24h") val tieneVigilancia24h: Boolean? = false,
-    @SerializedName("distancia_km") val distanciaKm: Double? = null
+    @SerializedName("distancia_km") val distanciaKm: Double? = null,
+    @SerializedName("telefono") val telefono: String? = null,
+    @SerializedName("horario_apertura") val horarioApertura: String? = null,
+    @SerializedName("horario_cierre") val horarioCierre: String? = null
 ) {
     fun toParkingSpot(): ParkingSpot {
         return ParkingSpot(
@@ -36,7 +37,11 @@ data class ParkingSpotResponse(
             estaAbierto = estaAbierto ?: true,
             tieneCamaras = tieneCamaras ?: false,
             tieneVigilancia24h = tieneVigilancia24h ?: false,
-            distanciaKm = distanciaKm
+            distanciaKm = distanciaKm,
+            telefono = telefono,
+            horarioApertura = horarioApertura,
+            horarioCierre = horarioCierre
+
         )
     }
 }

@@ -69,7 +69,7 @@ interface ApiService {
     suspend fun deleteVehicle(@Path("id") vehicleId: Int): Response<GenericResponse>
 
     // Reservas
-    @POST("api/reservations/")
+    @POST("api/reservation/")
     suspend fun createReservation(@Body request: ReservationRequest): Response<ReservationResponse>
 
     @GET("api/reservations/mis-reservas/")
@@ -115,7 +115,6 @@ interface ApiService {
     @PUT("api/users/profile/update/")
     suspend fun updateUserProfileCompat(@Body request: UpdateProfileRequest): Response<UserProfileResponse>
 
-    // DASHBOARD (sin auth header - manejado por interceptor)
     @GET("api/dashboard/stats/")
     suspend fun getDashboardStats(): Response<DashboardStatsResponse>
 }

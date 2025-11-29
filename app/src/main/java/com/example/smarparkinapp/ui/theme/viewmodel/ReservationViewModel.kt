@@ -41,6 +41,10 @@ class ReservationViewModel(
     private var _reservationEndTime by mutableStateOf("")
     val reservationEndTime: String get() = _reservationEndTime
 
+    // ✅ AGREGAR ESTA PROPIEDAD FALTANTE
+    private var _reservationTime by mutableStateOf("")
+    val reservationTime: String get() = _reservationTime
+
     private var _reservationType by mutableStateOf("hora")
     val reservationType: String get() = _reservationType
 
@@ -58,15 +62,19 @@ class ReservationViewModel(
 
     private val _createdPayment = MutableStateFlow<Payment?>(null)
     val createdPayment: StateFlow<Payment?> = _createdPayment.asStateFlow()
+    fun updateReservationTime(time: String) {
+        _reservationTime = time
+    }
 
     private val _userReservations = MutableStateFlow<List<ReservationResponse>>(emptyList())
     val userReservations: StateFlow<List<ReservationResponse>> = _userReservations.asStateFlow()
 
     // ================== SETTERS ==================
     fun setSelectedVehicle(vehicle: Car) {
+        println(" [ReservationViewModel] setSelectedVehicle: ${vehicle.plate}")
+        println(" [ReservationViewModel] Instancia: ${this.hashCode()}")
         _selectedVehicle = vehicle
     }
-
     fun setReservationDate(date: String) {
         _reservationDate = date
     }
@@ -81,6 +89,13 @@ class ReservationViewModel(
 
     fun setReservationType(type: String) {
         _reservationType = type
+        // Limpiar tiempos cuando se cambia el tipo
+        if (type == "dia") {
+            _reservationStartTime = ""
+            _reservationEndTime = ""
+        } else {
+            _reservationTime = ""
+        }
     }
 
     fun setSelectedParking(parking: ParkingLot) {
@@ -160,12 +175,20 @@ class ReservationViewModel(
             }
         }
     }
+
+    // ================== CREAR RESERVA ==================
     fun createReservation(onSuccess: (ReservationResponse) -> Unit = {}) {
         val parkingId = _selectedParking?.id ?: return
         val vehicleId = _selectedVehicle?.id ?: return
 
-        val start = "$_reservationDate ${_reservationStartTime}:00"
-        val end = "$_reservationDate ${_reservationEndTime}:00"
+        // ACTUALIZADO: Manejar ambos tipos de reserva
+        val (start, end) = if (_reservationType == "hora") {
+            "$_reservationDate ${_reservationStartTime}:00" to "$_reservationDate ${_reservationEndTime}:00"
+        } else {
+            // Para reserva por día, usar la hora de reserva como inicio y calcular fin
+            "$_reservationDate ${_reservationTime}:00" to "$_reservationDate 23:59:00"
+        }
+
         val durationMinutes = calculateDurationMinutes()
 
         viewModelScope.launch {
@@ -234,11 +257,26 @@ class ReservationViewModel(
         }
     }
 
-    // ================== UTILIDAD ==================
+    fun clearFormData() {
+        println(" [ReservationViewModel] Limpiando datos del formulario...")
+        _reservationDate = ""
+        _reservationStartTime = ""
+        _reservationEndTime = ""
+        _reservationTime = ""
+        _reservationType = "hora"
+        _createdReservation.value = null
+        _createdPayment.value = null
+        _error.value = null
+    }
     private fun calculateDurationMinutes(): Int {
         return try {
-            val startDateTime = "$_reservationDate $_reservationStartTime:00"
-            val endDateTime = "$_reservationDate $_reservationEndTime:00"
+            val (startDateTime, endDateTime) = if (_reservationType == "hora") {
+                "$_reservationDate ${_reservationStartTime}:00" to "$_reservationDate ${_reservationEndTime}:00"
+            } else {
+                // Para reserva por día, calcular desde la hora de reserva hasta fin de día
+                "$_reservationDate ${_reservationTime}:00" to "$_reservationDate 23:59:00"
+            }
+
             val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
             val start = format.parse(startDateTime)
             val end = format.parse(endDateTime)
@@ -259,5 +297,11 @@ class ReservationViewModel(
     fun clearData() {
         _createdReservation.value = null
         _createdPayment.value = null
+        _reservationDate = ""
+        _reservationStartTime = ""
+        _reservationEndTime = ""
+        _reservationTime = ""
+        _reservationType = "hora"
     }
+
 }

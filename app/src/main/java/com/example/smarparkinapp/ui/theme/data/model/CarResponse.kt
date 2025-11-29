@@ -8,6 +8,7 @@ data class CarResponse(
     val modelo: String,
     val color: String,
     val activo: Boolean = true,
+    val usuario: Int? = null,
     val fecha_creacion: String? = null,
     val fecha_actualizacion: String? = null
 )

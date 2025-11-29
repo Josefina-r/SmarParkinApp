@@ -1,31 +1,21 @@
 package com.example.smarparkinapp.ui.theme.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Watch
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 import java.text.SimpleDateFormat
-
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,42 +24,47 @@ fun ReservationScreen(
     navController: NavHostController,
     viewModel: ReservationViewModel
 ) {
-    // CORREGIDO: Usar las propiedades directamente del ViewModel
     val selectedParking = viewModel.selectedParking
     val selectedVehicle = viewModel.selectedVehicle
     val isLoading by viewModel.isLoading.collectAsState()
     val createdReservation by viewModel.createdReservation.collectAsState()
 
-    // Estados para pickers
+    // Estados para el calendario y horas
     var showDatePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
+    var showReservationTimePicker by remember { mutableStateOf(false) }
 
-    // Navegar a payment cuando se crea la reserva
+    // Nuevos estados para manejar el resultado de la reserva
+    var showReservationResult by remember { mutableStateOf(false) }
+    var reservationSuccessful by remember { mutableStateOf(false) }
+
+    // Efecto para manejar el resultado de la reserva
     LaunchedEffect(createdReservation) {
         createdReservation?.let { reservation ->
-            navController.navigate("payment/${reservation.id}")
+            reservationSuccessful = true
+
+            // Mostrar el resultado
+            showReservationResult = true
+
+            if (reservationSuccessful) {
+                // Limpiar datos después de reserva exitosa
+                viewModel.clearFormData()
+            }
         }
     }
-    LaunchedEffect(Unit) {
-        println("=== 🔍 RESERVATION SCREEN DEBUG ===")
-        println("🏢 Selected Parking: $selectedParking")
-        println("🚗 Selected Vehicle: $selectedVehicle")
-        println("📱 ViewModel: $viewModel")
-        println("=== FIN DEBUG ===")
-    }
+
+    val isFormComplete = selectedParking != null &&
+            selectedVehicle != null &&
+            viewModel.reservationDate.isNotEmpty() &&
+            ((viewModel.reservationType == "hora" && viewModel.reservationStartTime.isNotEmpty() && viewModel.reservationEndTime.isNotEmpty()) ||
+                    (viewModel.reservationType == "dia" && viewModel.reservationTime.isNotEmpty())) &&
+            !isLoading
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Reserva",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                },
+                title = { Text("Reserva", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Atrás")
@@ -78,49 +73,21 @@ fun ReservationScreen(
             )
         },
         bottomBar = {
-            Surface(
+            Button(
+                onClick = {
+
+                    viewModel.createReservation()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                shadowElevation = 8.dp,
-                shape = RoundedCornerShape(12.dp)
+                    .padding(16.dp)
+                    .height(56.dp),
+                enabled = isFormComplete
             ) {
-                Button(
-                    onClick = {
-                        viewModel.createReservation()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    enabled = selectedParking != null &&
-                            selectedVehicle != null &&
-                            viewModel.reservationDate.isNotEmpty() &&
-                            viewModel.reservationStartTime.isNotEmpty() &&
-                            viewModel.reservationEndTime.isNotEmpty() &&
-                            !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        val costoEstimado = calculateEstimatedCost(
-                            parking = selectedParking,
-                            startTime = viewModel.reservationStartTime,
-                            endTime = viewModel.reservationEndTime,
-                            reservationType = viewModel.reservationType
-                        )
-                        Text(
-                            "Pagar S/ ${"%.2f".format(costoEstimado)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontSize = 16.sp
-                        )
-                    }
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                } else {
+                    Text("Reservar")
                 }
             }
         }
@@ -131,24 +98,19 @@ fun ReservationScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Información del estacionamiento seleccionado
+            // Información del estacionamiento
             selectedParking?.let { parking ->
                 ParkingDetailsCard(parking)
             }
 
-            Divider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Información del vehículo seleccionado
+            // Información del vehículo
             selectedVehicle?.let { vehicle ->
                 VehicleInfoCard(vehicle, navController)
-                Divider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Tipo de reserva
             ReservationTypeSection(
@@ -156,99 +118,351 @@ fun ReservationScreen(
                 onTypeSelected = { type -> viewModel.setReservationType(type) }
             )
 
-            Divider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Selección de fecha
+            DateSelectionSection(
+                selectedDate = viewModel.reservationDate,
+                onDateClick = { showDatePicker = true }
             )
 
-            @Composable
-            fun DateSelectionSection(
-                selectedDate: String,
-                onDateSelected: (String) -> Unit
-            ) {
-                var showDatePicker by remember { mutableStateOf(false) }
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Column {
-                    Text(
-                        text = "Fecha de reserva",
-                        style = MaterialTheme.typography.titleMedium
+            // Horarios según el tipo de reserva
+            when (viewModel.reservationType) {
+                "hora" -> {
+                    TimeRangeSelectionSection(
+                        startTime = viewModel.reservationStartTime,
+                        endTime = viewModel.reservationEndTime,
+                        onStartTimeClick = { showStartTimePicker = true },
+                        onEndTimeClick = { showEndTimePicker = true }
                     )
-
-                    OutlinedButton(
-                        onClick = { showDatePicker = true }
-                    ) {
-                        Text(
-                            text = selectedDate.ifEmpty { "Seleccionar fecha" }
-                        )
-                    }
-
-                    if (showDatePicker) {
-                        // Aquí puedes implementar un DatePicker
-                        // Por ejemplo, usando DatePickerDialog nativo
-                    }
+                }
+                "dia" -> {
+                    ReservationTimeSection(
+                        reservationTime = viewModel.reservationTime,
+                        onTimeClick = { showReservationTimePicker = true }
+                    )
                 }
             }
 
-            // Date Picker Dialog
-            if (showDatePicker) {
-                LaunchedEffect(showDatePicker) {
-                    if (viewModel.reservationDate.isEmpty()) {
-                        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                            .format(Date())
-                        viewModel.setReservationDate(today)
-                    }
-                    showDatePicker = false
-                }
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Divider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-            )
-
-            // Horarios
-            TimeSelectionSection(
-                startTime = viewModel.reservationStartTime,
-                endTime = viewModel.reservationEndTime,
-                onStartTimeSelected = { showStartTimePicker = true },
-                onEndTimeSelected = { showEndTimePicker = true }
-            )
-
-            // Time Picker Dialogs
-            if (showStartTimePicker) {
-                LaunchedEffect(showStartTimePicker) {
-                    if (viewModel.reservationStartTime.isEmpty()) {
-                        viewModel.setReservationStartTime("08:00")
-                    }
-                    showStartTimePicker = false
-                }
-            }
-
-            if (showEndTimePicker) {
-                LaunchedEffect(showEndTimePicker) {
-                    if (viewModel.reservationEndTime.isEmpty()) {
-                        viewModel.setReservationEndTime("09:00")
-                    }
-                    showEndTimePicker = false
-                }
-            }
-
-            Divider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-            )
-
-            // Resumen de costo estimado
+            // Resumen de costo
             CostSummarySection(
                 parking = selectedParking,
                 startTime = viewModel.reservationStartTime,
                 endTime = viewModel.reservationEndTime,
+                reservationTime = viewModel.reservationTime,
                 reservationType = viewModel.reservationType
             )
 
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
+
+    // Date Picker Dialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                .format(Date(millis))
+                            viewModel.setReservationDate(date)
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // Time Pickers para las 24 horas
+    if (showStartTimePicker) {
+        Time24HoursDialog(
+            title = "Hora de entrada",
+            onTimeSelected = { time ->
+                viewModel.setReservationStartTime(time)
+                showStartTimePicker = false
+            },
+            onDismiss = { showStartTimePicker = false }
+        )
+    }
+
+    if (showEndTimePicker) {
+        Time24HoursDialog(
+            title = "Hora de salida",
+            onTimeSelected = { time ->
+                viewModel.setReservationEndTime(time)
+                showEndTimePicker = false
+            },
+            onDismiss = { showEndTimePicker = false }
+        )
+    }
+
+    if (showReservationTimePicker) {
+        Time24HoursDialog(
+            title = "Hora de reserva",
+            onTimeSelected = { time ->
+                viewModel.updateReservationTime(time)
+                showReservationTimePicker = false
+            },
+            onDismiss = { showReservationTimePicker = false }
+        )
+    }
+
+    // Dialog para mostrar el resultado de la reserva
+    if (showReservationResult) {
+        AlertDialog(
+            onDismissRequest = {
+                showReservationResult = false
+                if (reservationSuccessful) {
+                    // Navegar atrás o a otra pantalla si la reserva fue exitosa
+                    navController.popBackStack()
+                }
+            },
+            title = {
+                Text(
+                    if (reservationSuccessful) "¡Reserva Exitosa!" else "Reserva Rechazada"
+                )
+            },
+            text = {
+                Text(
+                    if (reservationSuccessful) {
+                        "Tu reserva ha sido confirmada exitosamente. Recibirás un correo de confirmación."
+                    } else {
+                        "Lo sentimos, no se pudo procesar tu reserva. Por favor, intenta nuevamente."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showReservationResult = false
+                        if (reservationSuccessful) {
+                            navController.popBackStack()
+                        }
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            }
+        )
+    }
+}
+
+
+@Composable
+private fun DateSelectionSection(
+    selectedDate: String,
+    onDateClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Fecha de reserva",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onDateClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(
+                    Icons.Default.CalendarToday,
+                    contentDescription = "Seleccionar fecha",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    if (selectedDate.isNotEmpty()) {
+                        formatDateForDisplay(selectedDate)
+                    } else {
+                        "Seleccionar fecha"
+                    }
+                )
+            }
+
+            if (selectedDate.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "📅 ${formatDateForDisplay(selectedDate)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeRangeSelectionSection(
+    startTime: String,
+    endTime: String,
+    onStartTimeClick: () -> Unit,
+    onEndTimeClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Horarios de reserva",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TimeSelectionButton(
+                    time = startTime,
+                    label = "Hora de entrada",
+                    onClick = onStartTimeClick,
+                    modifier = Modifier.weight(1f)
+                )
+
+                TimeSelectionButton(
+                    time = endTime,
+                    label = "Hora de salida",
+                    onClick = onEndTimeClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (startTime.isNotEmpty() && endTime.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "⏰ $startTime - $endTime (${calculateDuration(startTime, endTime)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReservationTimeSection(
+    reservationTime: String,
+    onTimeClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Hora de reserva",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TimeSelectionButton(
+                time = reservationTime,
+                label = "Hora de inicio",
+                onClick = onTimeClick,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (reservationTime.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "⏰ Reserva a las $reservationTime",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeSelectionButton(
+    time: String,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelMedium)
+        Spacer(modifier = Modifier.height(4.dp))
+        OutlinedButton(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (time.isNotEmpty()) time else "--:--")
+        }
+    }
+}
+
+@Composable
+private fun Time24HoursDialog(
+    title: String,
+    onTimeSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                // Generar todas las horas de 00:00 a 23:00
+                val timeSlots = (0..23).flatMap { hour ->
+                    listOf(
+                        String.format("%02d:00", hour),
+                        String.format("%02d:30", hour)
+                    )
+                }
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.height(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(timeSlots.size) { index ->
+                        val time = timeSlots[index]
+                        OutlinedButton(
+                            onClick = { onTimeSelected(time) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(time)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable
@@ -256,126 +470,22 @@ private fun ParkingDetailsCard(parking: com.example.smarparkinapp.ui.theme.data.
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                parking.nombre,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
-
-            Text(
-                parking.direccion,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(parking.nombre, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            Text(parking.direccion, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Rating y seguridad
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Star,
-                        contentDescription = "Rating",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        "%.1f".format(parking.rating_promedio ?: 0.0),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        " (${parking.total_resenas ?: 0})",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Security,
-                        contentDescription = "Seguridad",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        "Nivel ${parking.nivel_seguridad ?: "1"}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Información de tarifas y disponibilidad
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        "Tarifa por hora:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "S/ ${"%.2f".format(parking.tarifa_hora)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                Column {
-                    Text(
-                        "Espacios disponibles:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "${parking.plazas_disponibles}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            // Horario
-            parking.horario_apertura?.let { apertura ->
-                parking.horario_cierre?.let { cierre ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Filled.Watch,
-                            contentDescription = "Horario",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            "$apertura - $cierre",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("Tarifa: S/ ${"%.2f".format(parking.tarifa_hora)}", fontWeight = FontWeight.Medium)
+                Text("Disponibles: ${parking.plazas_disponibles}", fontWeight = FontWeight.Medium)
             }
         }
     }
 }
-
-
 
 @Composable
 private fun VehicleInfoCard(
@@ -385,12 +495,8 @@ private fun VehicleInfoCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -400,30 +506,11 @@ private fun VehicleInfoCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(
-                    "Vehículo seleccionado",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "${vehicle.brand} ${vehicle.model}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    vehicle.plate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("Vehículo seleccionado", style = MaterialTheme.typography.titleSmall)
+                Text("${vehicle.brand} ${vehicle.model}", style = MaterialTheme.typography.bodyMedium)
+                Text(vehicle.plate, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            TextButton(
-                onClick = {
-
-                    navController.popBackStack()
-                }
-            ) {
+            TextButton(onClick = { navController.popBackStack() }) {
                 Text("Cambiar")
             }
         }
@@ -435,360 +522,106 @@ private fun ReservationTypeSection(
     reservationType: String,
     onTypeSelected: (String) -> Unit
 ) {
-    Column(
-        modifier = Modifier.padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                "⏱️ Tipo de reserva",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Medium
-                )
-            )
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Tipo de reserva", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
 
-            // Indicador de selección
-            if (reservationType.isNotEmpty()) {
-                Text(
-                    "Seleccionado",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Botón "Por hora" - Tarjeta interactiva
-            ReservationTypeCard(
-                title = "🕐 Por hora",
-                description = "Flexible - paga por horas",
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ReservationTypeOption(
+                title = "Por hora",
                 isSelected = reservationType == "hora",
                 onClick = { onTypeSelected("hora") },
                 modifier = Modifier.weight(1f)
             )
-
-            // Botón "Por día" - Tarjeta interactiva
-            ReservationTypeCard(
-                title = "📅 Por día",
-                description = "Económico - tarifa completa",
+            ReservationTypeOption(
+                title = "Por día",
                 isSelected = reservationType == "dia",
                 onClick = { onTypeSelected("dia") },
                 modifier = Modifier.weight(1f)
             )
         }
 
-        // Información adicional
+        // Información adicional según el tipo
         if (reservationType.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = when (reservationType) {
-                    "hora" -> "• Pagas solo por las horas que uses\n• Ideal para visitas cortas"
-                    "dia" -> "• Tarifa plana por día completo\n• Perfecto para todo el día"
+                    "hora" -> "• Pagas solo por las horas que uses\n• Selecciona hora de entrada y salida"
+                    "dia" -> "• Tarifa plana por día completo\n• Selecciona hora de inicio"
                     else -> ""
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        } else {
-            Text(
-                "Seleccione el tipo de reserva que prefiera",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(top = 8.dp)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun ReservationTypeCard(
+private fun ReservationTypeOption(
     title: String,
-    description: String,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 4.dp else 2.dp
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
-        ),
-        shape = RoundedCornerShape(12.dp),
-        border = if (isSelected) {
-            CardDefaults.outlinedCardBorder()
-        } else {
-            null
-        }
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+    else MaterialTheme.colorScheme.surfaceVariant
+
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = containerColor)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            // Título
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Descripción
-            Text(
-                text = description,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Indicador de selección
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Seleccionado",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(10.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isSelected) "Seleccionado" else "Seleccionar",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        Text(title)
     }
 }
 
 @Composable
-private fun TimeSelectionSection(
+private fun CostSummarySection(
+    parking: com.example.smarparkinapp.ui.theme.data.model.ParkingLot?,
     startTime: String,
     endTime: String,
-    onStartTimeSelected: () -> Unit,
-    onEndTimeSelected: () -> Unit
+    reservationTime: String,
+    reservationType: String
 ) {
-    Column(
-        modifier = Modifier.padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                " Horarios de reserva",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Medium
-                )
-            )
+    val costoEstimado = calculateEstimatedCost(parking, startTime, endTime, reservationType)
 
-            // Indicador de completado
-            if (startTime.isNotEmpty() && endTime.isNotEmpty()) {
-                Text(
-                    "Completado",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
+    Card(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Resumen de costo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Check-in - Tarjeta interactiva
-            TimeSelectionCard(
-                title = "🟢 Check-in",
-                subtitle = "Hora de entrada",
-                selectedTime = startTime,
-                defaultTime = "08:00",
-                onClick = onStartTimeSelected,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Check-out - Tarjeta interactiva
-            TimeSelectionCard(
-                title = " Check-out",
-                subtitle = "Hora de salida",
-                selectedTime = endTime,
-                defaultTime = "18:00",
-                onClick = onEndTimeSelected,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        // Validación y información de horarios
-        if (startTime.isNotEmpty() && endTime.isNotEmpty()) {
-            val duration = calculateDuration(startTime, endTime)
-            val isValid = isTimeRangeValid(startTime, endTime)
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-            ) {
-                // Duración calculada
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        "⏳ Duración estimada:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        duration,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = if (isValid) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.error
-                        )
-                    )
-                }
-
-                // Mensaje de validación
-                if (!isValid) {
-                    Text(
-                        "⚠️ La hora de salida debe ser posterior a la de entrada",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-        } else {
-            Text(
-                "Seleccione tanto la hora de entrada como de salida",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TimeSelectionCard(
-    title: String,
-    subtitle: String,
-    selectedTime: String,
-    defaultTime: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            // Título y subtítulo
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Hora seleccionada
-            Text(
-                text = if (selectedTime.isNotEmpty()) selectedTime else defaultTime,
-                style = MaterialTheme.typography.titleMedium.copy(
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("Total estimado:", style = MaterialTheme.typography.bodyMedium)
+                Text("S/ ${"%.2f".format(costoEstimado)}",
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (selectedTime.isNotEmpty()) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                )
-            )
+                    color = MaterialTheme.colorScheme.primary)
+            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Indicador de acción
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = "Seleccionar hora",
-                    tint = if (selectedTime.isNotEmpty()) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+            // Mostrar detalles según el tipo
+            if (reservationType == "hora" && startTime.isNotEmpty() && endTime.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (selectedTime.isNotEmpty()) "Cambiar" else "Seleccionar",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (selectedTime.isNotEmpty()) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    "⏰ $startTime - $endTime (${calculateDuration(startTime, endTime)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (reservationType == "dia" && reservationTime.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "⏰ Inicio a las $reservationTime (Todo el día)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
 }
 
+// Funciones auxiliares
 private fun calculateDuration(startTime: String, endTime: String): String {
     return try {
         val format = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -800,149 +633,47 @@ private fun calculateDuration(startTime: String, endTime: String): String {
             val hours = diff / (1000 * 60 * 60)
             val minutes = (diff % (1000 * 60 * 60)) / (1000 * 60)
 
-            if (hours > 0) {
-                if (minutes > 0) {
-                    "${hours}h ${minutes}m"
-                } else {
-                    "${hours}h"
-                }
-            } else {
-                "${minutes}m"
-            }
-        } else {
-            "0h"
-        }
+            if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
+        } else "0h"
     } catch (e: Exception) {
         "0h"
     }
 }
 
-// Función auxiliar para validar rango de tiempo
-private fun isTimeRangeValid(startTime: String, endTime: String): Boolean {
-    return try {
-        val format = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val start = format.parse(startTime)
-        val end = format.parse(endTime)
-        start != null && end != null && end.after(start)
-    } catch (e: Exception) {
-        false
-    }
-}
-
-@Composable
-private fun CostSummarySection(
-    parking: com.example.smarparkinapp.ui.theme.data.model.ParkingLot?,
-    startTime: String,
-    endTime: String,
-    reservationType: String
-) {
-    val costoEstimado = calculateEstimatedCost(parking, startTime, endTime, reservationType)
-
-    Column(
-        modifier = Modifier.padding(16.dp)
-    ) {
-        Text(
-            "Resumen de costo",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            PriceRow(
-                description = "Tarifa base",
-                amount = "S/ ${"%.2f".format(costoEstimado)}"
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(8.dp))
-
-            PriceRow(
-                description = "Total estimado",
-                amount = "S/ ${"%.2f".format(costoEstimado)}",
-                isTotal = true
-            )
-        }
-    }
-}
-
-@Composable
-private fun PriceRow(
-    description: String,
-    amount: String,
-    isTotal: Boolean = false
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = description,
-            style = if (isTotal) {
-                MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            color = if (isTotal) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-        )
-        Text(
-            text = amount,
-            style = if (isTotal) {
-                MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            color = if (isTotal) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-        )
-    }
-}
-
-// Funciones auxiliares
 private fun calculateEstimatedCost(
     parking: com.example.smarparkinapp.ui.theme.data.model.ParkingLot?,
     startTime: String,
     endTime: String,
     reservationType: String
 ): Double {
-    if (parking == null || startTime.isEmpty() || endTime.isEmpty()) return 0.0
+    if (parking == null) return 0.0
 
     return try {
-        val format = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val start = format.parse(startTime)
-        val end = format.parse(endTime)
-
-        if (start != null && end != null) {
-            val hours = ((end.time - start.time) / (1000 * 60 * 60)).toDouble()
-            if (reservationType == "dia") {
-                // Asumir tarifa por día = 8 horas de tarifa por hora
-                parking.tarifa_hora * 8
-            } else {
-                parking.tarifa_hora * hours
-            }
+        if (reservationType == "dia") {
+            // Tarifa por día = 8 horas de tarifa por hora
+            parking.tarifa_hora * 8
         } else {
-            parking.tarifa_hora
+            if (startTime.isEmpty() || endTime.isEmpty()) {
+                parking.tarifa_hora
+            } else {
+                val format = SimpleDateFormat("HH:mm", Locale.getDefault())
+                val start = format.parse(startTime)
+                val end = format.parse(endTime)
+
+                if (start != null && end != null) {
+                    val hours = ((end.time - start.time) / (1000 * 60 * 60)).toDouble()
+                    parking.tarifa_hora * hours
+                } else {
+                    parking.tarifa_hora
+                }
+            }
         }
     } catch (e: Exception) {
         parking.tarifa_hora
     }
 }
 
-private fun formatDateToString(dateString: String): String {
+private fun formatDateForDisplay(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())

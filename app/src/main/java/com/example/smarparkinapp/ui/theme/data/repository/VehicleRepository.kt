@@ -44,13 +44,16 @@ class VehicleRepository(
                             brand = carResponse.marca,
                             model = carResponse.modelo,
                             color = carResponse.color,
-                            active = carResponse.activo
+                            active = carResponse.activo,
+                            userId = carResponse.usuario,
+                            fechaCreacion = carResponse.fecha_creacion,
+                            fechaActualizacion = carResponse.fecha_actualizacion
                         )
                     }
 
-                    println(" ${vehicles.size} vehículos obtenidos exitosamente")
+                    println("✅ ${vehicles.size} vehículos obtenidos del API")
                     vehicles.forEachIndexed { index, car ->
-                        println("   🚗 $index: ${car.plate} - ${car.brand} ${car.model}")
+                        println("   🚗 $index: ${car.plate} - Usuario ID: ${car.userId}")
                     }
 
                     saveDefaultVehicleId(getDefaultVehicleIdFromList(vehicles))
@@ -119,7 +122,8 @@ class VehicleRepository(
                         brand = carResponse.marca,
                         model = carResponse.modelo,
                         color = carResponse.color,
-                        active = carResponse.activo
+                        active = carResponse.activo,
+                        userId = carResponse.usuario,
                     )
                     println(" Vehículo creado exitosamente: $newCar")
 

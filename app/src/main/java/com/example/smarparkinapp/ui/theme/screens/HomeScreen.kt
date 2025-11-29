@@ -67,7 +67,7 @@ fun HomeScreen(
     val userViewModel: UserViewModel = viewModel(
         factory = UserViewModelFactory(context)
     )
-
+    var activeFilter by remember { mutableStateOf("Todos") }
     var searchQuery by remember { mutableStateOf("") }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -229,20 +229,14 @@ fun HomeScreen(
 
                     DrawerMenuItem("Inicio", Icons.Default.Home) { navController.navigate("home") }
                     DrawerMenuItem("Perfil", Icons.Default.Person) { navController.navigate("perfil") }
-                    DrawerMenuItem("Reservas", Icons.Default.DateRange) { navController.navigate("reservas") }
-                    DrawerMenuItem("Mensajes", Icons.Default.Mail) {}
-
-                    // Cambiado de "ParkGO saldo" a "Parkea Ya saldo"
-                    DrawerMenuItem("Parkea Ya saldo", Icons.Default.AccountBalanceWallet) {}
-
+                    DrawerMenuItem("Reservas", Icons.Default.DateRange) { navController.navigate("myReservations") }
+                    DrawerMenuItem("Parkea Ya saldo", Icons.Default.AccountBalanceWallet) {"payment"}
                     DrawerMenuItem("Soporte", Icons.Default.ChatBubble) {
                         navController.navigate("chatbot")
                     }
                     DrawerMenuItem("Ajustes", Icons.Default.Settings) {
                         navController.navigate(NavRoutes.Settings.route)
                     }
-
-                    //  Opción de Cerrar Sesión si está logueado
                     if (isLoggedIn) {
                         DrawerMenuItem("Cerrar Sesión", Icons.Default.Logout) {
                             userViewModel.logout()
@@ -253,7 +247,7 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     Divider(color = Blanco.copy(alpha = 0.3f))
 
@@ -276,7 +270,7 @@ fun HomeScreen(
                                 .height(50.dp)
                                 .background(
                                     color = VerdeSecundario,
-                                    shape = RoundedCornerShape(25.dp)
+                                    shape = RoundedCornerShape(12.dp)
                                 )
                                 .clickable { },
                             contentAlignment = Alignment.Center
@@ -285,9 +279,8 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    //  Botón para compartir la app en lugar de Facebook
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -558,18 +551,45 @@ fun HomeScreen(
                                 }
                             }
 
-                            // Filtros tipo Tabs
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                TabText("Todos", true)
-                                TabText("Edificio", false)
-                                TabText("Casa", false)
-                                TabText("Playa", false)
-                            }
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            FilterTab(
+                                text = "Todos",
+                                isSelected = activeFilter == "Todos",
+                                onClick = {
+                                    activeFilter = "Todos"
+                                    viewModel.fetchParkingSpots() // Recargar todos
+                                }
+                            )
+                            FilterTab(
+                                text = "Más Económicos",
+                                isSelected = activeFilter == "Económicos",
+                                onClick = {
+                                    activeFilter = "Económicos"
+                                    viewModel.fetchMasEconomicos()
+                                }
+                            )
+                            FilterTab(
+                                text = "Mejor Rating",
+                                isSelected = activeFilter == "Rating",
+                                onClick = {
+                                    activeFilter = "Rating"
+                                    viewModel.fetchMejoresCalificados()
+                                }
+                            )
+                            FilterTab(
+                                text = "Seguridad Alta",
+                                isSelected = activeFilter == "Seguridad",
+                                onClick = {
+                                    activeFilter = "Seguridad"
+                                    viewModel.filterBySecurity(4) // Nivel 4 o superior
+                                }
+                            )
+                        }
 
                             Divider(color = Color.LightGray.copy(alpha = 0.5f))
 
@@ -607,8 +627,34 @@ fun HomeScreen(
         }
     }
 }
+@Composable
+fun FilterTab(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) AzulPrincipal else GrisTexto,
+            modifier = Modifier.padding(vertical = 8.dp),
+            fontSize = 12.sp
+        )
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(3.dp)
+                    .background(AzulPrincipal)
+            )
+        }
+    }
+}
 
-// COMPONENTE: Tarjeta estilo Airbnb (Diseño solicitado) - CORREGIDO
 @Composable
 fun ModernParkingCard(
     parkingSpot: ParkingSpot,
@@ -847,7 +893,6 @@ private fun buildMarkerSnippet(spot: ParkingSpot, distance: Double): String {
     return "${spot.price} - ${spot.availableSpots} disp. - ${"%.1f".format(distance)} km"
 }
 
-// ✅ NUEVA FUNCIÓN: Para compartir la aplicación
 private fun compartirApp(context: Context) {
     try {
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -900,19 +945,3 @@ fun DrawerMenuItem(
     }
 }
 
-@Composable
-fun SocialIcon(icon: ImageVector) {
-    Surface(
-        shape = CircleShape,
-        color = Blanco,
-        shadowElevation = 3.dp,
-        modifier = Modifier.size(45.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = AzulPrincipal)
-        }
-    }
-}

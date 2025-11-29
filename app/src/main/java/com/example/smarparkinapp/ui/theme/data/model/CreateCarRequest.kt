@@ -3,7 +3,7 @@ package com.example.smarparkinapp.ui.theme.data.model
 
 import com.google.gson.annotations.SerializedName
 
-// Para crear un nuevo vehículo (POST)
+// Para crear un nuevo vehículo7
 data class CreateCarRequest(
     @SerializedName("placa")
     val placa: String,
@@ -18,7 +18,7 @@ data class CreateCarRequest(
     val color: String
 )
 
-// Para actualizar un vehículo (PUT/PATCH)
+// Para actualizar un vehículo
 data class UpdateCarRequest(
     @SerializedName("placa")
     val placa: String? = null,

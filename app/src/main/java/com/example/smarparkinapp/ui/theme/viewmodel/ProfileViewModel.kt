@@ -1,4 +1,3 @@
-// viewmodel/ProfileViewModel.kt
 package com.example.smarparkinapp.ui.theme.viewmodel
 
 import android.content.Context
@@ -28,14 +27,16 @@ class ProfileViewModel : ViewModel() {
 
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
+
     private val _hasLoadedProfile = MutableStateFlow(false)
     val hasLoadedProfile: StateFlow<Boolean> = _hasLoadedProfile.asStateFlow()
-    // ✅ NUEVO: Método para inicializar el repository
+
     fun initializeRepository(context: Context) {
         if (!userRepository.isInitialized()) {
             userRepository.initialize(context)
         }
     }
+
     fun clearProfileData() {
         _userProfile.value = null
         _hasLoadedProfile.value = false
@@ -49,31 +50,50 @@ class ProfileViewModel : ViewModel() {
         _userProfile.value = null
         loadUserProfile(context)
     }
+
     fun loadUserProfile(context: Context) {
         if (_hasLoadedProfile.value) {
+            println("ProfileViewModel - Perfil ya cargado, omitiendo...")
             return
         }
+
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
-
             try {
-                //  Asegurar que el repository esté inicializado
+
                 initializeRepository(context)
 
+                println(" ProfileViewModel - Cargando perfil desde repository...")
                 val profile = userRepository.getUserProfile()
+
+                //  Verificar qué datos llegan
+                println(" ProfileViewModel - Perfil obtenido: $profile")
+                println(" Teléfono en profile: '${profile.phone}'")
+                println(" Dirección en profile: '${profile.address}'")
+                println(" Nombre: '${profile.firstName} ${profile.lastName}'")
+                println(" Tipo documento: '${profile.tipoDocumento}'")
+                println(" Número documento: '${profile.numeroDocumento}'")
+
                 _userProfile.value = profile
                 _hasLoadedProfile.value = true
+
+                println(" ProfileViewModel - Perfil cargado exitosamente en StateFlow")
+
             } catch (e: Exception) {
-                _errorMessage.value = "Error al cargar perfil: ${e.message}"
+                val errorMsg = "Error al cargar perfil: ${e.message}"
+                _errorMessage.value = errorMsg
                 _hasLoadedProfile.value = false
+                println("❌ ProfileViewModel - $errorMsg")
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    //Con mejor debug
     fun updateProfile(
         context: Context,
         firstName: String,
@@ -92,19 +112,23 @@ class ProfileViewModel : ViewModel() {
             _validationErrors.value = emptyMap()
 
             try {
-                // ✅ Validaciones
+                //  Validaciones
                 val errors = validateProfileData(
                     firstName, lastName, phone, documentType, documentNumber, birthDate
                 )
 
                 if (errors.isNotEmpty()) {
                     _validationErrors.value = errors
+                    println(" ProfileViewModel - Errores de validación: $errors")
                     return@launch
                 }
 
-                // ✅ Asegurar que el repository esté inicializado
+                //repository inicializado
                 initializeRepository(context)
+
                 val backendDocumentType = documentType?.let { mapDocumentTypeToBackendFormat(it) }
+
+                println(" ProfileViewModel - Actualizando perfil...")
                 val updatedProfile = userRepository.updateUserProfile(
                     firstName = firstName,
                     lastName = lastName,
@@ -117,18 +141,26 @@ class ProfileViewModel : ViewModel() {
                     country = country
                 )
 
+                //  Verificar perfil actualizado
+                println(" ProfileViewModel - Perfil actualizado: $updatedProfile")
+                println(" Teléfono actualizado: '${updatedProfile.phone}'")
+                println(" Dirección actualizada: '${updatedProfile.address}'")
+
                 _userProfile.value = updatedProfile
                 _updateSuccess.value = true
                 _hasLoadedProfile.value = true
 
+                println(" ProfileViewModel - Perfil actualizado exitosamente")
+
             } catch (e: Exception) {
-                _errorMessage.value = "Error al actualizar: ${e.message}"
+                val errorMsg = "Error al actualizar: ${e.message}"
+                _errorMessage.value = errorMsg
+                println(" ProfileViewModel - $errorMsg")
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
             }
         }
-
-
     }
 
     private fun validateProfileData(
@@ -217,6 +249,7 @@ class ProfileViewModel : ViewModel() {
     fun clearValidationErrors() {
         _validationErrors.value = emptyMap()
     }
+
     private fun mapDocumentTypeToBackendFormat(documentType: String): String {
         return when (documentType) {
             "DNI" -> "dni"
