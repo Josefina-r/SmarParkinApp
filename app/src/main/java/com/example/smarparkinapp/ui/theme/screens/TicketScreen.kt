@@ -1,6 +1,5 @@
 package com.example.smarparkinapp.ui.theme.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,25 +16,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
-import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 import com.example.smarparkinapp.ui.theme.data.model.Payment
 import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
+import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketScreen(
     navController: NavHostController,
     paymentId: String?,
-    viewModel: ReservationViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: ReservationViewModel = viewModel()
 ) {
-    val payment by viewModel.createdPayment.collectAsState()
+    // ✅ CORREGIDO: Solo los Flows usan collectAsState()
+    val payment: Payment? by viewModel.createdPayment.collectAsState()
+    val isLoading: Boolean by viewModel.isLoading.collectAsState()
+
+    // ✅ CORREGIDO: selectedParking y selectedVehicle son propiedades directas
     val reservation = payment?.reserva
+
+    // Observar cambios en las propiedades del ViewModel
+    val selectedParking by remember { derivedStateOf { viewModel.selectedParking } }
+    val selectedVehicle by remember { derivedStateOf { viewModel.selectedVehicle } }
+
+    // Cargar detalles cuando la reserva esté disponible
+    LaunchedEffect(reservation) {
+        if (reservation != null) {
+            viewModel.loadTicketDetails(reservation)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -48,7 +60,7 @@ fun TicketScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        navController.navigate("home") { popUpTo(0) }
+                        navController.popBackStack()
                     }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Atrás")
                     }
@@ -56,29 +68,46 @@ fun TicketScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-        ) {
-            TicketHeader(reservation)
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                TicketHeader(reservation)
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            QrCodeSection(payment)
+                QrCodeSection(payment)
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            TicketDetails(reservation, payment)
+                TicketDetails(
+                    reservation = reservation,
+                    payment = payment,
+                    parking = selectedParking,
+                    vehicle = selectedVehicle
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            InstructionsSection()
+                InstructionsSection()
+            }
         }
     }
 }
 
+// El resto del código permanece igual...
 @Composable
 private fun TicketHeader(reservation: ReservationResponse?) {
     Column(
@@ -153,18 +182,7 @@ private fun QrCodeSection(payment: Payment?) {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                // QR Code placeholder - puedes reemplazar con tu lógica real
                 if (payment?.id != null) {
-                    // Si tienes una URL real para el QR, úsala aquí:
-                    // val qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${payment.id}"
-                    // Image(
-                    //     painter = rememberAsyncImagePainter(model = qrUrl),
-                    //     contentDescription = "Código QR del Ticket",
-                    //     modifier = Modifier.fillMaxSize(),
-                    //     contentScale = ContentScale.FillBounds
-                    // )
-
-                    // Placeholder por ahora
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
@@ -175,7 +193,7 @@ private fun QrCodeSection(payment: Payment?) {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            payment.id.take(8),
+                            "Ref: ${payment.id.take(8)}",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -196,7 +214,12 @@ private fun QrCodeSection(payment: Payment?) {
 }
 
 @Composable
-private fun TicketDetails(reservation: ReservationResponse?, payment: Payment?) {
+private fun TicketDetails(
+    reservation: ReservationResponse?,
+    payment: Payment?,
+    parking: com.example.smarparkinapp.ui.theme.data.model.ParkingLot?,
+    vehicle: com.example.smarparkinapp.ui.theme.data.model.Car?
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -213,21 +236,23 @@ private fun TicketDetails(reservation: ReservationResponse?, payment: Payment?) 
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Información del estacionamiento
             DetailRow(
                 icon = Icons.Filled.CheckCircle,
                 title = "Estacionamiento",
-                value = reservation?.estacionamiento?.nombre ?: "N/A"
+                value = parking?.nombre ?: "Cargando..."
             )
 
             DetailRow(
                 icon = Icons.Filled.Schedule,
                 title = "Dirección",
-                value = reservation?.estacionamiento?.direccion ?: "No disponible"
+                value = parking?.direccion ?: "No disponible"
             )
 
             Spacer(modifier = Modifier.height(8.dp))
             Divider()
 
+            // Información de la reserva
             DetailRow(
                 icon = Icons.Filled.Schedule,
                 title = "Check-in",
@@ -237,7 +262,7 @@ private fun TicketDetails(reservation: ReservationResponse?, payment: Payment?) 
             DetailRow(
                 icon = Icons.Filled.Schedule,
                 title = "Check-out",
-                value = formatDateTime(reservation?.horaSalida ?: "")
+                value = formatDateTime(reservation?.horaSalida ?: "No definido")
             )
 
             DetailRow(
@@ -246,15 +271,17 @@ private fun TicketDetails(reservation: ReservationResponse?, payment: Payment?) 
                 value = "${reservation?.duracionMinutos ?: 0} minutos"
             )
 
+            // Información del vehículo
             DetailRow(
                 icon = Icons.Filled.Schedule,
                 title = "Vehículo",
-                value = "${reservation?.vehiculo?.marca ?: ""} ${reservation?.vehiculo?.modelo ?: ""} - ${reservation?.vehiculo?.placa ?: ""}"
+                value = buildVehicleInfo(vehicle)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
             Divider()
 
+            // Información del pago
             DetailRow(
                 icon = Icons.Filled.CheckCircle,
                 title = "Método de pago",
@@ -283,6 +310,16 @@ private fun TicketDetails(reservation: ReservationResponse?, payment: Payment?) 
                     title = "Total pagado",
                     value = "S/ ${"%.2f".format(monto)}",
                     valueColor = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Mostrar costo estimado de la reserva
+            reservation?.costoEstimado?.let { costo ->
+                DetailRow(
+                    icon = Icons.Filled.CheckCircle,
+                    title = "Costo estimado",
+                    value = "S/ ${"%.2f".format(costo)}",
+                    valueColor = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -378,10 +415,18 @@ private fun InstructionItem(text: String) {
     }
 }
 
+// Función auxiliar para construir la información del vehículo
+private fun buildVehicleInfo(vehicle: com.example.smarparkinapp.ui.theme.data.model.Car?): String {
+    return if (vehicle != null) {
+        "${vehicle.brand} ${vehicle.model} - ${vehicle.plate}"
+    } else {
+        "Cargando..."
+    }
+}
+
 private fun formatDateTime(dateTime: String): String {
     return try {
         if (dateTime.contains("T")) {
-            // Formato ISO: "2024-01-01T14:00:00Z" -> "01/01/2024 14:00"
             val parts = dateTime.split("T")
             val datePart = parts[0]
             val timePart = parts[1].substring(0, 5)
@@ -421,12 +466,12 @@ private fun getPaymentStatus(status: String): String {
 @Composable
 private fun getPaymentStatusColor(status: String): Color {
     return when (status) {
-        "pagado" -> Color(0xFF4CAF50) // Verde
-        "pendiente" -> Color(0xFFFFC107) // Amarillo
-        "procesando" -> Color(0xFF03A9F4) // Azul
-        "fallido" -> Color(0xFFF44336) // Rojo
-        "reembolsado" -> Color(0xFF9C27B0) // Púrpura
-        "cancelado" -> Color(0xFF607D8B) // Gris
+        "pagado" -> Color(0xFF4CAF50)
+        "pendiente" -> Color(0xFFFFC107)
+        "procesando" -> Color(0xFF03A9F4)
+        "fallido" -> Color(0xFFF44336)
+        "reembolsado" -> Color(0xFF9C27B0)
+        "cancelado" -> Color(0xFF607D8B)
         else -> MaterialTheme.colorScheme.onSurface
     }
 }

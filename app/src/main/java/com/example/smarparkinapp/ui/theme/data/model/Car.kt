@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class Car(
     @SerializedName("id")
-    val id: Int = 0,
+    val id: Long = 0L,  // ✅ CAMBIADO de Int a Long
 
     @SerializedName("placa")
     val plate: String,
@@ -22,7 +22,7 @@ data class Car(
     val active: Boolean = true,
 
     @SerializedName("usuario")
-    val userId: Int? = null,
+    val userId: Long? = null,  // ✅ CAMBIADO de Int? a Long?
 
     @SerializedName("fecha_creacion")
     val fechaCreacion: String? = null,
@@ -30,4 +30,9 @@ data class Car(
     @SerializedName("fecha_actualizacion")
     val fechaActualizacion: String? = null
 
-)
+) {
+    // Función auxiliar para mostrar información del vehículo
+    fun getDisplayInfo(): String {
+        return "$brand $model - $plate"
+    }
+}

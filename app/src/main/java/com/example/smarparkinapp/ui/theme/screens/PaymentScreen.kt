@@ -1,54 +1,72 @@
 package com.example.smarparkinapp.ui.theme.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
+import android.widget.Toast
+import android.content.Intent
+import android.net.Uri
+import kotlinx.coroutines.delay
 
 // Definición de los métodos de pago
 enum class PaymentMethodType(
     val id: String,
     val displayName: String,
-    val emoji: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val phoneNumber: String = "",
+    val qrDescription: String = "",
+    val appPackage: String = "",
+    val imageRes: Int? = null
 ) {
-    TARJETA(
-        id = "tarjeta",
-        displayName = "Tarjeta de Crédito/Débito",
-        emoji = "💳",
-        icon = Icons.Default.CreditCard
-    ),
     YAPE(
         id = "yape",
         displayName = "Yape",
-        emoji = "📱",
-        icon = Icons.Default.PhoneAndroid
+        icon = Icons.Default.PhoneAndroid,
+        phoneNumber = "952695739",
+        qrDescription = "Escanea con Yape o envía al número",
+        appPackage = "com.bcp.yape",
+        imageRes = com.example.smarparkinapp.R.drawable.logo_yape
     ),
     PLIN(
         id = "plin",
         displayName = "Plin",
-        emoji = "📱",
-        icon = Icons.Default.PhoneAndroid
+        icon = Icons.Default.PhoneAndroid,
+        phoneNumber = "952695739",
+        qrDescription = "Escanea con Plin o envía al número",
+        appPackage = "com.bcp.plin",
+        imageRes = com.example.smarparkinapp.R.drawable.logo_plin
+    ),
+    BCP(
+        id = "bcp",
+        displayName = "Transferencia BCP",
+        icon = Icons.Default.AccountBalance,
+        phoneNumber = "",
+        qrDescription = "Transferencia bancaria BCP",
+        imageRes = com.example.smarparkinapp.R.drawable.logo_bcp
     ),
     EFECTIVO(
         id = "efectivo",
         displayName = "Pago en Efectivo",
-        emoji = "💰",
-        icon = Icons.Default.Wallet
+        icon = Icons.Default.Wallet,
+        imageRes = com.example.smarparkinapp.R.drawable.logo_efectivo
     )
 }
 
@@ -60,15 +78,50 @@ fun PaymentScreen(
     viewModel: ReservationViewModel
 ) {
     var selectedMethod by remember { mutableStateOf<PaymentMethodType?>(null) }
-    val reservation by viewModel.createdReservation.collectAsState()
+    var showProcessingDialog by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var showQRDialog by remember { mutableStateOf(false) }
+    var showBCPDialog by remember { mutableStateOf(false) }
+    var paymentProcessed by remember { mutableStateOf(false) }
+
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val createdReservation by viewModel.createdReservation.collectAsState()
+    val createdPayment by viewModel.createdPayment.collectAsState()
+    val context = LocalContext.current
+
+    // Observar cuando la reserva se crea exitosamente
+    LaunchedEffect(createdReservation) {
+        createdReservation?.let { reservation ->
+            println("✅ Reserva creada exitosamente: ${reservation.id}")
+            // Si ya tenemos un método de pago seleccionado, proceder con el pago
+            selectedMethod?.let { method ->
+                if (!paymentProcessed) {
+                    processRealPayment(viewModel, method, reservation.id)
+                    paymentProcessed = true
+                }
+            }
+        }
+    }
+
+    // Observar cuando el pago se completa
+    LaunchedEffect(createdPayment) {
+        createdPayment?.let { payment ->
+            println("✅ Pago creado exitosamente: ${payment.id}")
+            showProcessingDialog = false
+            showSuccessDialog = true
+            paymentProcessed = false // Reset para futuras transacciones
+        }
+    }
 
     // Mostrar errores
     LaunchedEffect(error) {
-        error?.let {
-            // Aquí puedes mostrar un snackbar o diálogo de error
-            println("Error en pago: $it")
+        if (!error.isNullOrEmpty()) {
+            kotlinx.coroutines.delay(100L)
+            Toast.makeText(context, "Error: $error", Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+            showProcessingDialog = false
+            paymentProcessed = false
         }
     }
 
@@ -102,9 +155,17 @@ fun PaymentScreen(
                     Button(
                         onClick = {
                             selectedMethod?.let { method ->
-                                viewModel.createPayment(method.id) { payment ->
-                                    // Navegar a la pantalla de ticket con el ID del pago
-                                    navController.navigate("ticket/${payment.id}")
+                                when (method) {
+                                    PaymentMethodType.YAPE, PaymentMethodType.PLIN -> {
+                                        showQRDialog = true
+                                    }
+                                    PaymentMethodType.BCP -> {
+                                        showBCPDialog = true
+                                    }
+                                    else -> {
+                                        // Para efectivo, crear reserva inmediatamente
+                                        createRealReservation(viewModel, method)
+                                    }
                                 }
                             }
                         },
@@ -123,7 +184,11 @@ fun PaymentScreen(
                             )
                         } else {
                             Text(
-                                "Pagar S/ ${reservation?.costoEstimado ?: "0.00"}",
+                                when (selectedMethod) {
+                                    PaymentMethodType.YAPE, PaymentMethodType.PLIN -> "Pagar con ${selectedMethod?.displayName}"
+                                    PaymentMethodType.BCP -> "Ver datos de transferencia BCP"
+                                    else -> "Confirmar y Pagar"
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontSize = 16.sp
                             )
@@ -139,12 +204,10 @@ fun PaymentScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Información de la reserva
-            ReservationSummaryCard(reservation)
+            ReservationSummaryCard(viewModel)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Métodos de pago
             Text(
                 "Selecciona método de pago",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -160,16 +223,510 @@ fun PaymentScreen(
                 onMethodSelected = { method -> selectedMethod = method }
             )
 
-            // Información adicional sobre métodos de pago
             PaymentInfoSection(selectedMethod)
 
-            Spacer(modifier = Modifier.height(80.dp)) // Espacio para el botón flotante
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+
+    // Diálogo de QR para Yape/Plin
+    if (showQRDialog) {
+        selectedMethod?.let { method ->
+            QRPaymentDialog(
+                paymentMethod = method,
+                amount = calculateTotalCost(viewModel),
+                onPaymentConfirmed = {
+                    // Crear reserva primero, luego el pago se procesará automáticamente
+                    createRealReservation(viewModel, method)
+                    showQRDialog = false
+                },
+                onDismiss = {
+                    showQRDialog = false
+                }
+            )
+        }
+    }
+
+    // Diálogo de BCP
+    if (showBCPDialog) {
+        BCPPaymentDialog(
+            amount = calculateTotalCost(viewModel),
+            onPaymentConfirmed = {
+                // Crear reserva primero, luego el pago se procesará automáticamente
+                createRealReservation(viewModel, PaymentMethodType.BCP)
+                showBCPDialog = false
+            },
+            onDismiss = {
+                showBCPDialog = false
+            }
+        )
+    }
+
+    // Diálogo de procesamiento
+    if (showProcessingDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = {
+                Text("Procesando reserva y pago...")
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Creando reserva y registrando pago...",
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "La reserva se enviará al dashboard del estacionamiento",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = { }
+        )
+    }
+
+    // Diálogo de éxito
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                navController.navigate("home") {
+                    popUpTo("home") { inclusive = true }
+                }
+            },
+            title = {
+                Text("¡Reserva y Pago Exitosos! 🎉")
+            },
+            text = {
+                Column {
+                    Text("✅ Reserva creada y confirmada")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("✅ Pago registrado exitosamente")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("📊 La reserva fue enviada al dashboard del owner")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Recibirás un correo de confirmación con los detalles",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    createdReservation?.let { reservation ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Código de reserva: ${reservation.codigoReserva ?: reservation.id}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        navController.navigate("reservations") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Ver mis reservas")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun BCPPaymentDialog(
+    amount: Double,
+    onPaymentConfirmed: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Transferencia BCP",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // LOGO BCP REAL
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = com.example.smarparkinapp.R.drawable.logo_bcp),
+                        contentDescription = "Logo BCP",
+                        modifier = Modifier
+                            .height(60.dp)
+                            .fillMaxWidth(0.6f),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Información de cuentas
+                AccountInfoItem(
+                    title = "Cuenta Soles",
+                    number = "57002530863081",
+                    onCopy = {
+                        clipboardManager.setText(AnnotatedString("57002530863081"))
+                        Toast.makeText(context, "Cuenta soles copiada", Toast.LENGTH_SHORT).show()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AccountInfoItem(
+                    title = "Cuenta Interbancaria (CCI)",
+                    number = "00257010253086308109",
+                    onCopy = {
+                        clipboardManager.setText(AnnotatedString("00257010253086308109"))
+                        Toast.makeText(context, "CCI copiado", Toast.LENGTH_SHORT).show()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            " Instrucciones:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("• Realiza la transferencia por S/ ${"%.2f".format(amount)}")
+                        Text("• Usa cualquiera de las cuentas mostradas")
+                        Text("• Guarda el comprobante de pago")
+                        Text("• Confirma cuando hayas realizado el pago")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onPaymentConfirmed,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Check, contentDescription = "Confirmar")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Ya realicé la transferencia")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@Composable
+private fun AccountInfoItem(
+    title: String,
+    number: String,
+    onCopy: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    number,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Button(
+                    onClick = onCopy,
+                    modifier = Modifier.height(36.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Copiar", fontSize = 12.sp)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ReservationSummaryCard(reservation: com.example.smarparkinapp.ui.theme.data.model.ReservationResponse?) {
+private fun QRPaymentDialog(
+    paymentMethod: PaymentMethodType,
+    amount: Double,
+    onPaymentConfirmed: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    var countdown by remember { mutableStateOf(30) }
+    var isPaymentSimulated by remember { mutableStateOf(false) }
+
+    // Determinar qué imagen QR usar según el método de pago
+    val qrImageResource = when (paymentMethod.id) {
+        "yape" -> com.example.smarparkinapp.R.drawable.qr_yape
+        "plin" -> com.example.smarparkinapp.R.drawable.qr_plin
+        else -> com.example.smarparkinapp.R.drawable.qr_yape
+    }
+
+    // Función para abrir la app externa
+    fun openExternalApp() {
+        try {
+            val intent = context.packageManager.getLaunchIntentForPackage(paymentMethod.appPackage)
+            if (intent != null) {
+                context.startActivity(intent)
+            } else {
+                val playStoreIntent = Intent(Intent.ACTION_VIEW).apply {
+                    data = Uri.parse("market://details?id=${paymentMethod.appPackage}")
+                    setPackage("com.android.vending")
+                }
+                context.startActivity(playStoreIntent)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "No se pudo abrir ${paymentMethod.displayName}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Cuenta regresiva
+    LaunchedEffect(Unit) {
+        for (i in 30 downTo 1) {
+            if (isPaymentSimulated) break
+            delay(1000L)
+            countdown = i
+        }
+
+        if (!isPaymentSimulated) {
+            delay(2000L)
+            isPaymentSimulated = true
+            onPaymentConfirmed()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Pago con ${paymentMethod.displayName}",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // IMAGEN REAL DEL QR
+                Box(
+                    modifier = Modifier
+                        .size(250.dp)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = qrImageResource),
+                        contentDescription = "Código QR para ${paymentMethod.displayName}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Número de teléfono para copiar
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            " O envía al número:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                paymentMethod.phoneNumber,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Row {
+                                Button(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(paymentMethod.phoneNumber))
+                                        Toast.makeText(
+                                            context,
+                                            "Número copiado: ${paymentMethod.phoneNumber}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    modifier = Modifier.height(36.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Copiar", fontSize = 12.sp)
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Button(
+                                    onClick = { openExternalApp() },
+                                    modifier = Modifier.height(36.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.OpenInNew, contentDescription = "Abrir App", modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Abrir", fontSize = 12.sp)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            " Copia el número y pégalo en ${paymentMethod.displayName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    "Tiempo restante: ${countdown}s",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (countdown < 10) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    "El pago se confirmará automáticamente",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Botón para simular pago manualmente
+                if (!isPaymentSimulated) {
+                    Button(
+                        onClick = {
+                            isPaymentSimulated = true
+                            onPaymentConfirmed()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = "Confirmar")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ya pagué con ${paymentMethod.displayName}")
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Procesando pago...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (!isPaymentSimulated) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancelar", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun ReservationSummaryCard(viewModel: ReservationViewModel) {
+    val selectedParking = viewModel.selectedParking
+    val selectedVehicle = viewModel.selectedVehicle
+    val totalCost = calculateTotalCost(viewModel)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -188,15 +745,69 @@ private fun ReservationSummaryCard(reservation: com.example.smarparkinapp.ui.the
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Estacionamiento:", style = MaterialTheme.typography.bodyMedium)
+            selectedParking?.let { parking ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Estacionamiento:", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        parking.nombre,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Dirección:", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        parking.direccion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Tarifa:", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "S/ ${"%.2f".format(parking.tarifa_hora)} por hora",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            selectedVehicle?.let { vehicle ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Vehículo:", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "${vehicle.brand} ${vehicle.model}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
-                    reservation?.estacionamiento?.nombre ?: "N/A",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    "Placa: ${vehicle.plate}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.End)
                 )
             }
 
@@ -206,9 +817,9 @@ private fun ReservationSummaryCard(reservation: com.example.smarparkinapp.ui.the
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Dirección:", style = MaterialTheme.typography.bodyMedium)
+                Text("Fecha:", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    reservation?.estacionamiento?.direccion ?: "N/A",
+                    viewModel.reservationDate,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -216,43 +827,45 @@ private fun ReservationSummaryCard(reservation: com.example.smarparkinapp.ui.the
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Vehículo:", style = MaterialTheme.typography.bodyMedium)
+            if (viewModel.reservationType == "hora") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Horario:", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "${viewModel.reservationStartTime} - ${viewModel.reservationEndTime}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
-                    "${reservation?.vehiculo?.marca ?: ""} ${reservation?.vehiculo?.modelo ?: ""} (${reservation?.vehiculo?.placa ?: "N/A"})",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    "Duración: ${calculateDuration(viewModel.reservationStartTime, viewModel.reservationEndTime)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.End)
                 )
-            }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Tipo:", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Reserva por día completo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Duración:", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "${reservation?.duracionMinutos ?: 0} min",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Horario:", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    "${formatTime(reservation?.horaEntrada) ?: "N/A"} - ${formatTime(reservation?.horaSalida) ?: "N/A"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    "Hora de inicio: ${viewModel.reservationTime}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.End)
                 )
             }
 
@@ -272,7 +885,7 @@ private fun ReservationSummaryCard(reservation: com.example.smarparkinapp.ui.the
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "S/ ${reservation?.costoEstimado ?: "0.00"}",
+                    "S/ ${"%.2f".format(totalCost)}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -288,9 +901,9 @@ private fun PaymentMethodsList(
     onMethodSelected: (PaymentMethodType) -> Unit
 ) {
     val paymentMethods = listOf(
-        PaymentMethodType.TARJETA,
         PaymentMethodType.YAPE,
         PaymentMethodType.PLIN,
+        PaymentMethodType.BCP,
         PaymentMethodType.EFECTIVO
     )
 
@@ -328,9 +941,9 @@ private fun PaymentMethodItem(
         ),
         border = if (isSelected) CardDefaults.outlinedCardBorder() else null,
         elevation = if (isSelected) {
-            CardDefaults.cardElevation(0.dp) // Sin elevación cuando está seleccionado
+            CardDefaults.cardElevation(0.dp)
         } else {
-            CardDefaults.cardElevation(4.dp) // Con elevación cuando no está seleccionado
+            CardDefaults.cardElevation(4.dp)
         },
         onClick = onSelected
     ) {
@@ -349,14 +962,12 @@ private fun PaymentMethodItem(
                     modifier = Modifier.size(40.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = method.icon,
+                    // SIEMPRE USAR IMAGEN (todos los métodos tienen imageRes)
+                    Image(
+                        painter = painterResource(id = method.imageRes!!),
                         contentDescription = method.displayName,
-                        tint = if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        modifier = Modifier.size(32.dp),
+                        contentScale = ContentScale.Fit
                     )
                 }
 
@@ -413,6 +1024,22 @@ private fun PaymentInfoSection(selectedMethod: PaymentMethodType?) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                if (method.id == "yape" || method.id == "plin") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        " Número: ${method.phoneNumber}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "💡 Escanea el QR o copia el número para pagar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
@@ -421,9 +1048,9 @@ private fun PaymentInfoSection(selectedMethod: PaymentMethodType?) {
 // Funciones auxiliares
 private fun getPaymentDescription(methodId: String): String {
     return when (methodId) {
-        "tarjeta" -> "Pago seguro con tarjeta"
-        "yape" -> "Pago rápido con Yape"
-        "plin" -> "Pago rápido con Plin"
+        "yape" -> "Pago rápido - Número: 952695739"
+        "plin" -> "Pago rápido - Número: 952695739"
+        "bcp" -> "Transferencia bancaria BCP"
         "efectivo" -> "Paga al llegar al estacionamiento"
         else -> ""
     }
@@ -431,23 +1058,80 @@ private fun getPaymentDescription(methodId: String): String {
 
 private fun getPaymentDetails(methodId: String): String {
     return when (methodId) {
-        "tarjeta" -> "Tu pago será procesado de forma segura. Aceptamos Visa, MasterCard y otras tarjetas."
-        "yape" -> "Serás redirigido a la app de Yape para completar el pago."
-        "plin" -> "Serás redirigido a la app de Plin para completar el pago."
+        "yape" -> "Escanea el código QR con Yape o envía al número 952695739"
+        "plin" -> "Escanea el código QR con Plin o envía al número 952695739"
+        "bcp" -> "Transferencia a cuentas BCP. Números de cuenta disponibles."
         "efectivo" -> "Paga directamente en el estacionamiento al momento de tu llegada."
         else -> ""
     }
 }
 
-private fun formatTime(dateTimeString: String?): String? {
-    if (dateTimeString == null) return null
+private fun calculateTotalCost(viewModel: ReservationViewModel): Double {
+    val parking = viewModel.selectedParking ?: return 0.0
+    val startTime = viewModel.reservationStartTime
+    val endTime = viewModel.reservationEndTime
+    val reservationType = viewModel.reservationType
+
+    return if (reservationType == "dia") {
+        parking.tarifa_hora * 8
+    } else {
+        if (startTime.isEmpty() || endTime.isEmpty()) {
+            parking.tarifa_hora
+        } else {
+            try {
+                val format = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                val start = format.parse(startTime)
+                val end = format.parse(endTime)
+                if (start != null && end != null) {
+                    val hours = ((end.time - start.time) / (1000 * 60 * 60)).toDouble()
+                    parking.tarifa_hora * hours
+                } else {
+                    parking.tarifa_hora
+                }
+            } catch (e: Exception) {
+                parking.tarifa_hora
+            }
+        }
+    }
+}
+
+private fun calculateDuration(startTime: String, endTime: String): String {
     return try {
-        // Formatear de "yyyy-MM-dd HH:mm:ss" a "HH:mm"
-        val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-        val outputFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-        val date = inputFormat.parse(dateTimeString)
-        date?.let { outputFormat.format(it) }
+        val format = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        val start = format.parse(startTime)
+        val end = format.parse(endTime)
+
+        if (start != null && end != null) {
+            val diff = end.time - start.time
+            val hours = diff / (1000 * 60 * 60)
+            val minutes = (diff % (1000 * 60 * 60)) / (1000 * 60)
+
+            if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
+        } else "0h"
     } catch (e: Exception) {
-        dateTimeString
+        "0h"
+    }
+}
+
+// FUNCIONES PARA CONSUMIR APIS REALES
+private fun createRealReservation(
+    viewModel: ReservationViewModel,
+    method: PaymentMethodType
+) {
+    println("🚀 Creando reserva REAL con método: ${method.displayName}")
+    viewModel.createReservation { reservation ->
+        println("✅ Reserva creada exitosamente, ID: ${reservation.id}")
+        // El pago se procesará automáticamente a través del LaunchedEffect
+    }
+}
+
+private fun processRealPayment(
+    viewModel: ReservationViewModel,
+    method: PaymentMethodType,
+    reservationId: Long
+) {
+    println("💰 Procesando pago REAL para reserva: $reservationId, método: ${method.id}")
+    viewModel.createPayment(method.id) { payment ->
+        println("✅ Pago creado exitosamente: ${payment.id}")
     }
 }

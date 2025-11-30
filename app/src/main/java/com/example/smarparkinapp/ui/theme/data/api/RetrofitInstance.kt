@@ -30,7 +30,7 @@ object RetrofitInstance {
                 val original = chain.request()
                 val requestBuilder = original.newBuilder()
 
-                // Agregar token si existe
+
                 token?.let {
                     requestBuilder.header("Authorization", "Bearer $it")
                 }

@@ -12,13 +12,16 @@ data class ReservationResponse(
     val codigoReserva: String = "",
 
     @SerializedName("usuario")
-    val usuario: UserShortResponse? = null,
+    val usuarioId: Long = 0, // ← Sigue siendo el ID
+
+    @SerializedName("usuario_nombre") // ✅ NUEVO: Campo para el username
+    val usuarioNombre: String = "",
 
     @SerializedName("vehiculo")
-    val vehiculo: VehicleShortResponse? = null,
+    val vehiculoId: Long = 0,
 
     @SerializedName("estacionamiento")
-    val estacionamiento: ParkingShortResponse? = null,
+    val estacionamientoId: Long = 0,
 
     @SerializedName("hora_entrada")
     val horaEntrada: String = "",
@@ -48,7 +51,6 @@ data class ReservationResponse(
     @SerializedName("puede_cancelar")
     val puedeCancelar: Boolean = false
 )
-
 // Modelos auxiliares para ReservationResponse
 data class UserShortResponse(
     @SerializedName("id")

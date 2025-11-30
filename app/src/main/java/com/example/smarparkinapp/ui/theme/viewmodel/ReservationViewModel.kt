@@ -41,7 +41,6 @@ class ReservationViewModel(
     private var _reservationEndTime by mutableStateOf("")
     val reservationEndTime: String get() = _reservationEndTime
 
-    // ✅ AGREGAR ESTA PROPIEDAD FALTANTE
     private var _reservationTime by mutableStateOf("")
     val reservationTime: String get() = _reservationTime
 
@@ -62,6 +61,7 @@ class ReservationViewModel(
 
     private val _createdPayment = MutableStateFlow<Payment?>(null)
     val createdPayment: StateFlow<Payment?> = _createdPayment.asStateFlow()
+
     fun updateReservationTime(time: String) {
         _reservationTime = time
     }
@@ -75,6 +75,7 @@ class ReservationViewModel(
         println(" [ReservationViewModel] Instancia: ${this.hashCode()}")
         _selectedVehicle = vehicle
     }
+
     fun setReservationDate(date: String) {
         _reservationDate = date
     }
@@ -118,7 +119,7 @@ class ReservationViewModel(
                         println(" [ReservationViewModel] Error: ${result.message}")
                     }
                     else -> {
-                        _error.value = "Error desconocido"
+                        _error.value = "Estado desconocido"
                     }
                 }
             } catch (e: Exception) {
@@ -146,6 +147,7 @@ class ReservationViewModel(
         }
     }
 
+    // ================== GESTIÓN DE VEHÍCULOS ==================
     fun addVehicle(
         plate: String,
         brand: String,
@@ -176,16 +178,47 @@ class ReservationViewModel(
         }
     }
 
+
+    // ✅ CORREGIDO: FUNCIÓN ELIMINAR VEHÍCULO
+    fun deleteVehicle(vehicleId: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                vehicleRepository.deleteVehicle(vehicleId).onSuccess {
+                    println("✅ [ReservationViewModel] Vehículo eliminado exitosamente: $vehicleId")
+
+                    loadUserVehicles()
+
+                    if (_selectedVehicle?.id == vehicleId) {
+                        println("🔄 [ReservationViewModel] Vehículo seleccionado eliminado, limpiando selección")
+                        _selectedVehicle = null
+                    }
+                }.onFailure { exception ->
+                    println("❌ [ReservationViewModel] Error eliminando vehículo: ${exception.message}")
+                    _error.value = "Error al eliminar el vehículo: ${exception.message}"
+                }
+            } catch (e: Exception) {
+                println("❌ [ReservationViewModel] Exception eliminando vehículo: ${e.message}")
+                _error.value = "Error al eliminar el vehículo: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     // ================== CREAR RESERVA ==================
     fun createReservation(onSuccess: (ReservationResponse) -> Unit = {}) {
         val parkingId = _selectedParking?.id ?: return
         val vehicleId = _selectedVehicle?.id ?: return
 
-        // ACTUALIZADO: Manejar ambos tipos de reserva
+        // DEPURACIÓN
+        println("🔍 DEBUG - Creando reserva:")
+        println("   - Parking: $parkingId (${_selectedParking?.nombre})")
+        println("   - Vehículo: $vehicleId (${_selectedVehicle?.plate})")
+
         val (start, end) = if (_reservationType == "hora") {
             "$_reservationDate ${_reservationStartTime}:00" to "$_reservationDate ${_reservationEndTime}:00"
         } else {
-            // Para reserva por día, usar la hora de reserva como inicio y calcular fin
             "$_reservationDate ${_reservationTime}:00" to "$_reservationDate 23:59:00"
         }
 
@@ -195,21 +228,26 @@ class ReservationViewModel(
             _isLoading.value = true
             try {
                 val request = ReservationRequest(
-                    estacionamientoId = parkingId,
-                    vehiculoId = vehicleId,
+                    estacionamiento = parkingId,
+                    vehiculo = vehicleId,
                     horaEntrada = start,
                     horaSalida = end,
                     tipoReserva = _reservationType,
                     duracionMinutos = durationMinutes
                 )
 
+                println("🚀 Enviando reserva REAL: $request")
+
                 reservationRepository.createReservation(request).onSuccess { reservation ->
+                    println("✅ Reserva creada exitosamente: ${reservation.id}")
                     _createdReservation.value = reservation
                     onSuccess(reservation)
-                }.onFailure {
-                    _error.value = "Error creando reserva"
+                }.onFailure { error ->
+                    println("❌ Error creando reserva: ${error.message}")
+                    _error.value = "Error creando reserva: ${error.message}"
                 }
             } catch (e: Exception) {
+                println("❌ Exception creando reserva: ${e.message}")
                 _error.value = "Error creando reserva: ${e.message}"
             } finally {
                 _isLoading.value = false
@@ -257,6 +295,7 @@ class ReservationViewModel(
         }
     }
 
+    // ================== LIMPIAR DATOS ==================
     fun clearFormData() {
         println(" [ReservationViewModel] Limpiando datos del formulario...")
         _reservationDate = ""
@@ -268,6 +307,22 @@ class ReservationViewModel(
         _createdPayment.value = null
         _error.value = null
     }
+
+    fun clearError() {
+        _error.value = null
+    }
+
+    fun clearData() {
+        _createdReservation.value = null
+        _createdPayment.value = null
+        _reservationDate = ""
+        _reservationStartTime = ""
+        _reservationEndTime = ""
+        _reservationTime = ""
+        _reservationType = "hora"
+    }
+
+    // ================== CÁLCULOS ==================
     private fun calculateDurationMinutes(): Int {
         return try {
             val (startDateTime, endDateTime) = if (_reservationType == "hora") {
@@ -290,18 +345,152 @@ class ReservationViewModel(
         }
     }
 
-    fun clearError() {
-        _error.value = null
+    // ================== VALIDACIONES ==================
+    fun hasSelectedVehicle(): Boolean {
+        return _selectedVehicle != null
     }
 
-    fun clearData() {
-        _createdReservation.value = null
-        _createdPayment.value = null
-        _reservationDate = ""
-        _reservationStartTime = ""
-        _reservationEndTime = ""
-        _reservationTime = ""
-        _reservationType = "hora"
+    fun hasSelectedParking(): Boolean {
+        return _selectedParking != null
     }
 
+    fun isReservationDataComplete(): Boolean {
+        return when (_reservationType) {
+            "hora" -> _reservationDate.isNotEmpty() && _reservationStartTime.isNotEmpty() && _reservationEndTime.isNotEmpty()
+            "dia" -> _reservationDate.isNotEmpty() && _reservationTime.isNotEmpty()
+            else -> false
+        }
+    }
+
+    // ================== FUNCIONES PARA TICKET ==================
+
+    /**
+     * Cargar detalles del estacionamiento para el ticket
+     */
+    fun loadParkingDetailsForTicket(parkingId: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                when (val result = parkingRepository.getParkingById(parkingId)) {
+                    is com.example.smarparkinapp.ui.theme.data.repository.Result.Success -> {
+                        _selectedParking = result.data
+                        println("✅ [Ticket] Detalles del estacionamiento cargados: ${result.data.nombre}")
+                    }
+                    is com.example.smarparkinapp.ui.theme.data.repository.Result.Error -> {
+                        _error.value = "Error cargando estacionamiento: ${result.message}"
+                        println("❌ [Ticket] Error cargando estacionamiento: ${result.message}")
+                    }
+                    else -> {
+                        _error.value = "Estado desconocido al cargar estacionamiento"
+                    }
+                }
+            } catch (e: Exception) {
+                _error.value = "Error cargando estacionamiento: ${e.message}"
+                println("❌ [Ticket] Exception: ${e.message}")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Cargar detalles del vehículo para el ticket
+     */
+    fun loadVehicleDetailsForTicket(vehicleId: Long) {
+        viewModelScope.launch {
+            try {
+                vehicleRepository.getUserVehicles().onSuccess { vehicles ->
+                    val vehicle = vehicles.find { it.id.toLong() == vehicleId } // ✅ CORREGIDO
+                    if (vehicle != null) {
+                        _selectedVehicle = vehicle
+                        println("✅ [Ticket] Detalles del vehículo cargados: ${vehicle.plate}")
+                    } else {
+                        println("❌ [Ticket] Vehículo no encontrado: $vehicleId")
+                    }
+                }.onFailure { error ->
+                    println("❌ [Ticket] Error cargando vehículos: ${error.message}")
+                }
+            } catch (e: Exception) {
+                println("❌ [Ticket] Exception cargando vehículo: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Cargar todos los detalles para el ticket
+     */
+    fun loadTicketDetails(reservation: ReservationResponse) {
+        println("🎫 [Ticket] Cargando detalles para ticket...")
+        println("   - Estacionamiento ID: ${reservation.estacionamientoId}")
+        println("   - Vehículo ID: ${reservation.vehiculoId}")
+
+        // Cargar detalles del estacionamiento
+        if (reservation.estacionamientoId != 0L) {
+            loadParkingDetailsForTicket(reservation.estacionamientoId)
+        }
+
+        // Cargar detalles del vehículo
+        if (reservation.vehiculoId != 0L) { // ✅ CORREGIDO: Ambos son Long
+            loadVehicleDetailsForTicket(reservation.vehiculoId)
+        }
+    }
+
+    // ================== FUNCIONES ADICIONALES ==================
+
+    /**
+     * Obtener reserva por ID
+     */
+    fun getReservationById(reservationId: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // Si tu API tiene un endpoint para obtener reserva por ID, lo usarías aquí
+                // Por ahora, buscamos en las reservas existentes
+                val reservation = _userReservations.value.find { it.id == reservationId }
+                if (reservation != null) {
+                    _createdReservation.value = reservation
+                    println("✅ Reserva encontrada: ${reservation.codigoReserva}")
+                } else {
+                    _error.value = "Reserva no encontrada"
+                }
+            } catch (e: Exception) {
+                _error.value = "Error obteniendo reserva: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Refrescar datos del ticket
+     */
+    fun refreshTicketData() {
+        _createdReservation.value?.let { reservation ->
+            loadTicketDetails(reservation)
+        }
+    }
+
+    /**
+     * Verificar si el ticket está listo para mostrar
+     */
+    fun isTicketReady(): Boolean {
+        return _createdReservation.value != null &&
+                _selectedParking != null &&
+                _selectedVehicle != null
+    }
+
+    /**
+     * Obtener resumen del ticket
+     */
+    fun getTicketSummary(): String {
+        val reservation = _createdReservation.value
+        val parking = _selectedParking
+        val vehicle = _selectedVehicle
+
+        return if (reservation != null && parking != null && vehicle != null) {
+            "Reserva #${reservation.id} - ${parking.nombre} - ${vehicle.brand} ${vehicle.plate}"
+        } else {
+            "Cargando información del ticket..."
+        }
+    }
 }

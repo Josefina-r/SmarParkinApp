@@ -35,9 +35,7 @@ sealed class NavRoutes(val route: String) {
     object Chatbot : NavRoutes("chatbot")
 
     // CORRECCIÓN: Agregar parámetro que falta según tu NavGraph
-    object Payment : NavRoutes("payment/{reservationId}") {
-        fun createRoute(reservationId: Long) = "payment/$reservationId"
-    }
+    object Payment : NavRoutes("payment") // Sin parámetros}
 
     // Función auxiliar (se mantiene igual)
     fun createRoute(vararg params: String): String {

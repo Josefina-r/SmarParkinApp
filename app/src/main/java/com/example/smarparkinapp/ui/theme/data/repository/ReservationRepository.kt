@@ -25,22 +25,23 @@ class ReservationRepository(private val context: Context) {
     suspend fun createReservation(request: ReservationRequest): Result<ReservationResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                println("📱 Creando reserva...")
-                println("🔍 Request: $request")
+                println(" Creando reserva...")
+                println(" Request: $request")
 
                 val response = apiService.createReservation(request)
 
-                println("📥 Response: ${response.code()} - ${response.message()}")
+                println(" Response: ${response.code()} - ${response.message()}")
 
                 if (response.isSuccessful) {
                     val reservation = response.body()
                     if (reservation != null) {
-                        println("✅ Reserva creada exitosamente:")
-                        println("   📋 Código: ${reservation.codigoReserva}")
-                        println("   💰 Costo: ${reservation.costoEstimado}")
-                        println("   📍 Estado: ${reservation.estado}")
-                        println("   🚗 Vehículo: ${reservation.vehiculo?.placa}")
-                        println("   🅿️ Estacionamiento: ${reservation.estacionamiento?.nombre}")
+                        println(" Reserva creada exitosamente:")
+                        println("    Código: ${reservation.codigoReserva}")
+                        println("    Costo: ${reservation.costoEstimado}")
+                        println("    Estado: ${reservation.estado}")
+                        println("    Usuario: ${reservation.usuarioNombre}") // ✅ CAMBIADO: Usar usuarioNombre
+                        println("    Vehículo ID: ${reservation.vehiculoId}") // ✅ CAMBIADO: vehiculoId en lugar de vehiculo.placa
+                        println("    Estacionamiento ID: ${reservation.estacionamientoId}") // ✅ CAMBIADO: estacionamientoId
                         Result.success(reservation)
                     } else {
                         println("❌ Respuesta vacía del servidor")
@@ -57,7 +58,6 @@ class ReservationRepository(private val context: Context) {
             }
         }
     }
-
     suspend fun getMyReservations(): Result<List<ReservationResponse>> = withContext(Dispatchers.IO) {
         try {
             println("📱 Obteniendo mis reservas...")

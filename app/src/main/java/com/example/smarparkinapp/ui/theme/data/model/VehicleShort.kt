@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class VehicleShort(
     @SerializedName("id")
-    val id: Int,
+    val id: Long,  // ✅ CAMBIADO de Int a Long
 
     @SerializedName("placa")
     val placa: String,

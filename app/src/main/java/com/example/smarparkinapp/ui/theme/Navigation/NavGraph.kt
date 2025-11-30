@@ -49,9 +49,12 @@ import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
 @Composable
 fun AppNavGraph(navController: NavHostController) {
     val context = LocalContext.current
+
+    // ✅ CREAR UNA SOLA INSTANCIA DEL VIEWMODEL
     val reservationViewModel: ReservationViewModel = viewModel(
         factory = ReservationViewModelFactory(context)
     )
+
     NavHost(
         navController = navController,
         startDestination = NavRoutes.Splash.route
@@ -135,13 +138,11 @@ fun AppNavGraph(navController: NavHostController) {
             })
         ) { backStackEntry ->
             val parkingId = backStackEntry.arguments?.getLong("parkingId") ?: -1L
-            val viewModel: ReservationViewModel = viewModel(
-                factory = ReservationViewModelFactory(context)
-            )
 
             VehicleSelectionScreen(
                 navController = navController,
                 parkingId = if (parkingId != -1L) parkingId else null,
+                // ✅ USAR LA MISMA INSTANCIA DEL VIEWMODEL
                 viewModel = reservationViewModel
             )
         }
@@ -152,34 +153,25 @@ fun AppNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("parkingId") { type = NavType.LongType })
         ) { backStackEntry ->
             val parkingId = backStackEntry.arguments?.getLong("parkingId")
-            val viewModel: ReservationViewModel = viewModel(
-                factory = ReservationViewModelFactory(context)
-            )
+
             LaunchedEffect(parkingId) {
                 parkingId?.let { id ->
-                    viewModel.loadParkingById(id)
+                    reservationViewModel.loadParkingById(id)
                 }
             }
 
             ReservationScreen(
                 navController = navController,
+                // ✅ USAR LA MISMA INSTANCIA DEL VIEWMODEL
                 viewModel = reservationViewModel
             )
         }
 
-        // Payment
-        composable(
-            route = NavRoutes.Payment.route,
-            arguments = listOf(navArgument("reservationId") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val reservationId = backStackEntry.arguments?.getLong("reservationId")
-            val viewModel: ReservationViewModel = viewModel(
-                factory = ReservationViewModelFactory(context)
-            )
-
+        // ✅ AGREGAR LA RUTA DE PAYMENTS QUE FALTABA
+        composable(NavRoutes.Payment.route) {
             PaymentScreen(
                 navController = navController,
-                reservationId = reservationId,
+                reservationId = null, // No necesitas reservationId
                 viewModel = reservationViewModel
             )
         }
@@ -190,14 +182,12 @@ fun AppNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("paymentId") { type = NavType.StringType })
         ) { backStackEntry ->
             val paymentId = backStackEntry.arguments?.getString("paymentId")
-            val viewModel: ReservationViewModel = viewModel(
-                factory = ReservationViewModelFactory(context)
-            )
 
             TicketScreen(
                 navController = navController,
                 paymentId = paymentId,
-                viewModel = viewModel
+                // ✅ USAR LA MISMA INSTANCIA DEL VIEWMODEL
+                viewModel = reservationViewModel
             )
         }
 
@@ -250,15 +240,15 @@ fun AppNavGraph(navController: NavHostController) {
                 }
             )
         }
+
         composable("myReservations") {
             MyReservationsScreen(
                 navController = navController,
-               // viewModel = reservationViewModel
+                // viewModel = reservationViewModel
             )
         }
     }
 }
-
 
 // Función para verificar si el perfil está completo
 private fun isProfileComplete(userProfile: UserProfile?): Boolean {

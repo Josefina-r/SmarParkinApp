@@ -53,11 +53,11 @@ interface ApiService {
     suspend fun getParkingById(@Path("id") parkingId: Long): Response<ParkingLot>
 
 
-    @POST("api/vehicles/")
-    suspend fun addCar(@Body car: CarRequest): Response<CarResponse>
-
     @GET("api/vehicles/")
     suspend fun getUserVehicles(): Response<PaginatedResponse<CarResponse>>
+
+    @POST("api/vehicles/")
+    suspend fun addCar(@Body car: CarRequest): Response<CarResponse>
 
     @PUT("api/vehicles/{id}/")
     suspend fun updateVehicle(
@@ -67,7 +67,6 @@ interface ApiService {
 
     @DELETE("api/vehicles/{id}/")
     suspend fun deleteVehicle(@Path("id") vehicleId: Int): Response<GenericResponse>
-
     // Reservas
     @POST("api/reservation/")
     suspend fun createReservation(@Body request: ReservationRequest): Response<ReservationResponse>

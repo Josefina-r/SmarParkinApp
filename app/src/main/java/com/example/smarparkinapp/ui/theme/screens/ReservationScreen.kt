@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import com.example.smarparkinapp.ui.theme.NavRoutes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,25 +36,6 @@ fun ReservationScreen(
     var showEndTimePicker by remember { mutableStateOf(false) }
     var showReservationTimePicker by remember { mutableStateOf(false) }
 
-    // Nuevos estados para manejar el resultado de la reserva
-    var showReservationResult by remember { mutableStateOf(false) }
-    var reservationSuccessful by remember { mutableStateOf(false) }
-
-    // Efecto para manejar el resultado de la reserva
-    LaunchedEffect(createdReservation) {
-        createdReservation?.let { reservation ->
-            reservationSuccessful = true
-
-            // Mostrar el resultado
-            showReservationResult = true
-
-            if (reservationSuccessful) {
-                // Limpiar datos después de reserva exitosa
-                viewModel.clearFormData()
-            }
-        }
-    }
-
     val isFormComplete = selectedParking != null &&
             selectedVehicle != null &&
             viewModel.reservationDate.isNotEmpty() &&
@@ -75,8 +57,9 @@ fun ReservationScreen(
         bottomBar = {
             Button(
                 onClick = {
-
-                    viewModel.createReservation()
+                    navController.navigate(NavRoutes.Payment.route) {
+                        launchSingleTop = true
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -87,7 +70,7 @@ fun ReservationScreen(
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else {
-                    Text("Reservar")
+                    Text("Continuar al Pago")
                 }
             }
         }
@@ -218,47 +201,7 @@ fun ReservationScreen(
             onDismiss = { showReservationTimePicker = false }
         )
     }
-
-    // Dialog para mostrar el resultado de la reserva
-    if (showReservationResult) {
-        AlertDialog(
-            onDismissRequest = {
-                showReservationResult = false
-                if (reservationSuccessful) {
-                    // Navegar atrás o a otra pantalla si la reserva fue exitosa
-                    navController.popBackStack()
-                }
-            },
-            title = {
-                Text(
-                    if (reservationSuccessful) "¡Reserva Exitosa!" else "Reserva Rechazada"
-                )
-            },
-            text = {
-                Text(
-                    if (reservationSuccessful) {
-                        "Tu reserva ha sido confirmada exitosamente. Recibirás un correo de confirmación."
-                    } else {
-                        "Lo sentimos, no se pudo procesar tu reserva. Por favor, intenta nuevamente."
-                    }
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showReservationResult = false
-                        if (reservationSuccessful) {
-                            navController.popBackStack()
-                        }
-                    }
-                ) {
-                    Text("Aceptar")
-                }
-            }
-        )
-    }
 }
-
 
 @Composable
 private fun DateSelectionSection(

@@ -1,6 +1,5 @@
 package com.example.smarparkinapp.ui.theme.screens
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,7 +7,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,6 +45,8 @@ fun VehicleSelectionScreen(
     // Estado para el vehículo seleccionado
     var selectedVehicle by remember { mutableStateOf<Car?>(null) }
     var showAddVehicleDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var vehicleToDelete by remember { mutableStateOf<Car?>(null) }
 
     val vehicles by viewModel.vehicles.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -59,6 +62,12 @@ fun VehicleSelectionScreen(
             android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
             viewModel.clearError()
         }
+    }
+
+    // Función para manejar la eliminación
+    val onDeleteVehicle = { car: Car ->
+        vehicleToDelete = car
+        showDeleteConfirmation = true
     }
 
     Scaffold(
@@ -121,7 +130,8 @@ fun VehicleSelectionScreen(
                         onClick = {
                             selectedVehicle = if (selectedVehicle?.id == car.id) null else car
                             println("🚗 [VehicleSelection] Vehículo clickeado: ${car.plate}")
-                        }
+                        },
+                        onDelete = { onDeleteVehicle(car) }
                     )
                 }
 
@@ -166,6 +176,48 @@ fun VehicleSelectionScreen(
             }
         )
     }
+
+    // Diálogo de confirmación para eliminar
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteConfirmation = false
+                vehicleToDelete = null
+            },
+            title = { Text("Eliminar vehículo") },
+            text = {
+                Text("¿Estás seguro de que quieres eliminar el vehículo ${vehicleToDelete?.plate}? Esta acción no se puede deshacer.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vehicleToDelete?.let { car ->
+                            // ✅ CORREGIDO: Convertir Int a Long
+                            viewModel.deleteVehicle(car.id.toLong())
+                            // Si el vehículo eliminado era el seleccionado, limpiar la selección
+                            if (selectedVehicle?.id == car.id) {
+                                selectedVehicle = null
+                            }
+                        }
+                        showDeleteConfirmation = false
+                        vehicleToDelete = null
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        vehicleToDelete = null
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -199,7 +251,14 @@ private fun EmptyVehiclesState(onAddVehicle: () -> Unit) {
 }
 
 @Composable
-fun VehicleItem(car: Car, isSelected: Boolean, onClick: () -> Unit) {
+fun VehicleItem(
+    car: Car,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -228,12 +287,46 @@ fun VehicleItem(car: Car, isSelected: Boolean, onClick: () -> Unit) {
                 Text(car.plate, style = MaterialTheme.typography.bodyMedium)
                 Text(car.color, style = MaterialTheme.typography.bodySmall)
             }
+
+            // Icono de selección o menú de opciones
             if (isSelected) {
                 Icon(
                     Icons.Default.Check,
                     contentDescription = "Seleccionado",
                     tint = MaterialTheme.colorScheme.primary
                 )
+            } else {
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true }
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "Opciones",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Eliminar") },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Outlined.Delete,
+                                    contentDescription = "Eliminar",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        )
+                    }
+                }
             }
         }
     }
