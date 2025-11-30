@@ -5,6 +5,7 @@ import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
 import com.example.smarparkinapp.ui.theme.data.api.GenericResponse
 import com.example.smarparkinapp.ui.theme.data.model.Reservation
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
+import java.util.UUID
 import com.example.smarparkinapp.ui.theme.data.model.*
 import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
 import com.example.smarparkinapp.ui.theme.data.model.TicketResponse
@@ -116,38 +117,57 @@ class ReservationRepository(private val context: Context) {
     }
 
     // ================== PAGOS ==================
-    suspend fun createPayment(reservationId: Long, metodo: String): Result<Payment> {
+// En ReservationRepository - createPayment
+    // En ReservationRepository - createPayment
+    suspend fun createPayment(reservationId: Long, metodo: String, monto: Double): Result<Payment> {
         return withContext(Dispatchers.IO) {
             try {
-                println("📱 Creando pago para reserva: $reservationId")
-                val request = mapOf(
-                    "reserva" to reservationId,
-                    "metodo" to metodo
-                )
+                println("💰 [ReservationRepository] === CREANDO PAGO REAL ===")
 
+                val request = when (metodo.lowercase()) {
+                    "efectivo" -> PaymentRequest.forEfectivo(reservationId, monto)
+                    "yape" -> PaymentRequest.forYape(reservationId, monto)
+                    "plin" -> PaymentRequest.forPlin(reservationId, monto)
+                    "tarjeta" -> PaymentRequest.forTarjeta(reservationId, "token_simulado", monto)
+                    else -> PaymentRequest.forEfectivo(reservationId, monto)
+                }
+
+                println("📤 [ReservationRepository] Enviando: $request")
                 val response = apiService.createPayment(request)
 
+                println("📡 [ReservationRepository] Respuesta: ${response.code()}")
+
                 if (response.isSuccessful) {
-                    val payment = response.body()
-                    if (payment != null) {
-                        println("✅ Pago creado:")
-                        println("   💳 Referencia: ${payment.referenciaPago}")
-                        println("   💰 Monto: ${payment.monto}")
-                        println("   📍 Estado: ${payment.estado}")
-                        Result.success(payment)
-                    } else {
-                        Result.failure(Exception("Respuesta vacía del servidor"))
-                    }
+                    // ✅ LA API SOLO DEVUELVE {"reserva":12,"metodo":"yape"}
+                    // CREAMOS EL PAYMENT MANUALMENTE
+                    val payment = Payment(
+                        id = UUID.randomUUID().toString(),
+                        monto = monto,
+                        metodo = metodo,
+                        estado = "pendiente",
+                        referenciaPago = "ref-${System.currentTimeMillis()}",
+                        moneda = "PEN",
+                        fechaCreacion = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                    )
+
+                    println("✅ [ReservationRepository] PAGO CREADO MANUALMENTE:")
+                    println("   📋 ID: ${payment.id}")
+                    println("   💰 Monto: ${payment.monto}")
+                    println("   📍 Método: ${payment.metodo}")
+                    println("   📊 Estado: ${payment.estado}")
+
+                    Result.success(payment)
                 } else {
                     val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                    Result.failure(Exception("Error creando pago: $errorBody"))
+                    println("❌ [ReservationRepository] ERROR: ${response.code()} - $errorBody")
+                    Result.failure(Exception("Error ${response.code()}: $errorBody"))
                 }
             } catch (e: Exception) {
-                Result.failure(Exception("Error: ${e.message}"))
+                println("💥 [ReservationRepository] EXCEPCIÓN: ${e.message}")
+                Result.failure(Exception("Error de conexión: ${e.message}"))
             }
         }
     }
-
     suspend fun processPayment(paymentId: String): Result<Payment> = withContext(Dispatchers.IO) {
         try {
             println("📱 Procesando pago: $paymentId")

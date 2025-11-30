@@ -256,21 +256,50 @@ class ReservationViewModel(
     }
 
     // ================== PAGO ==================
-    fun createPayment(metodo: String, onSuccess: (Payment) -> Unit = {}) {
-        val reservation = _createdReservation.value ?: return
+    fun createPayment(metodo: String, onSuccess: (Payment) -> Unit = {}, onError: (String) -> Unit = {}) {
+        val reservation = _createdReservation.value
+        if (reservation == null) {
+            val errorMsg = "❌ [ReservationViewModel] No hay reserva creada para procesar pago"
+            println(errorMsg)
+            onError(errorMsg)
+            return
+        }
+
+        // ✅ SOLUCIÓN DEFINITIVA - Convertir siempre a String primero
+        val montoReal = try {
+            // Convertir cualquier tipo a String y luego a Double
+            reservation.costoEstimado?.toString()?.toDoubleOrNull()
+        } catch (e: Exception) {
+            println("⚠️ [ReservationViewModel] Error convirtiendo monto: ${e.message}")
+            null
+        }
+
+        if (montoReal == null) {
+            val errorMsg = "❌ [ReservationViewModel] No se pudo obtener el monto. Valor: '${reservation.costoEstimado}' (Tipo: ${reservation.costoEstimado?.javaClass?.simpleName})"
+            println(errorMsg)
+            onError(errorMsg)
+            return
+        }
+
+        println("💰 [ReservationViewModel] Creando pago - Reserva: ${reservation.id}, Método: $metodo, Monto: $montoReal")
 
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                reservationRepository.createPayment(reservation.id, metodo)
+                reservationRepository.createPayment(reservation.id, metodo, montoReal)
                     .onSuccess { payment ->
+                        println("✅ [ReservationViewModel] Pago creado exitosamente: ${payment.id}")
                         _createdPayment.value = payment
                         onSuccess(payment)
-                    }.onFailure {
-                        _error.value = "Error creando pago"
+                    }.onFailure { exception ->
+                        val errorMsg = "❌ [ReservationViewModel] Error creando pago: ${exception.message}"
+                        println(errorMsg)
+                        onError(errorMsg)
                     }
             } catch (e: Exception) {
-                _error.value = "Error creando pago: ${e.message}"
+                val errorMsg = "💥 [ReservationViewModel] Exception creando pago: ${e.message}"
+                println(errorMsg)
+                onError(errorMsg)
             } finally {
                 _isLoading.value = false
             }

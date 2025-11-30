@@ -3,6 +3,7 @@ package com.example.smarparkinapp.ui.theme.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import com.example.smarparkinapp.ui.theme.data.model.Payment
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -1131,7 +1132,10 @@ private fun processRealPayment(
     reservationId: Long
 ) {
     println("💰 Procesando pago REAL para reserva: $reservationId, método: ${method.id}")
-    viewModel.createPayment(method.id) { payment ->
-        println("✅ Pago creado exitosamente: ${payment.id}")
+
+    // ✅ ADAPTACIÓN SI EL VIEWMODEL ESPERA STRING
+    viewModel.createPayment(method.id) { resultString ->
+        println("✅ Pago procesado - Respuesta: $resultString")
+        // Aquí puedes parsear el string si es JSON, o usar el string directamente
     }
 }

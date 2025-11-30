@@ -10,7 +10,9 @@ import com.example.smarparkinapp.ui.theme.data.model.Payment
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
+import com.example.smarparkinapp.ui.theme.data.model.PaymentRequest
 import com.example.smarparkinapp.ui.theme.data.model.TicketResponse
+import com.google.gson.JsonObject
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -82,7 +84,7 @@ interface ApiService {
 
     // Pagos
     @POST("api/payments/")
-    suspend fun createPayment(@Body request: Map<String, Any>): Response<Payment>
+    suspend fun createPayment(@Body request: PaymentRequest): Response<JsonObject> // o Response<Any>
 
     @POST("api/payments/{id}/process/")
     suspend fun processPayment(@Path("id") paymentId: String): Response<Payment>
