@@ -2,8 +2,12 @@
 package com.example.smarparkinapp.ui.theme.data.api
 
 import com.example.smarparkinapp.ui.theme.data.model.CarRequest
+import com.google.gson.annotations.SerializedName
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
+import com.example.smarparkinapp.ui.theme.data.model.ParkingReviewsResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
+import com.example.smarparkinapp.ui.theme.data.model.ParkingReview
+import com.example.smarparkinapp.ui.theme.data.model.CreateReviewRequest
 import com.example.smarparkinapp.ui.theme.data.model.Payment
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
@@ -103,6 +107,32 @@ interface ApiService {
 
     @GET("api/parking/mapa/")
     suspend fun getParkingMapa(): Response<ParkingLotResponse>
+
+    @GET("parking/reviews/")
+    suspend fun obtenerReseñas(
+        @Query("estacionamiento") estacionamientoId: Int
+    ): Response<List<ParkingReview>>
+
+
+    @GET("api/parkings/{parkingId}/reviews/")
+    suspend fun getReviewsByParking(
+        @Path("parkingId") parkingId: Int
+    ): Response<ParkingReviewsResponse>
+
+    // Crear una reseña
+    @POST("api/reviews/")
+    suspend fun createReview(
+        @Body request: CreateReviewRequest
+    ): Response<ParkingReview>
+
+    @GET("reviews/parking/{parking_id}/")
+    suspend fun parkingReviewsPublic(
+        @Path("parking_id") parkingId: Int
+    ): Response<ParkingReviewsResponse>
+    @GET("api/user/reviews/")
+    suspend fun getUserReviews(): Response<List<ParkingReview>>
+
+
 
     // RUTAS PARA PERFIL
     @GET("api/users/profile/")
@@ -230,4 +260,10 @@ data class ChangePasswordRequest(
     val old_password: String,
     val new_password: String,
     val confirm_password: String? = null
+)
+
+// Modelos adicionales para respuestas
+data class ReportReviewRequest(
+    @SerializedName("motivo")
+    val motivo: String
 )

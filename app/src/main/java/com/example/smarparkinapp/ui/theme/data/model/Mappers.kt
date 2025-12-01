@@ -1,30 +1,17 @@
+// Mappers.kt - CORREGIDO
 package com.example.smarparkinapp.ui.theme.data.model
-
-fun ParkingSpotResponse.toParkingSpot(): ParkingSpot {
-
-    return ParkingSpot(
-        id = this.id,
-        name = this.nombre,
-        address = this.direccion,
-        price = this.precioHora,
-        availableSpots = this.plazasDisponibles,
-        latitude = this.latitud,
-        longitude = this.longitud,
-        nivelSeguridad = this.nivelSeguridad ?: 1,
-        ratingPromedio = this.ratingPromedio ?: 0.0,
-        totalResenas = this.totalResenas ?: 0,
-        estaAbierto = this.estaAbierto ?: true,
-        tieneCamaras = this.tieneCamaras ?: false,
-        tieneVigilancia24h = this.tieneVigilancia24h ?: false,
-        distanciaKm = this.distanciaKm,
-       telefono =this.telefono
-    )
-}
 
 fun ParkingLot.toParkingSpot(): ParkingSpot {
     val (latitude, longitude) = parseCoordenadas(this.coordenadas)
-
     val imagenUrl = buildImageUrl(this.imagen_principal)
+
+    // ✅ CORREGIR: Cambiar localhost por 10.0.2.2
+    val fixedImagenUrl = if (imagenUrl.contains("localhost")) {
+        imagenUrl.replace("http://localhost:8000", "http://10.0.2.2:8000")
+    } else {
+        imagenUrl
+    }
+
     return ParkingSpot(
         id = this.id.toInt(),
         name = this.nombre,
@@ -40,26 +27,26 @@ fun ParkingLot.toParkingSpot(): ParkingSpot {
         tieneCamaras = hasCamaras(this.nivel_seguridad),
         tieneVigilancia24h = hasVigilancia24h(this.nivel_seguridad),
         distanciaKm = null,
-        imagenUrl = imagenUrl,
-        telefono= telefono,
-
+        imagenUrl = fixedImagenUrl, // ✅ Usar URL corregida
+        telefono = this.telefono
     )
 }
+
 // Función auxiliar para construir URL completa si es necesario
 private fun buildImageUrl(imagenPath: String?): String {
     return when {
         imagenPath.isNullOrEmpty() -> getDefaultParkingImage()
-        imagenPath.startsWith("http") -> imagenPath // URL completa
-        imagenPath.startsWith("/") -> "https://localhost:8080$imagenPath" // ✅ Corregido
-        else -> "https://localhost:8080/media/$imagenPath" // ✅ Corregido
+        imagenPath.startsWith("http") -> imagenPath
+        imagenPath.startsWith("/") -> "http://localhost:8000$imagenPath"
+        else -> "http://localhost:8000/media/$imagenPath"
     }
 }
 
-
 private fun getDefaultParkingImage(): String {
-    return ""
+    return "http://10.0.2.2:8000/media/parking_images/default.jpg"
 }
-// Función auxiliar para parsear coordenadas
+
+// Resto del código igual...
 private fun parseCoordenadas(coordenadas: String?): Pair<Double, Double> {
     return if (coordenadas != null && coordenadas.contains(",")) {
         val parts = coordenadas.split(",")

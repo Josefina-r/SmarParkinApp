@@ -4,18 +4,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import com.example.smarparkinapp.ui.theme.data.model.Payment
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -23,8 +18,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -33,9 +26,6 @@ import android.widget.Toast
 import android.content.Intent
 import android.net.Uri
 import kotlinx.coroutines.delay
-import com.example.smarparkinapp.repository.StripeRepository
-import com.example.smarparkinapp.model.StripePaymentResult
-import com.example.smarparkinapp.model.CardDetails
 
 // Definición de los métodos de pago - ACTUALIZADO para coincidir con Django
 enum class PaymentMethodType(
@@ -247,12 +237,12 @@ fun PaymentScreen(
         }
     }
 
-    // Diálogo de Tarjeta CON STRIPE
+    // Diálogo de Tarjeta
     if (showCreditCardDialog) {
-        StripeCardPaymentDialog(
+        CreditCardPaymentDialog(
             amount = calculateTotalCost(viewModel),
-            onPaymentConfirmed = { stripeResult ->
-                // Crear reserva después del pago exitoso de Stripe
+            onPaymentConfirmed = {
+                // Crear reserva primero, luego el pago se procesará automáticamente
                 createRealReservation(viewModel, PaymentMethodType.TARJETA)
                 showCreditCardDialog = false
             },
@@ -280,13 +270,13 @@ fun PaymentScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Creando reserva y registrando pago...",
-                        textAlign = TextAlign.Center
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "La reserva se enviará al dashboard del estacionamiento",
                         style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             },
@@ -345,27 +335,16 @@ fun PaymentScreen(
 }
 
 @Composable
-private fun StripeCardPaymentDialog(
+private fun CreditCardPaymentDialog(
     amount: Double,
-    onPaymentConfirmed: (StripePaymentResult) -> Unit,
+    onPaymentConfirmed: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var cardNumber by remember { mutableStateOf("") }
-    var expiryDate by remember { mutableStateOf("") }
-    var cvc by remember { mutableStateOf("") }
-    var cardHolder by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var paymentSuccess by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val stripeRepository = remember { StripeRepository() }
-    val coroutineScope = rememberCoroutineScope()
-
-
     AlertDialog(
-        onDismissRequest = { if (!isLoading) onDismiss() },
+        onDismissRequest = onDismiss,
         title = {
             Text(
-                if (paymentSuccess) "✅ Pago Exitoso" else "Pago con Stripe",
+                "Pago con Tarjeta",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold
                 )
@@ -373,256 +352,71 @@ private fun StripeCardPaymentDialog(
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Logos
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                // Logo de tarjeta
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("💳", style = MaterialTheme.typography.headlineMedium)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text("Visa", style = MaterialTheme.typography.bodySmall)
-                        Text("Mastercard", style = MaterialTheme.typography.bodySmall)
+                    Image(
+                        painter = painterResource(id = com.example.smarparkinapp.R.drawable.logo_bcp),
+                        contentDescription = "Pago con Tarjeta",
+                        modifier = Modifier
+                            .height(60.dp)
+                            .fillMaxWidth(0.6f),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            " Pago Seguro con Tarjeta",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("• Monto: S/ ${"%.2f".format(amount)}")
+                        Text("• Pago procesado de forma segura")
+                        Text("• Recibirás comprobante por email")
+                        Text("• Tu tarjeta está protegida")
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                if (isLoading) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(modifier = Modifier.size(50.dp))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Conectando con Stripe...", textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Procesando tu pago de forma segura",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                } else if (paymentSuccess) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Éxito",
-                            tint = Color(0xFF00D924), modifier = Modifier.size(60.dp))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("¡Pago Completado!",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("S/ ${"%.2f".format(amount)}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary)
-                    }
-                } else {
-                    // Formulario de tarjeta
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        // Número de tarjeta
-                        OutlinedTextField(
-                            value = cardNumber,
-                            onValueChange = {
-                                cardNumber = it.take(19).filter { it.isDigit() }
-                                    .chunked(4).joinToString(" ")
-                            },
-                            label = { Text("Número de tarjeta") },
-                            placeholder = { Text("4242 4242 4242 4242") },
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            isError = errorMessage != null
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            // Fecha expiración
-                            OutlinedTextField(
-                                value = expiryDate,
-                                onValueChange = {
-                                    expiryDate = it.take(5).filter { it.isDigit() }
-                                        .chunked(2).joinToString("/")
-                                },
-                                label = { Text("MM/AA") },
-                                placeholder = { Text("12/30") },
-                                modifier = Modifier.weight(1f),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                isError = errorMessage != null
-                            )
-
-                            // CVC
-                            OutlinedTextField(
-                                value = cvc,
-                                onValueChange = { cvc = it.take(3).filter { it.isDigit() } },
-                                label = { Text("CVC") },
-                                placeholder = { Text("123") },
-                                modifier = Modifier.weight(1f),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                isError = errorMessage != null
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Titular
-                        OutlinedTextField(
-                            value = cardHolder,
-                            onValueChange = { cardHolder = it.uppercase() },
-                            label = { Text("Titular de la tarjeta") },
-                            placeholder = { Text("Parkea Ya") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            isError = errorMessage != null
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Info de testing STRIPE
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F8FF)),
-                            elevation = CardDefaults.cardElevation(2.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text("🧪 Modo Testing - Stripe",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF635BFF))
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                Text("Tarjetas de prueba:",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium)
-                                Text("• 4242 4242 4242 4242 - Visa (éxito)",
-                                    style = MaterialTheme.typography.bodySmall)
-                                Text("• 5555 5555 5555 4444 - Mastercard (éxito)",
-                                    style = MaterialTheme.typography.bodySmall)
-                                Text("• CVC: 123 | Fecha: 12/30",
-                                    style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-
-                        errorMessage?.let { message ->
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F0))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Warning,
-                                        contentDescription = "Error",
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = message,
-                                        color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                Text(
+                    "Confirma para proceder con el pago seguro",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         },
         confirmButton = {
-            if (!paymentSuccess) {
-                Button(
-                    onClick = {
-                        // Validaciones
-                        val cleanCardNumber = cardNumber.replace(" ", "")
-                        if (cleanCardNumber.length != 16) {
-                            errorMessage = "Número de tarjeta debe tener 16 dígitos"
-                            return@Button
-                        }
-                        if (expiryDate.length != 5) {
-                            errorMessage = "Fecha de expiración inválida"
-                            return@Button
-                        }
-                        if (cvc.length != 3) {
-                            errorMessage = "CVC debe tener 3 dígitos"
-                            return@Button
-                        }
-                        if (cardHolder.length < 3) {
-                            errorMessage = "Nombre del titular requerido"
-                            return@Button
-                        }
-
-                        isLoading = true
-                        errorMessage = null
-
-                        // ✅ CORRECCIÓN: Usar coroutineScope.launch en lugar de LaunchedEffect
-                        coroutineScope.launch {
-                            try {
-                                val expParts = expiryDate.split("/")
-                                val cardDetails = CardDetails(
-                                    number = cleanCardNumber,
-                                    expMonth = expParts[0].toInt(),
-                                    expYear = expParts[1].toInt() + 2000,
-                                    cvc = cvc,
-                                    cardholderName = cardHolder
-                                )
-
-                                val result = stripeRepository.processStripePayment(cardDetails, amount)
-
-                                isLoading = false
-
-                                if (result.success) {
-                                    paymentSuccess = true
-                                    delay(2000L)
-                                    onPaymentConfirmed(result)
-                                } else {
-                                    errorMessage = result.error ?: "Error al procesar el pago"
-                                }
-                            } catch (e: Exception) {
-                                isLoading = false
-                                errorMessage = "Error: ${e.message}"
-                            }
-                        }
-                    },
-                    enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF635BFF)
-                    )
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Procesando...")
-                    } else {
-                        Icon(Icons.Default.Security, contentDescription = "Seguro")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Pagar S/ ${"%.2f".format(amount)} con Stripe")
-                    }
-                }
-            } else {
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF00D924)
-                    )
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = "Continuar")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Continuar")
-                }
+            Button(
+                onClick = onPaymentConfirmed,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Security, contentDescription = "Pago Seguro")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Proceder con Pago Seguro")
             }
         },
         dismissButton = {
-            if (!isLoading && !paymentSuccess) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancelar")
-                }
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
             }
         }
     )
@@ -801,7 +595,7 @@ private fun QRPaymentDialog(
                 Text(
                     "El pago se confirmará automáticamente",
                     style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1033,7 +827,7 @@ private fun PaymentMethodsList(
     val paymentMethods = listOf(
         PaymentMethodType.YAPE,
         PaymentMethodType.PLIN,
-        PaymentMethodType.TARJETA
+        PaymentMethodType.TARJETA  // ✅ SOLO estos tres métodos
     )
 
     Column(
@@ -1091,6 +885,7 @@ private fun PaymentMethodItem(
                     modifier = Modifier.size(40.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    // SIEMPRE USAR IMAGEN (todos los métodos tienen imageRes)
                     Image(
                         painter = painterResource(id = method.imageRes!!),
                         contentDescription = method.displayName,
@@ -1178,7 +973,7 @@ private fun getPaymentDescription(methodId: String): String {
     return when (methodId) {
         "yape" -> "Pago rápido - Número: 952695739"
         "plin" -> "Pago rápido - Número: 952695739"
-        "tarjeta" -> "Tarjeta de crédito o débito"
+        "tarjeta" -> "Tarjeta de crédito o débito"  // ✅ ACTUALIZADO
         else -> ""
     }
 }
@@ -1187,7 +982,7 @@ private fun getPaymentDetails(methodId: String): String {
     return when (methodId) {
         "yape" -> "Escanea el código QR con Yape o envía al número 952695739"
         "plin" -> "Escanea el código QR con Plin o envía al número 952695739"
-        "tarjeta" -> "Pago seguro con tarjeta de crédito o débito"
+        "tarjeta" -> "Pago seguro con tarjeta de crédito o débito"  // ✅ ACTUALIZADO
         else -> ""
     }
 }
@@ -1258,7 +1053,9 @@ private fun processRealPayment(
 ) {
     println("💰 Procesando pago REAL para reserva: $reservationId, método: ${method.id}")
 
+    // ✅ ADAPTACIÓN SI EL VIEWMODEL ESPERA STRING
     viewModel.createPayment(method.id) { resultString ->
         println("✅ Pago procesado - Respuesta: $resultString")
+        // Aquí puedes parsear el string si es JSON, o usar el string directamente
     }
 }
