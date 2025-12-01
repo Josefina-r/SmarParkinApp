@@ -48,7 +48,7 @@ fun ParkingDetailScreen(
         factory = HomeViewModelFactory(context.applicationContext)
     )
 
-    // Cargar datos del parking
+
     val parkingSpots by homeViewModel.filteredParkingSpots.collectAsState()
     val parkingSpot = parkingSpots.find { it.id == parkingId.toInt() }
 

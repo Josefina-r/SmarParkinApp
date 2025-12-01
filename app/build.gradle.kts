@@ -120,12 +120,20 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
 
+
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 // Lifecycle ViewModel con Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+
+    implementation("com.stripe:stripe-android:20.36.0")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+// Para encriptación (opcional pero recomendado)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }
 //kapt {
 //  correctErrorTypes = true

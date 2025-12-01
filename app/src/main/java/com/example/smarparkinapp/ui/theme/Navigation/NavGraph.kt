@@ -45,6 +45,8 @@ import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 import com.example.smarparkinapp.ui.theme.screens.ReservationScreen
 import com.example.smarparkinapp.ui.theme.screens.SettingsScreen
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
+// ✅ AGREGAR IMPORT DE LA NUEVA PANTALLA
+import com.example.smarparkinapp.ui.theme.screens.ChangePasswordScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
@@ -70,7 +72,8 @@ fun AppNavGraph(navController: NavHostController) {
         composable(NavRoutes.Login.route) {
             LoginScreen(
                 onLoginSuccess = { navController.navigate(NavRoutes.Home.route) },
-                onRegisterClick = { navController.navigate(NavRoutes.Register.route) }
+                onRegisterClick = { navController.navigate(NavRoutes.Register.route) },
+                navController = navController
             )
         }
 
@@ -205,6 +208,10 @@ fun AppNavGraph(navController: NavHostController) {
                 },
                 onMyVehicles = {
                     // navController.navigate(NavRoutes.MyVehicles.route)
+                },
+                // ✅ AGREGAR NUEVO PARÁMETRO PARA CAMBIAR CONTRASEÑA
+                onChangePassword = {
+                    navController.navigate("changePassword")
                 }
             )
         }
@@ -216,6 +223,19 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.popBackStack()
                 },
                 onUpdateSuccess = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // ✅ NUEVA RUTA: Change Password
+        composable("changePassword") {
+            ChangePasswordScreen(
+                onPasswordChanged = {
+                    // Opcional: mostrar mensaje de éxito y volver al perfil
+                    navController.popBackStack()
+                },
+                onBack = {
                     navController.popBackStack()
                 }
             )

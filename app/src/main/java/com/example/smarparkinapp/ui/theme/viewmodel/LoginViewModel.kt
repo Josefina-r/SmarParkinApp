@@ -94,19 +94,32 @@ class LoginViewModel(private val context: Context) : ViewModel() {
     fun resetPassword(email: String) {
         viewModelScope.launch {
             try {
-                // La llamada a la API en sí misma puede arrojar una excepción si no es exitosa (código 4xx o 5xx)
-                // Por lo tanto, envolvemos la llamada en el bloque try.
-                // Si llega a la siguiente línea, la solicitud fue exitosa (código 2xx).
-                apiService.resetPassword(ResetPasswordRequest(email))
-                resetMessage = "Revisa tu correo para cambiar la contraseña."
+                println("🔐 [RESET_PASSWORD] Solicitando reset para email: $email")
+                val response = apiService.resetPassword(ResetPasswordRequest(email))
+
+                if (response.isSuccessful) {
+                    val resetResponse = response.body()
+                    println("✅ [RESET_PASSWORD] Reset exitoso: ${resetResponse?.message}")
+                    resetMessage = resetResponse?.message ?: "Revisa tu correo para cambiar la contraseña."
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    println("❌ [RESET_PASSWORD] Error HTTP: ${response.code()}, Body: $errorBody")
+                    resetMessage = "Error al solicitar reset de contraseña"
+                }
             } catch (e: IOException) {
+                println("💥 [RESET_PASSWORD] Error de red: ${e.message}")
                 resetMessage = "Error de red: ${e.localizedMessage}"
             } catch (e: HttpException) {
-                // Si la API devuelve un error (ej. 400, 404, 500), se captura aquí.
+                println("💥 [RESET_PASSWORD] Error del servidor: ${e.code()}")
                 resetMessage = "Error: correo no registrado o error del servidor (${e.code()})."
             } catch (e: Exception) {
+                println("💥 [RESET_PASSWORD] Error general: ${e.message}")
                 resetMessage = "Error de conexión: ${e.message}"
             }
         }
+    }
+
+    fun clearResetMessage() {
+        resetMessage = null
     }
 }

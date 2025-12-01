@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.smarparkinapp.R
 import com.example.smarparkinapp.ui.theme.data.AuthManager
 import com.example.smarparkinapp.ui.theme.data.model.User
@@ -42,6 +43,8 @@ import com.example.smarparkinapp.ui.theme.viewmodel.UserViewModelFactory
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onRegisterClick: () -> Unit,
+    // ✅ NUEVO: Agregar navController para navegar a cambiar contraseña
+    navController: NavController,
     onForgotPasswordClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -231,35 +234,19 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Olvidé contraseña
+                    // ✅ SIMPLIFICADO: Olvidé contraseña - Ahora navega directamente
                     Text(
                         text = "¿Olvidaste tu contraseña?",
                         color = AzulSecundario,
                         modifier = Modifier
                             .align(Alignment.End)
                             .clickable {
-                                if (username.isNotEmpty()) {
-                                    loginViewModel.resetPassword(username)
-                                } else {
-                                    // Mostrar diálogo o mensaje para ingresar email
-                                    println("⚠ [SCREEN] Ingresa tu usuario/email primero")
-                                }
+                                // ✅ Navegar directamente a cambiar contraseña
+                                navController.navigate("changePassword")
                             }
                             .padding(top = 12.dp, bottom = 28.dp),
                         fontWeight = FontWeight.Medium
                     )
-
-                    // Mostrar mensaje de reset de contraseña
-                    loginViewModel.resetMessage?.let { message ->
-                        if (message.isNotEmpty()) {
-                            Text(
-                                text = message,
-                                color = if (message.contains("Error")) Color.Red else VerdePrincipal,
-                                modifier = Modifier.padding(top = 8.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
 
                     // Botón Login
                     Box(

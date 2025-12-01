@@ -8,8 +8,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -34,6 +36,8 @@ fun ProfileOverviewScreen(
     onEditProfile: () -> Unit,
     onPaymentMethods: () -> Unit,
     onMyVehicles: () -> Unit,
+    // ✅ NUEVO PARÁMETRO: Cambiar contraseña
+    onChangePassword: () -> Unit = {},
     viewModel: ProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -56,7 +60,6 @@ fun ProfileOverviewScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Volver",
@@ -85,6 +88,8 @@ fun ProfileOverviewScreen(
                 onEditProfile = onEditProfile,
                 onPaymentMethods = onPaymentMethods,
                 onMyVehicles = onMyVehicles,
+                // ✅ PASAR EL NUEVO PARÁMETRO
+                onChangePassword = onChangePassword,
                 modifier = Modifier.padding(padding)
             )
         }
@@ -97,6 +102,8 @@ private fun ProfileContent(
     onEditProfile: () -> Unit,
     onPaymentMethods: () -> Unit,
     onMyVehicles: () -> Unit,
+    // ✅ NUEVO PARÁMETRO
+    onChangePassword: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -115,7 +122,18 @@ private fun ProfileContent(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            // Tarjetas de acción
+            // ✅ NUEVA TARJETA: Cambiar Contraseña
+            ActionCard(
+                title = "Cambiar Contraseña",
+                icon = Icons.Default.Lock,
+                iconBackground = Color(0xFFFFF2E6), // Naranja claro
+                iconTint = Color(0xFFFF9800), // Naranja principal
+                onClick = onChangePassword
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Tarjetas de acción existentes
             ActionCard(
                 title = "Actualizar mis datos",
                 icon = Icons.Default.Edit,
@@ -255,9 +273,10 @@ private fun ActionCard(
                 color = GrisTexto
             )
             Icon(
-                Icons.Default.Person,
+                Icons.Default.ArrowForwardIos, // ✅ ICONO MEJORADO
                 contentDescription = null,
-                tint = AzulPrincipal
+                tint = GrisTexto.copy(alpha = 0.5f),
+                modifier = Modifier.size(16.dp)
             )
         }
     }

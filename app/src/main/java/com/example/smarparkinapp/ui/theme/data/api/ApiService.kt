@@ -1,8 +1,6 @@
 // ui/theme/data/api/ApiService.kt
 package com.example.smarparkinapp.ui.theme.data.api
 
-
-import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.ui.theme.data.model.CarRequest
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
@@ -33,6 +31,9 @@ interface ApiService {
     @POST("api/users/password/reset/")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
 
+    @PUT("api/users/change-password/")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<GenericResponse>
+
     @GET("api/parkings/")
     suspend fun getApprovedParkingLots(): Response<ParkingLotResponse>
 
@@ -54,7 +55,6 @@ interface ApiService {
     @GET("api/parking/{id}/")
     suspend fun getParkingById(@Path("id") parkingId: Long): Response<ParkingLot>
 
-
     @GET("api/vehicles/")
     suspend fun getUserVehicles(): Response<PaginatedResponse<CarResponse>>
 
@@ -69,6 +69,7 @@ interface ApiService {
 
     @DELETE("api/vehicles/{id}/")
     suspend fun deleteVehicle(@Path("id") vehicleId: Int): Response<GenericResponse>
+
     // Reservas
     @POST("api/reservation/")
     suspend fun createReservation(@Body request: ReservationRequest): Response<ReservationResponse>
@@ -84,7 +85,7 @@ interface ApiService {
 
     // Pagos
     @POST("api/payments/")
-    suspend fun createPayment(@Body request: PaymentRequest): Response<JsonObject> // o Response<Any>
+    suspend fun createPayment(@Body request: PaymentRequest): Response<JsonObject>
 
     @POST("api/payments/{id}/process/")
     suspend fun processPayment(@Path("id") paymentId: String): Response<Payment>
@@ -95,6 +96,7 @@ interface ApiService {
 
     @GET("api/tickets/reserva/{reservationId}/")
     suspend fun getTicketByReservation(@Path("reservationId") reservationId: Long): Response<TicketResponse>
+
     // PARKING SPOTS (sin auth header)
     @GET("api/parking/spots/")
     suspend fun getParkingSpots(): Response<List<ParkingSpotResponse>>
@@ -102,9 +104,8 @@ interface ApiService {
     @GET("api/parking/mapa/")
     suspend fun getParkingMapa(): Response<ParkingLotResponse>
 
-    //  RUTAS PARA PERFIL
+    // RUTAS PARA PERFIL
     @GET("api/users/profile/")
-
     suspend fun getUserProfile(): Response<UserProfileResponse>
 
     @PUT("api/users/profile/update/")
@@ -120,8 +121,6 @@ interface ApiService {
     suspend fun getDashboardStats(): Response<DashboardStatsResponse>
 }
 
-
-
 // MODELOS DE AUTENTICACIÓN
 data class LoginRequest(val username: String, val password: String)
 
@@ -134,7 +133,6 @@ data class LoginResponse(
 data class RefreshTokenRequest(val refresh: String)
 
 data class RefreshTokenResponse(val access: String)
-
 
 data class RegisterResponse(
     val id: Int,
@@ -154,8 +152,6 @@ data class UserResponse(
     val is_staff: Boolean? = false,
     val is_superuser: Boolean? = false
 )
-
-
 
 // MODELOS DE ESTACIONAMIENTOS
 data class ParkingLotResponse(
@@ -227,4 +223,11 @@ data class ResetPasswordRequest(
 data class ResetPasswordResponse(
     val detail: String,
     val message: String? = null
+)
+
+// MODELOS DE CAMBIO DE CONTRASEÑA
+data class ChangePasswordRequest(
+    val old_password: String,
+    val new_password: String,
+    val confirm_password: String? = null
 )
