@@ -36,7 +36,6 @@ fun ProfileOverviewScreen(
     onEditProfile: () -> Unit,
     onPaymentMethods: () -> Unit,
     onMyVehicles: () -> Unit,
-    // ✅ NUEVO PARÁMETRO: Cambiar contraseña
     onChangePassword: () -> Unit = {},
     viewModel: ProfileViewModel = viewModel()
 ) {
@@ -88,7 +87,7 @@ fun ProfileOverviewScreen(
                 onEditProfile = onEditProfile,
                 onPaymentMethods = onPaymentMethods,
                 onMyVehicles = onMyVehicles,
-                // ✅ PASAR EL NUEVO PARÁMETRO
+
                 onChangePassword = onChangePassword,
                 modifier = Modifier.padding(padding)
             )
@@ -102,7 +101,7 @@ private fun ProfileContent(
     onEditProfile: () -> Unit,
     onPaymentMethods: () -> Unit,
     onMyVehicles: () -> Unit,
-    // ✅ NUEVO PARÁMETRO
+
     onChangePassword: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -122,7 +121,7 @@ private fun ProfileContent(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            // ✅ NUEVA TARJETA: Cambiar Contraseña
+
             ActionCard(
                 title = "Cambiar Contraseña",
                 icon = Icons.Default.Lock,
@@ -273,7 +272,7 @@ private fun ActionCard(
                 color = GrisTexto
             )
             Icon(
-                Icons.Default.ArrowForwardIos, // ✅ ICONO MEJORADO
+                Icons.Default.ArrowForwardIos,
                 contentDescription = null,
                 tint = GrisTexto.copy(alpha = 0.5f),
                 modifier = Modifier.size(16.dp)

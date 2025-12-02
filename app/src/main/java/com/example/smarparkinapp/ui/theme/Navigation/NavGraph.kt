@@ -1,4 +1,4 @@
-// ui/theme/Navigation/NavGraph.kt
+
 package com.example.smarparkinapp.ui.theme.Navigation
 
 import androidx.compose.foundation.layout.Box
@@ -25,6 +25,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.ui.theme.screens.VehicleSelectionScreen
 import com.example.smarparkinapp.ui.theme.data.model.UserProfile
 import com.example.smarparkinapp.ui.theme.screens.ChatbotScreen
@@ -36,7 +37,6 @@ import com.example.smarparkinapp.ui.theme.screens.ProfileOverviewScreen
 import com.example.smarparkinapp.ui.theme.screens.RegisterScreen
 import com.example.smarparkinapp.ui.theme.screens.SplashScreen
 import com.example.smarparkinapp.ui.theme.screens.profile.ProfileScreen
-import com.example.smarparkinapp.ui.theme.NavRoutes
 import com.example.smarparkinapp.ui.theme.screens.MyReservationsScreen
 import com.example.smarparkinapp.ui.theme.screens.PaymentScreen
 import com.example.smarparkinapp.ui.theme.screens.TicketScreen
@@ -45,14 +45,21 @@ import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
 import com.example.smarparkinapp.ui.theme.screens.ReservationScreen
 import com.example.smarparkinapp.ui.theme.screens.SettingsScreen
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModelFactory
-// ✅ AGREGAR IMPORT DE LA NUEVA PANTALLA
+
 import com.example.smarparkinapp.ui.theme.screens.ChangePasswordScreen
+import com.example.smarparkinapp.ui.theme.screens.TermsListScreen
+import com.example.smarparkinapp.ui.theme.screens.TermsScreen
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Query
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
     val context = LocalContext.current
 
-    // ✅ CREAR UNA SOLA INSTANCIA DEL VIEWMODEL
+
     val reservationViewModel: ReservationViewModel = viewModel(
         factory = ReservationViewModelFactory(context)
     )
@@ -145,7 +152,7 @@ fun AppNavGraph(navController: NavHostController) {
             VehicleSelectionScreen(
                 navController = navController,
                 parkingId = if (parkingId != -1L) parkingId else null,
-                // ✅ USAR LA MISMA INSTANCIA DEL VIEWMODEL
+
                 viewModel = reservationViewModel
             )
         }
@@ -165,12 +172,12 @@ fun AppNavGraph(navController: NavHostController) {
 
             ReservationScreen(
                 navController = navController,
-                // ✅ USAR LA MISMA INSTANCIA DEL VIEWMODEL
+
                 viewModel = reservationViewModel
             )
         }
 
-        // ✅ AGREGAR LA RUTA DE PAYMENTS QUE FALTABA
+
         composable(NavRoutes.Payment.route) {
             PaymentScreen(
                 navController = navController,
@@ -189,7 +196,7 @@ fun AppNavGraph(navController: NavHostController) {
             TicketScreen(
                 navController = navController,
                 paymentId = paymentId,
-                // ✅ USAR LA MISMA INSTANCIA DEL VIEWMODEL
+
                 viewModel = reservationViewModel
             )
         }
@@ -207,9 +214,11 @@ fun AppNavGraph(navController: NavHostController) {
                     // navController.navigate(NavRoutes.PaymentMethods.route)
                 },
                 onMyVehicles = {
-                    // navController.navigate(NavRoutes.MyVehicles.route)
+                    navController.navigate("myVehicles") {
+                        //navega asia la vehiculos
+                    }
                 },
-                // ✅ AGREGAR NUEVO PARÁMETRO PARA CAMBIAR CONTRASEÑA
+
                 onChangePassword = {
                     navController.navigate("changePassword")
                 }
@@ -228,7 +237,7 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        // ✅ NUEVA RUTA: Change Password
+
         composable("changePassword") {
             ChangePasswordScreen(
                 onPasswordChanged = {
@@ -267,6 +276,33 @@ fun AppNavGraph(navController: NavHostController) {
                 // viewModel = reservationViewModel
             )
         }
+        composable("myVehicles") {
+            VehicleSelectionScreen(
+                navController = navController,
+                parkingId = null, // Cuando es null, se usa para solo ver vehículos
+                viewModel = reservationViewModel
+            )
+        }
+        composable("terms_list") {
+            TermsListScreen(
+                navController = navController,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "terms/{code}",
+            arguments = listOf(navArgument("code") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val code = backStackEntry.arguments?.getInt("code") ?: 100
+
+            TermsScreen(
+                navController = navController,
+                code = code,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
     }
 }
 

@@ -13,6 +13,8 @@ import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
 import com.example.smarparkinapp.ui.theme.data.model.PaymentRequest
+import com.example.smarparkinapp.ui.theme.data.model.TermsRequest
+import com.example.smarparkinapp.ui.theme.data.model.TermsResponse
 import com.example.smarparkinapp.ui.theme.data.model.TicketResponse
 import com.google.gson.JsonObject
 import retrofit2.Response
@@ -149,6 +151,11 @@ interface ApiService {
 
     @GET("api/dashboard/stats/")
     suspend fun getDashboardStats(): Response<DashboardStatsResponse>
+    @GET("api/terms/")
+    suspend fun getTermsByCode(@Query("code") code: Int): Response<TermsResponse>
+
+    @POST("api/terms/")
+    suspend fun getTermsByCodePost(@Body request: TermsRequest): Response<TermsResponse>
 }
 
 // MODELOS DE AUTENTICACIÓN

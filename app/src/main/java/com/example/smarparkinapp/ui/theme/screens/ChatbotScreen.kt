@@ -25,13 +25,7 @@ import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.ChatbotViewModel
 import kotlinx.coroutines.launch
 
-// ✅ ELIMINAR: Esta definición duplicada
-// data class ChatMessage(
-//     val id: String,
-//     val text: String,
-//     val isUser: Boolean,
-//     val timestamp: Long = System.currentTimeMillis()
-// )
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

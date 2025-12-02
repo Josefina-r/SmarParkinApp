@@ -205,7 +205,7 @@ fun SettingsScreen(navController: NavHostController) {
                     title = strings.terms,
                     subtitle = strings.termsSubtitle
                 ) {
-                    navController.navigate("terms")
+                    navController.navigate("terms_list")
                 }
 
                 SettingsItem(

@@ -87,11 +87,11 @@ fun VehicleSelectionScreen(
                     onClick = {
                         selectedVehicle?.let { vehicle ->
                             parkingId?.let { id ->
-                                // ✅ CORREGIDO: Establecer el vehículo seleccionado en el ViewModel
+                                // ✅  Establecer el vehículo seleccionado en el ViewModel
                                 viewModel.setSelectedVehicle(vehicle)
                                 println("🚗 [VehicleSelection] Vehículo seleccionado: ${vehicle.plate}")
 
-                                // ✅ CORREGIDO: Navegar a ReservationScreen
+                                // ✅ Navegar a ReservationScreen
                                 navController.navigate("reservation/$id") {
                                     launchSingleTop = true
                                 }
@@ -192,7 +192,7 @@ fun VehicleSelectionScreen(
                 TextButton(
                     onClick = {
                         vehicleToDelete?.let { car ->
-                            // ✅ CORREGIDO: Convertir Int a Long
+                            // Convertir Int a Long
                             viewModel.deleteVehicle(car.id.toLong())
                             // Si el vehículo eliminado era el seleccionado, limpiar la selección
                             if (selectedVehicle?.id == car.id) {
