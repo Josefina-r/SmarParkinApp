@@ -1,51 +1,75 @@
 package com.example.smarparkinapp.ui.theme.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.smarparkinapp.ui.theme.data.model.Payment
-import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
 import com.example.smarparkinapp.ui.theme.viewmodel.ReservationViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketScreen(
     navController: NavHostController,
-    paymentId: String?,
+    ticketId: String? = null,
+    reservationId: Long? = null,
     viewModel: ReservationViewModel = viewModel()
 ) {
-    // ✅ CORREGIDO: Solo los Flows usan collectAsState()
-    val payment: Payment? by viewModel.createdPayment.collectAsState()
-    val isLoading: Boolean by viewModel.isLoading.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    // ✅ CORREGIDO: selectedParking y selectedVehicle son propiedades directas
-    val reservation = payment?.reserva
-
-    // Observar cambios en las propiedades del ViewModel
+    // Estados REALES de tickets
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val currentTicket by viewModel.currentTicket.collectAsState()
+    val userTickets by viewModel.userTickets.collectAsState()
+    val createdReservation by viewModel.createdReservation.collectAsState()
     val selectedParking by remember { derivedStateOf { viewModel.selectedParking } }
     val selectedVehicle by remember { derivedStateOf { viewModel.selectedVehicle } }
 
-    // Cargar detalles cuando la reserva esté disponible
-    LaunchedEffect(reservation) {
-        if (reservation != null) {
-            viewModel.loadTicketDetails(reservation)
+    // Cargar tickets según parámetro
+    LaunchedEffect(ticketId, reservationId) {
+        if (ticketId != null) {
+            // Cargar ticket específico
+            viewModel.loadTicketById(ticketId)
+        } else if (reservationId != null) {
+            // Buscar ticket por ID de reserva
+            val ticket = viewModel.findTicketByReservationId(reservationId)
+            if (ticket != null) {
+                viewModel.loadTicketById(ticket.id)
+            } else {
+                // Si no hay ticket, cargar todos
+                viewModel.loadUserTickets()
+            }
+        } else {
+            // Cargar todos los tickets del usuario
+            viewModel.loadUserTickets()
+        }
+    }
+
+    // Auto-refrescar cada 30 segundos
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(30000L)
+        if (ticketId != null) {
+            viewModel.loadTicketById(ticketId)
+        } else {
+            viewModel.loadUserTickets()
         }
     }
 
@@ -54,373 +78,636 @@ fun TicketScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Tu Ticket",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        "Mis Tickets",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        scope.launch {
+                            if (ticketId != null) {
+                                viewModel.loadTicketById(ticketId)
+                            } else {
+                                viewModel.loadUserTickets()
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refrescar")
                     }
                 }
             )
         }
     ) { paddingValues ->
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+
+                ticketId != null && currentTicket != null -> {
+                    // Vista de ticket específico
+                    SingleTicketView(
+                        ticket = currentTicket!!,
+                        parking = selectedParking,
+                        vehicle = selectedVehicle,
+                        reservation = createdReservation,
+                        onBack = { navController.popBackStack() },
+                        onCancel = {
+                            scope.launch {
+                                viewModel.cancelUserTicket(ticketId)
+                            }
+                        },
+                        canCancel = viewModel.canUserCancelTicket(currentTicket!!)
+                    )
+                }
+
+                ticketId != null && currentTicket == null -> {
+                    // Ticket no encontrado
+                    EmptyStateView(
+                        icon = Icons.Filled.ErrorOutline,
+                        title = "Ticket no encontrado",
+                        message = "El ticket que buscas no existe",
+                        actionText = "Volver",
+                        onAction = { navController.popBackStack() }
+                    )
+                }
+
+                userTickets.isEmpty() -> {
+                    // No hay tickets
+                    EmptyStateView(
+                        icon = Icons.Filled.Receipt,
+                        title = "No tienes tickets",
+                        message = "Realiza una reserva para obtener tickets",
+                        actionText = "Hacer Reserva",
+                        onAction = { navController.navigate("home") }
+                    )
+                }
+
+                else -> {
+                    // Lista de todos los tickets
+                    TicketsListView(
+                        tickets = userTickets,
+                        onTicketClick = { ticket ->
+                            navController.navigate("ticket/${ticket.id}")
+                        }
+                    )
+                }
             }
-        } else {
+        }
+    }
+}
+
+@Composable
+private fun SingleTicketView(
+    ticket: com.example.smarparkinapp.ui.theme.data.model.TicketResponse,
+    parking: com.example.smarparkinapp.ui.theme.data.model.ParkingLot?,
+    vehicle: com.example.smarparkinapp.ui.theme.data.model.Car?,
+    reservation: com.example.smarparkinapp.ui.theme.data.model.ReservationResponse?,
+    onBack: () -> Unit,
+    onCancel: () -> Unit,
+    canCancel: Boolean
+) {
+    val statusColor = getTicketStatusColor(ticket.estado)
+    val statusText = getTicketStatusText(ticket.estado)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Header con estado
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(statusColor.copy(alpha = 0.1f))
+        ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                TicketHeader(reservation)
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                QrCodeSection(payment)
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                TicketDetails(
-                    reservation = reservation,
-                    payment = payment,
-                    parking = selectedParking,
-                    vehicle = selectedVehicle
+                Icon(
+                    imageVector = getStatusIcon(ticket.estado),
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = statusColor
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                InstructionsSection()
+                Text(
+                    statusText,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = statusColor
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    "Ticket #${ticket.codigoTicket}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
-    }
-}
 
-// El resto del código permanece igual...
-@Composable
-private fun TicketHeader(reservation: ReservationResponse?) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Filled.CheckCircle,
-            contentDescription = "Reserva Confirmada",
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            "¡Reserva Confirmada!",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Text(
-            "Tu espacio está reservado",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Surface(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            shape = MaterialTheme.shapes.small
-        ) {
-            Text(
-                reservation?.codigoReserva ?: "N/A",
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-}
-
-@Composable
-private fun QrCodeSection(payment: Payment?) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            "Código QR de Acceso",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Surface(
-            modifier = Modifier
-                .size(200.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+        // QR Code (solo si está válido)
+        if (ticket.estado == "valido" && ticket.qrData != null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                if (payment?.id != null) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "CÓDIGO DE ACCESO",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // QR Code placeholder
+                    Box(
+                        modifier = Modifier
+                            .size(200.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surface)
                     ) {
-                        Text(
-                            "QR CODE",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Ref: ${payment.id.take(8)}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.QrCode,
+                                contentDescription = "QR Code",
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                ticket.codigoTicket.take(12),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
-                } else {
-                    CircularProgressIndicator()
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        "Muestra este código al ingresar al estacionamiento",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // Detalles del ticket
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    "INFORMACIÓN DEL TICKET",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                InfoRow("Código:", ticket.codigoTicket)
+                InfoRow("Estado:", ticket.estado)
+                InfoRow("Fecha Emisión:", formatTicketDate(ticket.fechaEmision))
+                ticket.fechaValidezDesde?.let { InfoRow("Válido Desde:", formatTicketDate(it)) }
+                ticket.fechaValidezHasta?.let { InfoRow("Válido Hasta:", formatTicketDate(it)) }
+                ticket.fechaValidacion?.let { InfoRow("Validado:", formatTicketDate(it)) }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Información de la reserva
+                Text(
+                    "INFORMACIÓN DE LA RESERVA",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                reservation?.let {
+                    InfoRow("Código Reserva:", it.codigoReserva ?: "N/A")
+                    InfoRow("Check-in:", formatDateTime(it.horaEntrada ?: ""))
+                    InfoRow("Check-out:", formatDateTime(it.horaSalida ?: "No definido"))
+                    InfoRow("Duración:", "${it.duracionMinutos ?: 0} minutos")
+                    it.costoEstimado?.let { costo ->
+                        InfoRow("Costo:", "S/ ${"%.2f".format(costo)}")
+                    }
+                }
+
+                // Información del parking
+                parking?.let {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "INFORMACIÓN DEL ESTACIONAMIENTO",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    InfoRow("Nombre:", it.nombre)
+                    InfoRow("Dirección:", it.direccion)
+                    InfoRow("Tarifa:", "S/ ${"%.2f".format(it.tarifa_hora)} por hora")
+                }
+
+                // Información del vehículo
+                vehicle?.let {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "INFORMACIÓN DEL VEHÍCULO",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    InfoRow("Vehículo:", "${it.brand} ${it.model}")
+                    InfoRow("Placa:", it.plate)
+                    InfoRow("Color:", it.color)
                 }
             }
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Acciones según estado
+        when (ticket.estado) {
+            "pendiente" -> {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Yellow.copy(alpha = 0.1f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "⏳ Esperando Confirmación",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "El estacionamiento debe aceptar tu reserva",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (canCancel) {
+                            OutlinedButton(
+                                onClick = onCancel,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(Icons.Filled.Cancel, contentDescription = "Cancelar")
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cancelar Reserva")
+                            }
+                        }
+                    }
+                }
+            }
+
+            "valido" -> {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Green.copy(alpha = 0.1f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "✅ Reserva Confirmada",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Presenta el código QR al ingresar al estacionamiento",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = onCancel,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            enabled = canCancel
+                        ) {
+                            Icon(Icons.Filled.Cancel, contentDescription = "Cancelar")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Cancelar Reserva")
+                        }
+                    }
+                }
+            }
+
+            "cancelado" -> {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Red.copy(alpha = 0.1f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "❌ Reserva Cancelada",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Esta reserva ha sido cancelada",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            "usado" -> {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Blue.copy(alpha = 0.1f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            " Reserva Utilizada",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Ya has utilizado esta reserva",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun TicketsListView(
+    tickets: List<com.example.smarparkinapp.ui.theme.data.model.TicketResponse>,
+    onTicketClick: (com.example.smarparkinapp.ui.theme.data.model.TicketResponse) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        items(tickets) { ticket ->
+            TicketCard(
+                ticket = ticket,
+                onClick = { onTicketClick(ticket) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun TicketCard(
+    ticket: com.example.smarparkinapp.ui.theme.data.model.TicketResponse,
+    onClick: () -> Unit
+) {
+    val statusColor = getTicketStatusColor(ticket.estado)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icono de estado
+            Icon(
+                imageVector = getStatusIcon(ticket.estado),
+                contentDescription = "Estado",
+                modifier = Modifier.size(32.dp),
+                tint = statusColor
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Información
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    "Ticket #${ticket.codigoTicket.take(8)}...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Text(
+                    getTicketStatusText(ticket.estado),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = statusColor
+                )
+
+                Text(
+                    "Código Reserva: ${ticket.codigoReserva ?: "N/A"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "Fecha: ${formatTicketDate(ticket.fechaEmision)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Flecha
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = "Ver detalle",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateView(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    message: String,
+    actionText: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            "Muestra este código al ingresar",
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
+
+        if (actionText != null && onAction != null) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onAction) {
+                Text(actionText)
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun TicketDetails(
-    reservation: ReservationResponse?,
-    payment: Payment?,
-    parking: com.example.smarparkinapp.ui.theme.data.model.ParkingLot?,
-    vehicle: com.example.smarparkinapp.ui.theme.data.model.Car?
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-
-            Text(
-                "Detalles del Ticket",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Información del estacionamiento
-            DetailRow(
-                icon = Icons.Filled.CheckCircle,
-                title = "Estacionamiento",
-                value = parking?.nombre ?: "Cargando..."
-            )
-
-            DetailRow(
-                icon = Icons.Filled.Schedule,
-                title = "Dirección",
-                value = parking?.direccion ?: "No disponible"
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Divider()
-
-            // Información de la reserva
-            DetailRow(
-                icon = Icons.Filled.Schedule,
-                title = "Check-in",
-                value = formatDateTime(reservation?.horaEntrada ?: "")
-            )
-
-            DetailRow(
-                icon = Icons.Filled.Schedule,
-                title = "Check-out",
-                value = formatDateTime(reservation?.horaSalida ?: "No definido")
-            )
-
-            DetailRow(
-                icon = Icons.Filled.Schedule,
-                title = "Duración",
-                value = "${reservation?.duracionMinutos ?: 0} minutos"
-            )
-
-            // Información del vehículo
-            DetailRow(
-                icon = Icons.Filled.Schedule,
-                title = "Vehículo",
-                value = buildVehicleInfo(vehicle)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Divider()
-
-            // Información del pago
-            DetailRow(
-                icon = Icons.Filled.CheckCircle,
-                title = "Método de pago",
-                value = getPaymentMethodName(payment?.metodo ?: "")
-            )
-
-            DetailRow(
-                icon = Icons.Filled.CheckCircle,
-                title = "Estado de pago",
-                value = getPaymentStatus(payment?.estado ?: ""),
-                valueColor = getPaymentStatusColor(payment?.estado ?: "")
-            )
-
-            DetailRow(
-                icon = Icons.Filled.CheckCircle,
-                title = "Referencia",
-                value = payment?.referenciaPago ?: "N/A"
-            )
-
-            // Mostrar monto si está disponible
-            payment?.monto?.let { monto ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Divider()
-                DetailRow(
-                    icon = Icons.Filled.CheckCircle,
-                    title = "Total pagado",
-                    value = "S/ ${"%.2f".format(monto)}",
-                    valueColor = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // Mostrar costo estimado de la reserva
-            reservation?.costoEstimado?.let { costo ->
-                DetailRow(
-                    icon = Icons.Filled.CheckCircle,
-                    title = "Costo estimado",
-                    value = "S/ ${"%.2f".format(costo)}",
-                    valueColor = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DetailRow(
-    icon: ImageVector,
-    title: String,
-    value: String,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
         Text(
             value,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = valueColor
+            fontWeight = FontWeight.Medium
         )
     }
 }
 
-@Composable
-private fun InstructionsSection() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Text(
-                    "Instrucciones importantes",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+// Funciones auxiliares
+private fun getTicketStatusColor(estado: String): Color {
+    return when (estado.lowercase()) {
+        "valido", "validado" -> Color(0xFF4CAF50)
+        "pendiente" -> Color(0xFFFFC107)
+        "cancelado", "expirado" -> Color(0xFFF44336)
+        "usado" -> Color(0xFF2196F3)
+        else -> Color.Gray
+    }
+}
 
-            Spacer(modifier = Modifier.height(12.dp))
+private fun getTicketStatusText(estado: String): String {
+    return when (estado.lowercase()) {
+        "valido", "validado" -> "Confirmado"
+        "pendiente" -> "Pendiente"
+        "cancelado" -> "Cancelado"
+        "expirado" -> "Expirado"
+        "usado" -> "Usado"
+        else -> estado
+    }
+}
 
-            InstructionItem("1. Presenta el código QR al ingresar al estacionamiento")
-            InstructionItem("2. Tu reserva es válida solo en el horario indicado")
-            InstructionItem("3. En caso de problemas, muestra el código de reserva")
-            InstructionItem("4. Paga en efectivo si elegiste ese método")
+private fun getStatusIcon(estado: String): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (estado.lowercase()) {
+        "valido", "validado" -> Icons.Filled.CheckCircle
+        "pendiente" -> Icons.Filled.Schedule
+        "cancelado", "expirado" -> Icons.Filled.Cancel
+        "usado" -> Icons.Filled.DoneAll
+        else -> Icons.Filled.Receipt
+    }
+}
+
+private fun formatTicketDate(fecha: String): String {
+    if (fecha.isNullOrEmpty()) return "No disponible"
+
+    return try {
+        if (fecha.contains("T")) {
+            val parts = fecha.split("T")
+            val datePart = parts[0]
+            val timePart = parts[1].substring(0, 5)
+            "$datePart $timePart"
+        } else {
+            fecha
         }
-    }
-}
-
-@Composable
-private fun InstructionItem(text: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Text("• ", style = MaterialTheme.typography.bodyMedium)
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-// Función auxiliar para construir la información del vehículo
-private fun buildVehicleInfo(vehicle: com.example.smarparkinapp.ui.theme.data.model.Car?): String {
-    return if (vehicle != null) {
-        "${vehicle.brand} ${vehicle.model} - ${vehicle.plate}"
-    } else {
-        "Cargando..."
+    } catch (e: Exception) {
+        fecha
     }
 }
 
@@ -438,40 +725,5 @@ private fun formatDateTime(dateTime: String): String {
         }
     } catch (e: Exception) {
         dateTime
-    }
-}
-
-private fun getPaymentMethodName(method: String): String {
-    return when (method) {
-        "tarjeta" -> "Tarjeta"
-        "yape" -> "Yape"
-        "plin" -> "Plin"
-        "efectivo" -> "Efectivo"
-        else -> method
-    }
-}
-
-private fun getPaymentStatus(status: String): String {
-    return when (status) {
-        "pagado" -> "Pagado"
-        "pendiente" -> "Pendiente"
-        "procesando" -> "Procesando"
-        "fallido" -> "Fallido"
-        "reembolsado" -> "Reembolsado"
-        "cancelado" -> "Cancelado"
-        else -> status
-    }
-}
-
-@Composable
-private fun getPaymentStatusColor(status: String): Color {
-    return when (status) {
-        "pagado" -> Color(0xFF4CAF50)
-        "pendiente" -> Color(0xFFFFC107)
-        "procesando" -> Color(0xFF03A9F4)
-        "fallido" -> Color(0xFFF44336)
-        "reembolsado" -> Color(0xFF9C27B0)
-        "cancelado" -> Color(0xFF607D8B)
-        else -> MaterialTheme.colorScheme.onSurface
     }
 }

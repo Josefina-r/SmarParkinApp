@@ -115,20 +115,18 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val updateSuccess by viewModel.updateSuccess.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
 
+    // Cargar datos iniciales
     LaunchedEffect(Unit) {
         viewModel.loadUserProfile(context)
     }
 
+    // Manejar actualización exitosa
     LaunchedEffect(updateSuccess) {
         if (updateSuccess) {
-            onUpdateSuccess()
-            viewModel.resetUpdateSuccess()
-        }
-    }
-    LaunchedEffect(updateSuccess) {
-        if (updateSuccess) {
-
+            // Recargar los datos después de actualizar
+            viewModel.loadUserProfile(context)
             onUpdateSuccess()
             viewModel.resetUpdateSuccess()
         }
@@ -518,7 +516,6 @@ private fun ProfileForm(
     }
 }
 
-// Helper: mapear etiqueta UI -> valor backend
 private fun mapDocumentTypeToBackendFormat(documentTypeLabel: String): String? {
     return when (documentTypeLabel) {
         "DNI" -> "dni"

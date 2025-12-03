@@ -319,15 +319,46 @@ fun PaymentScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showSuccessDialog = false
-                        navController.navigate("reservations") {
-                            popUpTo("home") { inclusive = true }
-                        }
-                    }
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Ver mis reservas")
+                    // BOTÓN NUEVO: VER TICKET
+                    Button(
+                        onClick = {
+                            showSuccessDialog = false
+                            // Navegar a tickets con el ID de reserva
+                            createdReservation?.let { reservation ->
+                                navController.navigate("ticket/reservation/${reservation.id}")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Receipt,
+                            contentDescription = "Ver Ticket",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ver mi Ticket")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Botón existente: Ver mis reservas
+                    TextButton(
+                        onClick = {
+                            showSuccessDialog = false
+                            navController.navigate("reservations") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Ver mis reservas")
+                    }
                 }
             }
         )

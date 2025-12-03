@@ -76,7 +76,7 @@ fun CompleteProfileScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Método de pago
+
             OutlinedTextField(
                 value = viewModel.metodoPago,
                 onValueChange = { viewModel.metodoPago = it },

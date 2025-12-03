@@ -33,7 +33,7 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState = _uiState.asStateFlow()
 
-    // ✅ CORREGIDO: Usar el apiService autenticado
+
     private val apiService = RetrofitInstance.getAuthenticatedApiService(context)
     private val prefs: SharedPreferences = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
 
@@ -42,10 +42,9 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
             try {
                 _uiState.value = ProfileUiState(isLoading = true)
 
-                // ✅ CORREGIDO: Quitar la validación manual del token
-                // El interceptor de Retrofit maneja automáticamente la autenticación
 
-                println("🚗 [PROFILE] Guardando vehículo: $marca $modelo - $placa")
+
+                println(" [PROFILE] Guardando vehículo: $marca $modelo - $placa")
 
                 val response = apiService.addCar(
                     ApiCarRequest(
@@ -81,7 +80,7 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // ✅ Método para validar el formato de la placa
+
     fun isValidPlateFormat(plate: String): Boolean {
         val cleanedPlate = plate.uppercase().replace(" ", "").replace("-", "")
         // Formatos comunes: ABC123, ABC12D, AB123C, etc.
@@ -89,7 +88,6 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
         return plateRegex.matches(cleanedPlate)
     }
 
-    // ✅ Método para validar todos los campos
     fun validateForm(): Boolean {
         return placa.isNotBlank() &&
                 marca.isNotBlank() &&
@@ -98,7 +96,7 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
                 isValidPlateFormat(placa)
     }
 
-    // ✅ Método para limpiar el formulario
+
     fun clearForm() {
         placa = ""
         modelo = ""
@@ -109,7 +107,6 @@ class CompleteProfileViewModel(private val context: Context) : ViewModel() {
         _uiState.value = ProfileUiState()
     }
 
-    // ✅ Método para obtener el estado de autenticación
     fun isUserAuthenticated(): Boolean {
         return getAuthToken().isNotEmpty()
     }

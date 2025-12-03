@@ -183,23 +183,6 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
 
-                                // CARD SALDO
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Blanco,
-                                    shadowElevation = 3.dp,
-                                    border = BorderStroke(1.dp, GrisMedio)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("Saldo", color = GrisTexto, fontSize = 13.sp)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("S/ 10.00", color = AzulPrincipal, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-
                                 Spacer(modifier = Modifier.width(8.dp))
 
                                 Surface(
@@ -208,18 +191,8 @@ fun HomeScreen(
                                     shadowElevation = 3.dp,
                                     border = BorderStroke(1.dp, GrisMedio)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("Recargar", color = VerdePrincipal, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(
-                                            Icons.Default.Refresh,
-                                            contentDescription = null,
-                                            tint = VerdeSecundario
-                                        )
-                                    }
+
+
                                 }
                             }
                         }
@@ -230,7 +203,7 @@ fun HomeScreen(
                     DrawerMenuItem("Inicio", Icons.Default.Home) { navController.navigate("home") }
                     DrawerMenuItem("Perfil", Icons.Default.Person) { navController.navigate("perfil") }
                     DrawerMenuItem("Reservas", Icons.Default.DateRange) { navController.navigate("myReservations") }
-                    DrawerMenuItem("Parkea Ya saldo", Icons.Default.AccountBalanceWallet) {"payment"}
+                    DrawerMenuItem("Mis Tickets", Icons.Default.ConfirmationNumber) { navController.navigate("tickets") }
                     DrawerMenuItem("Soporte", Icons.Default.ChatBubble) {
                         navController.navigate("chatbot")
                     }
@@ -240,7 +213,7 @@ fun HomeScreen(
                     if (isLoggedIn) {
                         DrawerMenuItem("Cerrar Sesión", Icons.Default.Logout) {
                             userViewModel.logout()
-                            // Navegar al login o recargar la pantalla
+
                             navController.navigate("login") {
                                 popUpTo("home") { inclusive = true }
                             }
@@ -552,44 +525,44 @@ fun HomeScreen(
                             }
 
                             Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            FilterTab(
-                                text = "Todos",
-                                isSelected = activeFilter == "Todos",
-                                onClick = {
-                                    activeFilter = "Todos"
-                                    viewModel.fetchParkingSpots() // Recargar todos
-                                }
-                            )
-                            FilterTab(
-                                text = "Más Económicos",
-                                isSelected = activeFilter == "Económicos",
-                                onClick = {
-                                    activeFilter = "Económicos"
-                                    viewModel.fetchMasEconomicos()
-                                }
-                            )
-                            FilterTab(
-                                text = "Mejor Rating",
-                                isSelected = activeFilter == "Rating",
-                                onClick = {
-                                    activeFilter = "Rating"
-                                    viewModel.fetchMejoresCalificados()
-                                }
-                            )
-                            FilterTab(
-                                text = "Seguridad Alta",
-                                isSelected = activeFilter == "Seguridad",
-                                onClick = {
-                                    activeFilter = "Seguridad"
-                                    viewModel.filterBySecurity(4) // Nivel 4 o superior
-                                }
-                            )
-                        }
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                FilterTab(
+                                    text = "Todos",
+                                    isSelected = activeFilter == "Todos",
+                                    onClick = {
+                                        activeFilter = "Todos"
+                                        viewModel.fetchParkingSpots() // Recargar todos
+                                    }
+                                )
+                                FilterTab(
+                                    text = "Más Económicos",
+                                    isSelected = activeFilter == "Económicos",
+                                    onClick = {
+                                        activeFilter = "Económicos"
+                                        viewModel.fetchMasEconomicos()
+                                    }
+                                )
+                                FilterTab(
+                                    text = "Mejor Rating",
+                                    isSelected = activeFilter == "Rating",
+                                    onClick = {
+                                        activeFilter = "Rating"
+                                        viewModel.fetchMejoresCalificados()
+                                    }
+                                )
+                                FilterTab(
+                                    text = "Seguridad Alta",
+                                    isSelected = activeFilter == "Seguridad",
+                                    onClick = {
+                                        activeFilter = "Seguridad"
+                                        viewModel.filterBySecurity(4) // Nivel 4 o superior
+                                    }
+                                )
+                            }
 
                             Divider(color = Color.LightGray.copy(alpha = 0.5f))
 
@@ -944,4 +917,3 @@ fun DrawerMenuItem(
         Text(text, color = GrisTexto, fontSize = 16.sp)
     }
 }
-

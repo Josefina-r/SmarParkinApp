@@ -28,6 +28,9 @@ class ProfileViewModel : ViewModel() {
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
 
+    private val _forceRefresh = MutableStateFlow(false)
+
+
     private val _hasLoadedProfile = MutableStateFlow(false)
     val hasLoadedProfile: StateFlow<Boolean> = _hasLoadedProfile.asStateFlow()
 
@@ -36,6 +39,11 @@ class ProfileViewModel : ViewModel() {
             userRepository.initialize(context)
         }
     }
+    fun forceProfileRefresh() {
+        _hasLoadedProfile.value = false
+        _userProfile.value = null
+    }
+
 
     fun clearProfileData() {
         _userProfile.value = null
@@ -51,11 +59,13 @@ class ProfileViewModel : ViewModel() {
         loadUserProfile(context)
     }
 
-    fun loadUserProfile(context: Context) {
-        if (_hasLoadedProfile.value) {
+    // Modificar loadUserProfile para ignorar el cache
+    fun loadUserProfile(context: Context, forceRefresh: Boolean = false) {
+        if (_hasLoadedProfile.value && !forceRefresh) {
             println("ProfileViewModel - Perfil ya cargado, omitiendo...")
             return
         }
+
 
         viewModelScope.launch {
             _isLoading.value = true

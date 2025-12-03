@@ -181,24 +181,61 @@ fun AppNavGraph(navController: NavHostController) {
         composable(NavRoutes.Payment.route) {
             PaymentScreen(
                 navController = navController,
-                reservationId = null, // No necesitas reservationId
+                reservationId = null,
                 viewModel = reservationViewModel
             )
         }
 
         // Ticket
+        // Ruta para ver TODOS los tickets del usuario
+        composable("tickets") {
+            TicketScreen(
+                navController = navController,
+                ticketId = null,
+                reservationId = null,
+                viewModel = reservationViewModel
+            )
+        }
+
+// Ruta para ver un ticket ESPECÍFICO por su ID
+        composable(
+            route = "ticket/{ticketId}",
+            arguments = listOf(navArgument("ticketId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val ticketId = backStackEntry.arguments?.getString("ticketId")
+
+            TicketScreen(
+                navController = navController,
+                ticketId = ticketId,
+                reservationId = null,
+                viewModel = reservationViewModel
+            )
+        }
+
+// Ruta para ver ticket por ID de RESERVA
+        composable(
+            route = "ticket/reservation/{reservationId}",
+            arguments = listOf(navArgument("reservationId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val reservationId = backStackEntry.arguments?.getLong("reservationId")
+
+            TicketScreen(
+                navController = navController,
+                ticketId = null,
+                reservationId = reservationId,
+                viewModel = reservationViewModel
+            )
+        }
+
         composable(
             route = NavRoutes.Ticket.route,
             arguments = listOf(navArgument("paymentId") { type = NavType.StringType })
         ) { backStackEntry ->
             val paymentId = backStackEntry.arguments?.getString("paymentId")
 
-            TicketScreen(
-                navController = navController,
-                paymentId = paymentId,
-
-                viewModel = reservationViewModel
-            )
+            navController.navigate("tickets") {
+                popUpTo(NavRoutes.Ticket.route) { inclusive = true }
+            }
         }
 
         // Perfil

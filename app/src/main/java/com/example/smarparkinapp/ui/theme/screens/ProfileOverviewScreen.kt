@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smarparkinapp.ui.theme.theme.*
 import com.example.smarparkinapp.ui.theme.viewmodel.ProfileViewModel
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileOverviewScreen(
@@ -43,8 +44,25 @@ fun ProfileOverviewScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadUserProfile(context)
+    // Estado para controlar cuando recargar
+    var needsRefresh by remember { mutableStateOf(true) }
+
+    // Recargar cuando esta pantalla se vuelve activa
+    LaunchedEffect(needsRefresh) {
+        if (needsRefresh) {
+            println("🔄 ProfileOverviewScreen - Recargando datos del perfil")
+            viewModel.loadUserProfile(context)
+            needsRefresh = false
+        }
+    }
+
+    // Forzar recarga cuando regresamos de editar
+    DisposableEffect(Unit) {
+        onDispose {
+            // Esta es la clave: cuando salimos de esta pantalla,
+            // marcamos que necesitamos recargar la próxima vez
+            needsRefresh = true
+        }
     }
 
     Scaffold(
@@ -58,7 +76,10 @@ fun ProfileOverviewScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = {
+                        // Solo navegar, no limpiar datos
+                        onBack()
+                    }) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Volver",
@@ -72,7 +93,7 @@ fun ProfileOverviewScreen(
             )
         }
     ) { padding ->
-        if (isLoading) {
+        if (isLoading && userProfile == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -84,10 +105,12 @@ fun ProfileOverviewScreen(
         } else {
             ProfileContent(
                 userProfile = userProfile,
-                onEditProfile = onEditProfile,
+                onEditProfile = {
+                    // Solo navegar, NO limpiar datos aquí
+                    onEditProfile()
+                },
                 onPaymentMethods = onPaymentMethods,
                 onMyVehicles = onMyVehicles,
-
                 onChangePassword = onChangePassword,
                 modifier = Modifier.padding(padding)
             )

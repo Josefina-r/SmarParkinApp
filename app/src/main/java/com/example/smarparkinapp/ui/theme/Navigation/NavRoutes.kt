@@ -17,7 +17,7 @@ sealed class NavRoutes(val route: String) {
     object Historial : NavRoutes("historial")
     object AddVehicle : NavRoutes("add_vehicle")
 
-    // CORRECCIÓN: Cambiar a Long para consistencia
+
     object Reservation : NavRoutes("reservation/{parkingId}") {
         fun createRoute(parkingId: Long) = "reservation/$parkingId"
     }

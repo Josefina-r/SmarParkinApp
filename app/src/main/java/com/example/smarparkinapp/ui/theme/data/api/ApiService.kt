@@ -6,6 +6,8 @@ import com.google.gson.annotations.SerializedName
 import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingReviewsResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
+import com.example.smarparkinapp.ui.theme.data.model.PaginatedTicketResponse
+import UpdateProfileRequest
 import com.example.smarparkinapp.ui.theme.data.model.ParkingReview
 import com.example.smarparkinapp.ui.theme.data.model.CreateReviewRequest
 import com.example.smarparkinapp.ui.theme.data.model.Payment
@@ -97,8 +99,35 @@ interface ApiService {
     suspend fun processPayment(@Path("id") paymentId: String): Response<Payment>
 
     // Tickets
-    @GET("api/tickets/validos/")
+
+    @GET("api/tickets/")
+    suspend fun getUserTickets(): Response<PaginatedTicketResponse>
+
+    @GET("api/tickets/{id}/")
+    suspend fun getTicketById(@Path("id") id: String): Response<TicketResponse>
+
+    @GET("tickets/by-reservation/{reservation_id}/")
+    suspend fun getTicketsByReservation(@Path("reservation_id") reservationId: Long): Response<List<TicketResponse>>
+
+    @GET("tickets/validos/")
     suspend fun getValidTickets(): Response<List<TicketResponse>>
+
+    @POST("api/tickets/validate/")
+    suspend fun validateTicketByCode(@Body request: ValidateTicketRequest): Response<TicketValidationResponse>
+
+    @POST("tickets/{id}/cancel/")
+    suspend fun cancelTicket(@Path("id") id: String, @Body request: Map<String, String>): Response<TicketResponse>
+
+
+
+    @GET("api/tickets/parking/{parking_id}/")
+    suspend fun getTicketsByParking(@Path("parking_id") parkingId: Long): Response<List<TicketResponse>>
+
+    // Validación de ticket con código
+    @POST("/tickets/{id}/validate/")
+    suspend fun validateTicket(@Path("id") id: String): Response<GenericValidationResponse>
+
+
 
     @GET("api/tickets/reserva/{reservationId}/")
     suspend fun getTicketByReservation(@Path("reservationId") reservationId: Long): Response<TicketResponse>
@@ -222,12 +251,7 @@ data class UserProfileResponse(
     val profile_picture: String? = null
 )
 
-data class UpdateProfileRequest(
-    val first_name: String? = null,
-    val last_name: String? = null,
-    val phone: String? = null,
-    val address: String? = null
-)
+
 
 // MODELOS DE DASHBOARD
 data class DashboardStatsResponse(
@@ -273,4 +297,35 @@ data class ChangePasswordRequest(
 data class ReportReviewRequest(
     @SerializedName("motivo")
     val motivo: String
+)
+
+// Modelos para requests/responses
+data class TicketValidationResponse(
+    @SerializedName("valido") val valido: Boolean,
+    @SerializedName("mensaje") val mensaje: String,
+    @SerializedName("ticket") val ticket: TicketResponse?
+)
+
+data class ValidateTicketRequest(
+    @SerializedName("codigo_ticket") val codigoTicket: String
+)
+
+data class UpdateTicketStatusRequest(
+    @SerializedName("estado") val estado: String,
+    @SerializedName("motivo") val motivo: String? = null
+)
+
+// GenericValidationResponse.kt
+data class GenericValidationResponse(
+    @SerializedName("valido")
+    val valido: Boolean,
+
+    @SerializedName("mensaje")
+    val mensaje: String,
+
+    @SerializedName("ticket")
+    val ticket: TicketResponse? = null,
+
+    @SerializedName("reserva")
+    val reserva: Any? = null // Puedes crear una clase ReservationResponse si la necesitas
 )

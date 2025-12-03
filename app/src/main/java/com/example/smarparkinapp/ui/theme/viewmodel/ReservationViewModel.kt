@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.smarparkinapp.ui.theme.data.model.TicketResponse
 import androidx.lifecycle.viewModelScope
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 import com.example.smarparkinapp.ui.theme.data.repository.ReservationRepository
@@ -62,6 +63,11 @@ class ReservationViewModel(
     private val _createdPayment = MutableStateFlow<Payment?>(null)
     val createdPayment: StateFlow<Payment?> = _createdPayment.asStateFlow()
 
+    private val _userTickets = MutableStateFlow<List<TicketResponse>>(emptyList())
+    val userTickets: StateFlow<List<TicketResponse>> = _userTickets.asStateFlow()
+
+    private val _currentTicket = MutableStateFlow<TicketResponse?>(null)
+    val currentTicket: StateFlow<TicketResponse?> = _currentTicket.asStateFlow()
     fun updateReservationTime(time: String) {
         _reservationTime = time
     }
@@ -179,7 +185,7 @@ class ReservationViewModel(
     }
 
 
-    // ✅ CORREGIDO: FUNCIÓN ELIMINAR VEHÍCULO
+
     fun deleteVehicle(vehicleId: Long) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -236,10 +242,10 @@ class ReservationViewModel(
                     duracionMinutos = durationMinutes
                 )
 
-                println("🚀 Enviando reserva REAL: $request")
+                println(" Enviando reserva REAL: $request")
 
                 reservationRepository.createReservation(request).onSuccess { reservation ->
-                    println("✅ Reserva creada exitosamente: ${reservation.id}")
+                    println(" Reserva creada exitosamente: ${reservation.id}")
                     _createdReservation.value = reservation
                     onSuccess(reservation)
                 }.onFailure { error ->
@@ -265,9 +271,9 @@ class ReservationViewModel(
             return
         }
 
-        // ✅ SOLUCIÓN DEFINITIVA - Convertir siempre a String primero
+
         val montoReal = try {
-            // Convertir cualquier tipo a String y luego a Double
+
             reservation.costoEstimado?.toString()?.toDoubleOrNull()
         } catch (e: Exception) {
             println("⚠️ [ReservationViewModel] Error convirtiendo monto: ${e.message}")
@@ -281,14 +287,14 @@ class ReservationViewModel(
             return
         }
 
-        println("💰 [ReservationViewModel] Creando pago - Reserva: ${reservation.id}, Método: $metodo, Monto: $montoReal")
+        println(" [ReservationViewModel] Creando pago - Reserva: ${reservation.id}, Método: $metodo, Monto: $montoReal")
 
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 reservationRepository.createPayment(reservation.id, metodo, montoReal)
                     .onSuccess { payment ->
-                        println("✅ [ReservationViewModel] Pago creado exitosamente: ${payment.id}")
+                        println(" [ReservationViewModel] Pago creado exitosamente: ${payment.id}")
                         _createdPayment.value = payment
                         onSuccess(payment)
                     }.onFailure { exception ->
@@ -391,7 +397,212 @@ class ReservationViewModel(
         }
     }
 
-    // ================== FUNCIONES PARA TICKET ==================
+    // ================== MÉTODOS PARA TICKETS REALES ==================
+
+    /**
+     * Cargar tickets del usuario (API REAL)
+     */
+    fun loadUserTickets() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                reservationRepository.getUserTickets().onSuccess { tickets ->
+                    _userTickets.value = tickets
+                    println("✅ [Ticket] Tickets cargados: ${tickets.size}")
+
+                    // Mostrar cada ticket
+                    tickets.forEachIndexed { index, ticket ->
+                        println("   [$index] Ticket: ${ticket.codigoTicket}, Estado: ${ticket.estado}")
+                    }
+                }.onFailure { error ->
+                    println("❌ [Ticket] Error cargando tickets: ${error.message}")
+                    _error.value = "Error cargando tickets"
+                }
+            } catch (e: Exception) {
+                println("❌ [Ticket] Exception: ${e.message}")
+                _error.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Cargar ticket específico por ID
+     */
+    fun loadTicketById(ticketId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                reservationRepository.getTicketById(ticketId).onSuccess { ticket ->
+                    _currentTicket.value = ticket
+                    println("✅ [Ticket] Ticket cargado: ${ticket.codigoTicket}")
+
+                    // Cargar detalles de la reserva asociada
+                    // CAMBIA ESTO:
+                    // val reservaId = ticket.reserva?.id
+
+                    // POR ESTO:
+                    val reservaId = ticket.reservaId
+
+                    if (reservaId != null) {
+                        loadReservationDetailsForTicket(reservaId.toLong())
+                    } else {
+                        println("⚠️ [Ticket] Ticket no tiene ID de reserva asociado")
+
+                        // También puedes intentar obtenerlo del código de reserva
+                        if (ticket.codigoReserva != null) {
+                            println("⚠️ [Ticket] Pero tiene código de reserva: ${ticket.codigoReserva}")
+                            // Podrías buscar la reserva por código aquí
+                        }
+                    }
+                }.onFailure { error ->
+                    println("❌ [Ticket] Error cargando ticket: ${error.message}")
+                    _error.value = "Error cargando ticket"
+                }
+            } catch (e: Exception) {
+                println("❌ [Ticket] Exception: ${e.message}")
+                _error.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Cancelar ticket (usuario cancela su reserva)
+     */
+    fun cancelUserTicket(ticketId: String, motivo: String = "Cancelado por usuario") {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                reservationRepository.cancelTicket(ticketId, motivo).onSuccess { ticket ->
+                    println("✅ [Ticket] Ticket cancelado: ${ticket.estado}")
+
+                    // Actualizar ticket actual
+                    _currentTicket.value = ticket
+
+                    // Refrescar lista
+                    loadUserTickets()
+
+                }.onFailure { error ->
+                    println("❌ [Ticket] Error cancelando: ${error.message}")
+                    _error.value = "Error cancelando ticket"
+                }
+            } catch (e: Exception) {
+                println("❌ [Ticket] Exception: ${e.message}")
+                _error.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Buscar ticket por ID de reserva
+     */
+    fun findTicketByReservationId(reservationId: Long): TicketResponse? {
+        return _userTickets.value.find {
+            it.reservaId?.toLong() == reservationId
+        }
+    }
+
+    /**
+     * Cargar detalles de reserva para un ticket
+     */
+    private fun loadReservationDetailsForTicket(reservationId: Long) {
+        viewModelScope.launch {
+            try {
+                // Buscar en las reservas existentes
+                val reservation = _userReservations.value.find { it.id == reservationId }
+                if (reservation != null) {
+                    _createdReservation.value = reservation
+                    println("✅ [Ticket] Reserva encontrada para ticket")
+
+                    // Cargar detalles del parking y vehículo (USANDO TUS FUNCIONES EXISTENTES)
+                    if (reservation.estacionamientoId != 0L) {
+                        // CORRECCIÓN: Quitar "viewModel." - estamos dentro del ViewModel
+                        loadParkingDetailsForTicket(reservation.estacionamientoId)
+                    }
+                    if (reservation.vehiculoId != 0L) {
+                        // CORRECCIÓN: Quitar "viewModel." - estamos dentro del ViewModel
+                        loadVehicleDetailsForTicket(reservation.vehiculoId)
+                    }
+                } else {
+                    println("⚠️ [Ticket] Reserva no encontrada para ticket")
+                }
+            } catch (e: Exception) {
+                println("⚠️ [Ticket] Error cargando reserva: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Función para verificar estado del ticket después del pago
+     */
+    fun checkTicketStatusAfterPayment(reservationId: Long) {
+        viewModelScope.launch {
+            println("💰 [Ticket] Verificando estado del ticket después del pago...")
+
+            // Esperar y refrescar
+            kotlinx.coroutines.delay(3000L)
+            loadUserTickets()
+            loadUserReservations()
+
+            // Buscar ticket asociado
+            val ticket = findTicketByReservationId(reservationId)
+
+            if (ticket != null) {
+                println("✅ [Ticket] Ticket encontrado después del pago:")
+                println("   - Estado: ${ticket.estado}")
+
+                // Mostrar mensaje según estado
+                when (ticket.estado) {
+                    "pendiente" -> {
+                        _error.value = "✅ Pago exitoso! Esperando confirmación del estacionamiento"
+                    }
+                    "valido" -> {
+                        _error.value = "🎉 Ticket confirmado! Ya puedes usar tu reserva"
+                    }
+                    "cancelado" -> {
+                        _error.value = "❌ Ticket cancelado"
+                    }
+                }
+
+                // Cargar detalles del ticket
+                loadTicketById(ticket.id)
+            } else {
+                println("⏳ [Ticket] Aún no hay ticket. El owner debe aceptar la reserva")
+                _error.value = "⏳ Esperando que el estacionamiento confirme tu reserva"
+            }
+        }
+    }
+
+// ================== FUNCIONES AUXILIARES ==================
+
+    fun getTicketStatusColor(estado: String): androidx.compose.ui.graphics.Color {
+        return when (estado.lowercase()) {
+            "valido", "validado" -> androidx.compose.ui.graphics.Color(0xFF4CAF50)
+            "pendiente" -> androidx.compose.ui.graphics.Color(0xFFFFC107)
+            "cancelado" -> androidx.compose.ui.graphics.Color(0xFFF44336)
+            else -> androidx.compose.ui.graphics.Color.Gray
+        }
+    }
+
+    fun getTicketStatusText(estado: String): String {
+        return when (estado.lowercase()) {
+            "valido", "validado" -> "Confirmado"
+            "pendiente" -> "Pendiente"
+            "cancelado" -> "Cancelado"
+            else -> estado
+        }
+    }
+
+    fun canUserCancelTicket(ticket: TicketResponse): Boolean {
+        return ticket.estado == "pendiente"
+    }
+
+// ================== FUNCIONES EXISTENTES QUE DEBES TENER ==================
 
     /**
      * Cargar detalles del estacionamiento para el ticket
@@ -429,7 +640,7 @@ class ReservationViewModel(
         viewModelScope.launch {
             try {
                 vehicleRepository.getUserVehicles().onSuccess { vehicles ->
-                    val vehicle = vehicles.find { it.id.toLong() == vehicleId } // ✅ CORREGIDO
+                    val vehicle = vehicles.find { it.id.toLong() == vehicleId }
                     if (vehicle != null) {
                         _selectedVehicle = vehicle
                         println("✅ [Ticket] Detalles del vehículo cargados: ${vehicle.plate}")
@@ -459,67 +670,8 @@ class ReservationViewModel(
         }
 
         // Cargar detalles del vehículo
-        if (reservation.vehiculoId != 0L) { // ✅ CORREGIDO: Ambos son Long
+        if (reservation.vehiculoId != 0L) {
             loadVehicleDetailsForTicket(reservation.vehiculoId)
-        }
-    }
-
-    // ================== FUNCIONES ADICIONALES ==================
-
-    /**
-     * Obtener reserva por ID
-     */
-    fun getReservationById(reservationId: Long) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                // Si tu API tiene un endpoint para obtener reserva por ID, lo usarías aquí
-                // Por ahora, buscamos en las reservas existentes
-                val reservation = _userReservations.value.find { it.id == reservationId }
-                if (reservation != null) {
-                    _createdReservation.value = reservation
-                    println("✅ Reserva encontrada: ${reservation.codigoReserva}")
-                } else {
-                    _error.value = "Reserva no encontrada"
-                }
-            } catch (e: Exception) {
-                _error.value = "Error obteniendo reserva: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    /**
-     * Refrescar datos del ticket
-     */
-    fun refreshTicketData() {
-        _createdReservation.value?.let { reservation ->
-            loadTicketDetails(reservation)
-        }
-    }
-
-    /**
-     * Verificar si el ticket está listo para mostrar
-     */
-    fun isTicketReady(): Boolean {
-        return _createdReservation.value != null &&
-                _selectedParking != null &&
-                _selectedVehicle != null
-    }
-
-    /**
-     * Obtener resumen del ticket
-     */
-    fun getTicketSummary(): String {
-        val reservation = _createdReservation.value
-        val parking = _selectedParking
-        val vehicle = _selectedVehicle
-
-        return if (reservation != null && parking != null && vehicle != null) {
-            "Reserva #${reservation.id} - ${parking.nombre} - ${vehicle.brand} ${vehicle.plate}"
-        } else {
-            "Cargando información del ticket..."
         }
     }
 }
