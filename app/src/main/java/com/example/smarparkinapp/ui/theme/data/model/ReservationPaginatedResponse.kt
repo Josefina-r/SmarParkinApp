@@ -1,6 +1,9 @@
+// En tu data/model/ReservationPaginatedResponse.kt
 package com.example.smarparkinapp.ui.theme.data.model
+
 import com.google.gson.annotations.SerializedName
-data class PaginatedResponse<T>(
+
+data class ReservationPaginatedResponse(
     @SerializedName("count")
     val count: Int,
 
@@ -11,5 +14,5 @@ data class PaginatedResponse<T>(
     val previous: String?,
 
     @SerializedName("results")
-    val results: List<T>
+    val results: List<ReservationResponse>
 )

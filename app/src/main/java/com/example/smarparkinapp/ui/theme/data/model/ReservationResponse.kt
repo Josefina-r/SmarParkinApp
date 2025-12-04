@@ -1,8 +1,7 @@
 package com.example.smarparkinapp.ui.theme.data.model
 
-
-
 import com.google.gson.annotations.SerializedName
+import com.example.smarparkinapp.ui.theme.data.api.UserResponse
 
 data class ReservationResponse(
     @SerializedName("id")
@@ -12,11 +11,13 @@ data class ReservationResponse(
     val codigoReserva: String = "",
 
     @SerializedName("usuario")
-    val usuarioId: Long = 0, // ← Sigue siendo el ID
+    val usuario: UserResponse? = null,
 
-    @SerializedName("usuario_nombre") // ✅ NUEVO: Campo para el username
+    @SerializedName("usuario_nombre")
     val usuarioNombre: String = "",
 
+    // ESTOS CAMPOS LOS VAMOS A MANEJAR CON UN DESERIALIZADOR
+    // Mantenemos el nombre pero usaremos un custom adapter
     @SerializedName("vehiculo")
     val vehiculoId: Long = 0,
 
@@ -44,14 +45,15 @@ data class ReservationResponse(
     @SerializedName("created_at")
     val createdAt: String = "",
 
-    // PROPERTIES DEL BACKEND
-    @SerializedName("tiempo_restante_minutos")
+    // FIJATE: En el JSON dice "tiempo_restante" NO "tiempo_restante_minutos"
+    @SerializedName("tiempo_restante")
     val tiempoRestante: Int? = null,
 
     @SerializedName("puede_cancelar")
     val puedeCancelar: Boolean = false
 )
-// Modelos auxiliares para ReservationResponse
+
+// Modelos auxiliares OPCIONALES (si los necesitas)
 data class UserShortResponse(
     @SerializedName("id")
     val id: Long,
@@ -73,17 +75,11 @@ data class VehicleShortResponse(
     @SerializedName("placa")
     val placa: String,
 
-    @SerializedName("marca")
-    val marca: String,
-
     @SerializedName("modelo")
     val modelo: String,
 
     @SerializedName("color")
-    val color: String? = null,
-
-    @SerializedName("tipo_vehiculo")
-    val tipoVehiculo: String? = null
+    val color: String? = null
 )
 
 data class ParkingShortResponse(
@@ -97,11 +93,5 @@ data class ParkingShortResponse(
     val direccion: String? = null,
 
     @SerializedName("tarifa_hora")
-    val tarifaHora: Double? = null,
-
-    @SerializedName("precio_dia")
-    val precioDia: Double? = null,
-
-    @SerializedName("precio_mes")
-    val precioMes: Double? = null
+    val tarifaHora: Double? = null
 )

@@ -13,6 +13,7 @@ import com.example.smarparkinapp.ui.theme.data.model.CreateReviewRequest
 import com.example.smarparkinapp.ui.theme.data.model.Payment
 import com.example.smarparkinapp.ui.theme.data.model.UserProfileResponse
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
+import com.example.smarparkinapp.ui.theme.data.model.ReservationPaginatedResponse
 import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
 import com.example.smarparkinapp.ui.theme.data.model.PaymentRequest
@@ -83,8 +84,10 @@ interface ApiService {
     @POST("api/reservation/")
     suspend fun createReservation(@Body request: ReservationRequest): Response<ReservationResponse>
 
-    @GET("api/reservations/mis-reservas/")
-    suspend fun getMyReservations(): Response<List<ReservationResponse>>
+
+    @GET("api/reservations/")
+    suspend fun getUserReservations(): Response<ReservationPaginatedResponse>
+
 
     @POST("api/reservations/{codigo}/cancel/")
     suspend fun cancelReservation(@Path("codigo") codigo: String): Response<GenericResponse>

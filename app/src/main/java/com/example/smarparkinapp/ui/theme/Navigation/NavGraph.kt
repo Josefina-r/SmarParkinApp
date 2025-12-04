@@ -237,6 +237,12 @@ fun AppNavGraph(navController: NavHostController) {
                 popUpTo(NavRoutes.Ticket.route) { inclusive = true }
             }
         }
+        composable("myReservations") {
+            MyReservationsScreen(
+                navController = navController,
+                viewModel = reservationViewModel
+            )
+        }
 
         // Perfil
         composable(NavRoutes.Perfil.route) {
@@ -307,12 +313,7 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
 
-        composable("myReservations") {
-            MyReservationsScreen(
-                navController = navController,
-                // viewModel = reservationViewModel
-            )
-        }
+
         composable("myVehicles") {
             VehicleSelectionScreen(
                 navController = navController,

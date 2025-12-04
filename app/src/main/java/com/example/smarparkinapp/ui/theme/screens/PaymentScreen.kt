@@ -301,7 +301,7 @@ fun PaymentScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("✅ Pago registrado exitosamente")
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("📊 La reserva fue enviada al dashboard del owner")
+                    Text("📊 La reserva fue enviada al Estaciomiento")
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Recibirás un correo de confirmación con los detalles",
@@ -351,7 +351,7 @@ fun PaymentScreen(
                     TextButton(
                         onClick = {
                             showSuccessDialog = false
-                            navController.navigate("reservations") {
+                            navController.navigate("myReservations") {  // ← CAMBIAR AQUÍ
                                 popUpTo("home") { inclusive = true }
                             }
                         },

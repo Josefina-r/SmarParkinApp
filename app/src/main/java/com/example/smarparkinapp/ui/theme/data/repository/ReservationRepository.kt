@@ -40,9 +40,9 @@ class ReservationRepository(private val context: Context) {
                         println("    Código: ${reservation.codigoReserva}")
                         println("    Costo: ${reservation.costoEstimado}")
                         println("    Estado: ${reservation.estado}")
-                        println("    Usuario: ${reservation.usuarioNombre}") // ✅ CAMBIADO: Usar usuarioNombre
-                        println("    Vehículo ID: ${reservation.vehiculoId}") // ✅ CAMBIADO: vehiculoId en lugar de vehiculo.placa
-                        println("    Estacionamiento ID: ${reservation.estacionamientoId}") // ✅ CAMBIADO: estacionamientoId
+                        println("    Usuario: ${reservation.usuarioNombre}")
+                        println("    Vehículo ID: ${reservation.vehiculoId}")
+                        println("    Estacionamiento ID: ${reservation.estacionamientoId}")
                         Result.success(reservation)
                     } else {
                         println("❌ Respuesta vacía del servidor")
@@ -63,19 +63,49 @@ class ReservationRepository(private val context: Context) {
     suspend fun getMyReservations(): Result<List<ReservationResponse>> =
         withContext(Dispatchers.IO) {
             try {
-                println("📱 Obteniendo mis reservas...")
-                val response = apiService.getMyReservations()
+                println(" === OBTENIENDO RESERVAS ===")
+
+                val response = apiService.getUserReservations()
+
+                println("📡 Código respuesta: ${response.code()}")
+                println(" ¿Exitosa?: ${response.isSuccessful}")
 
                 if (response.isSuccessful) {
-                    val reservations = response.body() ?: emptyList()
-                    println("✅ Reservas obtenidas: ${reservations.size}")
-                    Result.success(reservations)
+                    // Primero imprime el JSON completo para ver la estructura
+                    val jsonString = response.body()?.toString()?.take(500)
+                    println(" JSON (primeros 500 chars): $jsonString")
+
+                    val rawResponse = response.body()
+                    println("📊 Tipo de respuesta: ${rawResponse?.javaClass?.simpleName}")
+
+                    if (rawResponse is ReservationPaginatedResponse) {
+                        val paginated = rawResponse
+                        println("📊 Estructura paginada:")
+                        println("   - Total: ${paginated.count}")
+                        println("   - Resultados: ${paginated.results?.size ?: 0}")
+                        println("   - Next: ${paginated.next}")
+
+                        val reservations = paginated.results ?: emptyList()
+                        println(" Reservas obtenidas: ${reservations.size}")
+
+                        // Debug de cada reserva
+                        reservations.forEachIndexed { index, reservation ->
+                            println("   [$index] ID: ${reservation.id}, Código: ${reservation.codigoReserva}")
+                        }
+
+                        Result.success(reservations)
+                    } else {
+                        println(" La respuesta no es PaginatedResponse")
+                        Result.success(emptyList())
+                    }
                 } else {
-                    println("❌ Error obteniendo reservas: ${response.code()}")
-                    Result.failure(Exception("Error al obtener reservas: ${response.code()}"))
+                    val errorBody = response.errorBody()?.string()
+                    println("❌ Error: ${response.code()} - $errorBody")
+                    Result.failure(Exception("Error ${response.code()}"))
                 }
             } catch (e: Exception) {
                 println("❌ Exception: ${e.message}")
+                e.printStackTrace()
                 Result.failure(Exception("Error: ${e.message}"))
             }
         }
