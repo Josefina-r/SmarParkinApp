@@ -1,20 +1,19 @@
+// ProfileViewModel.kt
 package com.example.smarparkinapp.ui.theme.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smarparkinapp.ui.theme.data.model.UserProfile
-import com.example.smarparkinapp.ui.theme.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class ProfileViewModel : ViewModel() {
-    private val userRepository = UserRepository()
+    private val userRepository = com.example.smarparkinapp.ui.theme.data.repository.UserRepository()
 
-    private val _userProfile = MutableStateFlow<UserProfile?>(null)
-    val userProfile: StateFlow<UserProfile?> = _userProfile.asStateFlow()
+    private val _userProfile = MutableStateFlow<com.example.smarparkinapp.ui.theme.data.model.UserProfile?>(null)
+    val userProfile: StateFlow<com.example.smarparkinapp.ui.theme.data.model.UserProfile?> = _userProfile.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -28,9 +27,6 @@ class ProfileViewModel : ViewModel() {
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
 
-    private val _forceRefresh = MutableStateFlow(false)
-
-
     private val _hasLoadedProfile = MutableStateFlow(false)
     val hasLoadedProfile: StateFlow<Boolean> = _hasLoadedProfile.asStateFlow()
 
@@ -39,11 +35,6 @@ class ProfileViewModel : ViewModel() {
             userRepository.initialize(context)
         }
     }
-    fun forceProfileRefresh() {
-        _hasLoadedProfile.value = false
-        _userProfile.value = null
-    }
-
 
     fun clearProfileData() {
         _userProfile.value = null
@@ -53,43 +44,32 @@ class ProfileViewModel : ViewModel() {
         _validationErrors.value = emptyMap()
     }
 
-    fun refreshProfile(context: Context) {
-        _hasLoadedProfile.value = false
-        _userProfile.value = null
-        loadUserProfile(context)
-    }
-
-    // Modificar loadUserProfile para ignorar el cache
-    fun loadUserProfile(context: Context, forceRefresh: Boolean = false) {
-        if (_hasLoadedProfile.value && !forceRefresh) {
-            println("ProfileViewModel - Perfil ya cargado, omitiendo...")
-            return
+    fun loadUserProfile(context: Context, forceReload: Boolean = false) {
+        // SOLUCIÓN: SIEMPRE recargar cuando se fuerza
+        if (_hasLoadedProfile.value && !forceReload) {
+            println("✅ ProfileViewModel - Perfil ya cargado, pero cargaremos de todos modos")
         }
-
 
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
             try {
-
                 initializeRepository(context)
-
-                println(" ProfileViewModel - Cargando perfil desde repository...")
+                println("🔄 ProfileViewModel - Cargando perfil desde repository...")
                 val profile = userRepository.getUserProfile()
 
-                //  Verificar qué datos llegan
-                println(" ProfileViewModel - Perfil obtenido: $profile")
-                println(" Teléfono en profile: '${profile.phone}'")
-                println(" Dirección en profile: '${profile.address}'")
-                println(" Nombre: '${profile.firstName} ${profile.lastName}'")
-                println(" Tipo documento: '${profile.tipoDocumento}'")
-                println(" Número documento: '${profile.numeroDocumento}'")
+                // DEBUG DETALLADO
+                println("📋 ProfileViewModel - DATOS OBTENIDOS:")
+                println("   📞 Teléfono: '${profile.phone}'")
+                println("   🏠 Dirección: '${profile.address}'")
+                println("   📄 Documento: '${profile.tipoDocumento} - ${profile.numeroDocumento}'")
+                println("   👤 Nombre: '${profile.firstName} ${profile.lastName}'")
 
                 _userProfile.value = profile
                 _hasLoadedProfile.value = true
 
-                println(" ProfileViewModel - Perfil cargado exitosamente en StateFlow")
+                println("✅ ProfileViewModel - Perfil cargado exitosamente")
 
             } catch (e: Exception) {
                 val errorMsg = "Error al cargar perfil: ${e.message}"
@@ -103,7 +83,12 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    //Con mejor debug
+    fun forceReloadProfile(context: Context) {
+        println("🔄 ProfileViewModel - FORZANDO RECARGA DEL PERFIL")
+        _hasLoadedProfile.value = false
+        loadUserProfile(context, forceReload = true)
+    }
+
     fun updateProfile(
         context: Context,
         firstName: String,
@@ -122,7 +107,7 @@ class ProfileViewModel : ViewModel() {
             _validationErrors.value = emptyMap()
 
             try {
-                //  Validaciones
+                // Validaciones
                 val errors = validateProfileData(
                     firstName, lastName, phone, documentType, documentNumber, birthDate
                 )
@@ -133,7 +118,6 @@ class ProfileViewModel : ViewModel() {
                     return@launch
                 }
 
-                //repository inicializado
                 initializeRepository(context)
 
                 val backendDocumentType = documentType?.let { mapDocumentTypeToBackendFormat(it) }
@@ -151,21 +135,20 @@ class ProfileViewModel : ViewModel() {
                     country = country
                 )
 
-                //  Verificar perfil actualizado
-                println(" ProfileViewModel - Perfil actualizado: $updatedProfile")
-                println(" Teléfono actualizado: '${updatedProfile.phone}'")
-                println(" Dirección actualizada: '${updatedProfile.address}'")
-
+                // ACTUALIZAR LOCALMENTE
                 _userProfile.value = updatedProfile
                 _updateSuccess.value = true
                 _hasLoadedProfile.value = true
 
-                println(" ProfileViewModel - Perfil actualizado exitosamente")
+                println("✅ ProfileViewModel - Perfil actualizado exitosamente")
+                println("   📞 Nuevo teléfono: '${updatedProfile.phone}'")
+                println("   🏠 Nueva dirección: '${updatedProfile.address}'")
+                println("   📄 Nuevo documento: '${updatedProfile.tipoDocumento} - ${updatedProfile.numeroDocumento}'")
 
             } catch (e: Exception) {
                 val errorMsg = "Error al actualizar: ${e.message}"
                 _errorMessage.value = errorMsg
-                println(" ProfileViewModel - $errorMsg")
+                println("❌ ProfileViewModel - $errorMsg")
                 e.printStackTrace()
             } finally {
                 _isLoading.value = false
@@ -266,15 +249,6 @@ class ProfileViewModel : ViewModel() {
             "Pasaporte" -> "pasaporte"
             "Carnet de Extranjería" -> "carnet_extranjeria"
             else -> documentType
-        }
-    }
-
-    private fun mapDocumentTypeToUIFormat(backendType: String?): String {
-        return when (backendType) {
-            "dni" -> "DNI"
-            "pasaporte" -> "Pasaporte"
-            "carnet_extranjeria" -> "Carnet de Extranjería"
-            else -> backendType ?: ""
         }
     }
 }

@@ -7,10 +7,11 @@ import com.example.smarparkinapp.ui.theme.data.model.CarResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingReviewsResponse
 import com.example.smarparkinapp.ui.theme.data.model.ParkingLot
 import com.example.smarparkinapp.ui.theme.data.model.PaginatedTicketResponse
-import UpdateProfileRequest
+import com.example.smarparkinapp.ui.theme.data.model.UpdateProfileRequest
 import com.example.smarparkinapp.ui.theme.data.model.ParkingReview
 import com.example.smarparkinapp.ui.theme.data.model.CreateReviewRequest
 import com.example.smarparkinapp.ui.theme.data.model.Payment
+import com.example.smarparkinapp.ui.theme.data.model.UserProfileResponse
 import com.example.smarparkinapp.ui.theme.data.model.RegisterRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationRequest
 import com.example.smarparkinapp.ui.theme.data.model.ReservationResponse
@@ -240,16 +241,6 @@ data class ParkingSpotResponse(
 )
 
 // MODELOS DE PERFIL
-data class UserProfileResponse(
-    val id: Int,
-    val username: String,
-    val email: String,
-    val first_name: String?,
-    val last_name: String?,
-    val phone: String? = null,
-    val address: String? = null,
-    val profile_picture: String? = null
-)
 
 
 

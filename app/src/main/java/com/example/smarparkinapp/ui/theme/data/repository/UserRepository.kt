@@ -4,10 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.example.smarparkinapp.ui.theme.data.api.ApiService
 import com.example.smarparkinapp.ui.theme.data.api.RetrofitInstance
-import com.example.smarparkinapp.ui.theme.data.api.UpdateProfileRequest as ApiUpdateProfileRequest
-import com.example.smarparkinapp.ui.theme.data.api.UserProfileResponse as ApiUserProfileResponse
-import com.example.smarparkinapp.ui.theme.data.model.UpdateProfileRequest
-import com.example.smarparkinapp.ui.theme.data.model.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -17,54 +13,51 @@ class UserRepository {
 
     fun initialize(context: Context) {
         apiService = RetrofitInstance.getAuthenticatedApiService(context)
-        Log.d(TAG, "Repository inicializado")
+        Log.d(TAG, "✅ Repository inicializado")
     }
 
-    suspend fun getUserProfile(): UserProfile = withContext(Dispatchers.IO) {
-        if (!::apiService.isInitialized) {
-            throw Exception("Repositorio no inicializado. Llama a initialize() primero.")
-        }
+    suspend fun getUserProfile(): com.example.smarparkinapp.ui.theme.data.model.UserProfile =
+        withContext(Dispatchers.IO) {
+            if (!::apiService.isInitialized) {
+                throw Exception("Repositorio no inicializado. Llama a initialize() primero.")
+            }
 
-        Log.d(TAG, "Obteniendo perfil de usuario...")
+            Log.d(TAG, "🔄 OBTENIENDO PERFIL DE USUARIO")
 
-        try {
-            // ✅ RUTA PRINCIPAL
             try {
-                Log.d(TAG, "Intentando ruta 1: profile/")
+                Log.d(TAG, "📞 Llamando a: api/users/profile/")
                 val response = apiService.getUserProfile()
+
                 if (response.isSuccessful) {
-                    val profile = response.body()
-                    Log.d(TAG, "✅ Perfil obtenido exitosamente")
-                    return@withContext profile?.toUserProfile() ?: throw Exception("Perfil vacío")
+                    val profileResponse = response.body()
+
+                    if (profileResponse == null) {
+                        Log.e(TAG, "❌ Respuesta vacía del servidor")
+                        throw Exception("Respuesta vacía del servidor")
+                    }
+
+                    // CONVERTIR
+                    val userProfile = profileResponse.toUserProfile()
+
+                    Log.d(TAG, "✅ PERFIL OBTENIDO CORRECTAMENTE")
+                    Log.d(TAG, "📊 Datos:")
+                    Log.d(TAG, "   Nombre: ${userProfile.firstName} ${userProfile.lastName}")
+                    Log.d(TAG, "   Teléfono: '${userProfile.phone}'")
+                    Log.d(TAG, "   Dirección: '${userProfile.address}'")
+                    Log.d(TAG, "   Documento: '${userProfile.tipoDocumento} - ${userProfile.numeroDocumento}'")
+
+                    return@withContext userProfile
                 } else {
-                    Log.e(TAG, "Error HTTP ruta 1: ${response.code()} - ${response.message()}")
+                    val errorMsg = "❌ Error HTTP ${response.code()}: ${response.message()}"
+                    Log.e(TAG, errorMsg)
+                    throw Exception(errorMsg)
                 }
+
             } catch (e: Exception) {
-                Log.e(TAG, "Error en ruta 1: ${e.message}")
+                Log.e(TAG, "❌ Error al obtener perfil: ${e.message}", e)
+                throw Exception("Error de conexión: ${e.message}")
             }
-
-            // ✅ RUTA DE COMPATIBILIDAD
-            try {
-                Log.d(TAG, "Intentando ruta 2: users/profile/")
-                val response = apiService.getUserProfileCompat()
-                if (response.isSuccessful) {
-                    val profile = response.body()
-                    Log.d(TAG, "✅ Perfil obtenido exitosamente desde ruta 2")
-                    return@withContext profile?.toUserProfile() ?: throw Exception("Perfil vacío")
-                } else {
-                    Log.e(TAG, "Error HTTP ruta 2: ${response.code()} - ${response.message()}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error en ruta 2: ${e.message}")
-            }
-
-            throw Exception("No se pudo obtener el perfil desde ninguna ruta")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error general: ${e.message}")
-            throw Exception("Error de conexión: ${e.message}")
         }
-    }
 
     suspend fun updateUserProfile(
         firstName: String,
@@ -76,15 +69,15 @@ class UserRepository {
         birthDate: String? = null,
         postalCode: String? = null,
         country: String? = null
-    ): UserProfile = withContext(Dispatchers.IO) {
+    ): com.example.smarparkinapp.ui.theme.data.model.UserProfile = withContext(Dispatchers.IO) {
         if (!::apiService.isInitialized) {
             throw Exception("Repositorio no inicializado.")
         }
 
-        Log.d(TAG, "Actualizando perfil...")
+        Log.d(TAG, "🔄 ACTUALIZANDO PERFIL")
 
-        // ✅ CORREGIDO: Convertir nuestro modelo local al modelo que espera el ApiService
-        val request = UpdateProfileRequest(
+        // Crear request
+        val request = com.example.smarparkinapp.ui.theme.data.model.UpdateProfileRequest(
             firstName = firstName,
             lastName = lastName,
             telefono = phone,
@@ -95,47 +88,39 @@ class UserRepository {
             direccion = address,
             codigoPostal = postalCode,
             pais = country
-        ).toApiUpdateProfileRequest()
+        )
+
+        Log.d(TAG, "📤 Request: $request")
 
         try {
-            // ✅ RUTA PRINCIPAL
-            try {
-                Log.d(TAG, "Intentando actualizar en ruta 1: profile/update/")
-                val response = apiService.updateUserProfile(request)
-                if (response.isSuccessful) {
-                    val updatedProfile = response.body()
-                    Log.d(TAG, "✅ Perfil actualizado exitosamente")
-                    return@withContext updatedProfile?.toUserProfile() ?: throw Exception("Respuesta inválida")
-                } else {
-                    Log.e(TAG, "Error HTTP ruta 1: ${response.code()} - ${response.message()}")
-                    val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "Error body ruta 1: $errorBody")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error en actualización ruta 1: ${e.message}")
-            }
+            val response = apiService.updateUserProfile(request)
 
-            // ✅ RUTA DE COMPATIBILIDAD
-            try {
-                Log.d(TAG, "Intentando actualizar en ruta 2: users/profile/update/")
-                val response = apiService.updateUserProfileCompat(request)
-                if (response.isSuccessful) {
-                    val updatedProfile = response.body()
-                    Log.d(TAG, "✅ Perfil actualizado desde ruta 2")
-                    return@withContext updatedProfile?.toUserProfile() ?: throw Exception("Respuesta inválida")
-                } else {
-                    Log.e(TAG, "Error HTTP ruta 2: ${response.code()} - ${response.message()}")
-                    val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "Error body ruta 2: $errorBody")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error en actualización ruta 2: ${e.message}")
-            }
+            if (response.isSuccessful) {
+                val updatedProfileResponse = response.body()
 
-            throw Exception("No se pudo actualizar el perfil en ninguna ruta")
+                if (updatedProfileResponse == null) {
+                    Log.e(TAG, "❌ Respuesta vacía del servidor")
+                    throw Exception("Respuesta vacía del servidor")
+                }
+
+                // CONVERTIR
+                val userProfile = updatedProfileResponse.toUserProfile()
+
+                Log.d(TAG, "✅ PERFIL ACTUALIZADO EXITOSAMENTE")
+                Log.d(TAG, "📊 Datos actualizados:")
+                Log.d(TAG, "   Teléfono: '${userProfile.phone}'")
+                Log.d(TAG, "   Dirección: '${userProfile.address}'")
+                Log.d(TAG, "   Documento: '${userProfile.tipoDocumento} - ${userProfile.numeroDocumento}'")
+
+                return@withContext userProfile
+            } else {
+                val errorMsg = "❌ Error HTTP ${response.code()}: ${response.message()}"
+                Log.e(TAG, errorMsg)
+                throw Exception(errorMsg)
+            }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error general al actualizar: ${e.message}")
+            Log.e(TAG, " Error al actualizar: ${e.message}", e)
             throw Exception("Error de actualización: ${e.message}")
         }
     }
@@ -152,38 +137,4 @@ class UserRepository {
     fun isInitialized(): Boolean {
         return ::apiService.isInitialized
     }
-}
-
-
-// Convierte UserProfileResponse del ApiService a nuestro UserProfile local
-private fun ApiUserProfileResponse.toUserProfile(): UserProfile {
-    return UserProfile(
-        id = this.id,
-        username = this.username,
-        email = this.email,
-        firstName = this.first_name ?: "",
-        lastName = this.last_name ?: "",
-        phone = this.phone ?: "",
-        address = this.address ?: "",
-        role = "client", // Valor por defecto
-        roleDisplay = "Cliente", // Valor por defecto
-        isAdmin = false,
-        isOwner = false,
-        isClient = true,
-        tipoDocumento = "",
-        numeroDocumento = "",
-        fechaNacimiento = "",
-        codigoPostal = "",
-        pais = "Perú"
-    )
-}
-
-// Convierte nuestro UpdateProfileRequest local al que espera el ApiService
-private fun UpdateProfileRequest.toApiUpdateProfileRequest(): ApiUpdateProfileRequest {
-    return ApiUpdateProfileRequest(
-        first_name = this.firstName,
-        last_name = this.lastName,
-        phone = this.telefono,
-        address = this.direccion
-    )
 }

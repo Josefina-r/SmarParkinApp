@@ -97,6 +97,10 @@ dependencies {
     // UI Extras
     implementation("io.coil-kt:coil-compose:2.4.0")
 
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+    implementation("com.google.accompanist:accompanist-permissions:0.31.1-alpha")
+
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
@@ -118,6 +122,12 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Testing - Mocking y Coroutines
+    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
 
 
 
