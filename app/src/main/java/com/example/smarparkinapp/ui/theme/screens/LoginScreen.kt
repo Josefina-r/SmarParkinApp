@@ -43,7 +43,7 @@ import com.example.smarparkinapp.ui.theme.viewmodel.UserViewModelFactory
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onRegisterClick: () -> Unit,
-    // ✅ NUEVO: Agregar navController para navegar a cambiar contraseña
+    // Agregar navController para navegar a cambiar contraseña
     navController: NavController,
     onForgotPasswordClick: () -> Unit = {},
 ) {
@@ -56,7 +56,7 @@ fun LoginScreen(
         }
     )
 
-    // ✅ NUEVO: UserViewModel para manejar la sesión del usuario
+    // UserViewModel para manejar la sesión del usuario
     val userViewModel: UserViewModel = viewModel(
         factory = UserViewModelFactory(context)
     )
@@ -69,7 +69,7 @@ fun LoginScreen(
     val errorMessage by loginViewModel.errorMessage.collectAsState()
     val loginSuccess by loginViewModel.loginSuccess.collectAsState()
 
-    // ✅ MEJORADO: Manejo del login exitoso con UserViewModel
+    // Manejo del login exitoso con UserViewModel
     LaunchedEffect(loginSuccess) {
         println("🔄 [SCREEN] LoginScreen - loginSuccess: $loginSuccess")
         if (loginSuccess) {
@@ -94,9 +94,9 @@ fun LoginScreen(
                 )
 
                 userViewModel.login(user, token)
-                println("✅ [SCREEN] Usuario configurado en UserViewModel")
+                println(" [SCREEN] Usuario configurado en UserViewModel")
             } else {
-                println("❌ [SCREEN] No se pudo recuperar información completa del usuario")
+                println("[SCREEN] No se pudo recuperar información completa del usuario")
             }
 
             // Navegar al home
@@ -234,14 +234,14 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // ✅ SIMPLIFICADO: Olvidé contraseña - Ahora navega directamente
+                    // Olvidé contraseña - Ahora navega directamente
                     Text(
                         text = "¿Olvidaste tu contraseña?",
                         color = AzulSecundario,
                         modifier = Modifier
                             .align(Alignment.End)
                             .clickable {
-                                // ✅ Navegar directamente a cambiar contraseña
+                                //  Navegar directamente a cambiar contraseña
                                 navController.navigate("changePassword")
                             }
                             .padding(top = 12.dp, bottom = 28.dp),

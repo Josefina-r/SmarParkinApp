@@ -105,16 +105,6 @@ fun TermsScreen(
                             contentDescription = if (isSearchActive) "Cerrar búsqueda" else "Volver"
                         )
                     }
-                },
-                actions = {
-                    if (!isSearchActive) {
-                        IconButton(onClick = { isSearchActive = true }) {
-                            Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.Search,
-                                contentDescription = "Buscar"
-                            )
-                        }
-                    }
                 }
             )
         }

@@ -34,7 +34,7 @@ fun VehicleSelectionScreen(
     val context = LocalContext.current
 
     LaunchedEffect(parkingId) {
-        println("🔄 [VehicleSelection] Parking ID: $parkingId")
+        println(" [VehicleSelection] Parking ID: $parkingId")
 
         parkingId?.let { id ->
             viewModel.loadParkingById(id)
@@ -53,7 +53,7 @@ fun VehicleSelectionScreen(
     val error by viewModel.error.collectAsState()
 
     LaunchedEffect(vehicles) {
-        println("✅ [VehicleSelection] Vehículos cargados: ${vehicles.size}")
+        println("[VehicleSelection] Vehículos cargados: ${vehicles.size}")
     }
 
     // Mostrar errores
@@ -87,11 +87,11 @@ fun VehicleSelectionScreen(
                     onClick = {
                         selectedVehicle?.let { vehicle ->
                             parkingId?.let { id ->
-                                // ✅  Establecer el vehículo seleccionado en el ViewModel
+                                //   Establecer el vehículo seleccionado en el ViewModel
                                 viewModel.setSelectedVehicle(vehicle)
                                 println("🚗 [VehicleSelection] Vehículo seleccionado: ${vehicle.plate}")
 
-                                // ✅ Navegar a ReservationScreen
+                                //  Navegar a ReservationScreen
                                 navController.navigate("reservation/$id") {
                                     launchSingleTop = true
                                 }
@@ -165,11 +165,13 @@ fun VehicleSelectionScreen(
             }
         }
     }
+    //agregar un vehiculo
 
     if (showAddVehicleDialog) {
         AddVehicleDialog(
             viewModel = viewModel,
             onDismiss = { showAddVehicleDialog = false },
+            //agregaos onSave
             onSave = {
                 showAddVehicleDialog = false
                 viewModel.loadUserVehicles()

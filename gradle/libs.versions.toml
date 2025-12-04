@@ -24,6 +24,9 @@ foundation = "1.9.5"
 uiText = "1.9.5"
 appcompat = "1.7.1"
 runtime = "1.9.5"
+junitJunit = "4.12"
+uiTestJunit4 = "1.9.5"
+uiTest = "1.9.5"
 
 # ELIMINAR estas versiones duplicadas:
 # foundation = "1.9.2" ❌
@@ -101,6 +104,9 @@ androidx-compose-foundation = { group = "androidx.compose.foundation", name = "f
 androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
+junit-junit = { group = "junit", name = "junit", version.ref = "junitJunit" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "uiTestJunit4" }
+androidx-compose-ui-test = { group = "androidx.compose.ui", name = "ui-test", version.ref = "uiTest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
